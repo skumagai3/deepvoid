@@ -1,0 +1,17 @@
+# C: one model trained on subhalos at spacings 3, 5, 7 and 10 h^-1 Mpc at
+# once, each batch drawn from one of them with equal probability. The model
+# is not told the spacing. Validation and test scores are reported per spacing.
+
+name: subhalo_C_mixed
+output: /content/drive/MyDrive/deepvoid_runs
+seed: 12
+
+data:
+  inputs: [tng300-3/subhalos/L3, tng300-3/subhalos/L5, tng300-3/subhalos/L7,
+           tng300-3/subhalos/L10]
+  labels: tng300-3/mask
+
+training:
+  val_batches: 16                        # per spacing
+  loss: {name: scce, class_weights: auto}
+  early_stopping: {monitor: val_mcc, patience: 20}

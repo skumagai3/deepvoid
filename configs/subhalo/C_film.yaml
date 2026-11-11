@@ -1,0 +1,23 @@
+# C + FiLM: as C, but the model is told the tracer spacing of each input.
+# log(spacing) goes through a small network that scales and shifts the
+# features in every convolution block (src/deepvoid/models/film.py). The
+# spacing is jittered by about 10% during training. Compare with C for the
+# value of conditioning, and use deepvoid.train.spacing_sweep to check the
+# model actually uses the spacing.
+
+name: subhalo_C_film
+output: /content/drive/MyDrive/deepvoid_runs
+seed: 12
+
+data:
+  inputs: [tng300-3/subhalos/L3, tng300-3/subhalos/L5, tng300-3/subhalos/L7,
+           tng300-3/subhalos/L10]
+  labels: tng300-3/mask
+
+model:
+  conditioning: {units: 32, noise: 0.1}
+
+training:
+  val_batches: 16                        # per spacing
+  loss: {name: scce, class_weights: auto}
+  early_stopping: {monitor: val_mcc, patience: 20}

@@ -1,0 +1,17 @@
+# A: trained from scratch on subhalos at spacing 10 h^-1 Mpc (real space).
+# Scored at all four spacings to see how a single-spacing model carries over.
+
+name: subhalo_A_scratch_L10
+output: /content/drive/MyDrive/deepvoid_runs
+seed: 12
+
+data:
+  inputs: [tng300-3/subhalos/L10]
+  labels: tng300-3/mask
+
+training:
+  loss: {name: scce, class_weights: auto}
+
+evaluate:
+  inputs: [tng300-3/subhalos/L3, tng300-3/subhalos/L5, tng300-3/subhalos/L7,
+           tng300-3/subhalos/L10]

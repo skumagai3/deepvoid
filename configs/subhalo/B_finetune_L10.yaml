@@ -1,0 +1,21 @@
+# B: the dark-matter baseline fine-tuned on subhalos at spacing 10 h^-1 Mpc.
+# All layers train, at a lower learning rate than from scratch. Same data
+# and scoring as A, so A vs B isolates what starting from the DM model buys.
+
+name: subhalo_B_finetune_L10
+output: /content/drive/MyDrive/deepvoid_runs
+seed: 12
+
+data:
+  inputs: [tng300-3/subhalos/L10]
+  labels: tng300-3/mask
+
+training:
+  init_from: tng_dm_baseline_v2          # run folder under `output`; uses its best.keras
+  optimizer: {name: adamw, learning_rate: 2.0e-4, weight_decay: 1.0e-4, clipnorm: 1.0}
+  schedule: {name: cosine, warmup_epochs: 1, min_lr_ratio: 0.01}
+  loss: {name: scce, class_weights: auto}
+
+evaluate:
+  inputs: [tng300-3/subhalos/L3, tng300-3/subhalos/L5, tng300-3/subhalos/L7,
+           tng300-3/subhalos/L10]

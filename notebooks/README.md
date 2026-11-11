@@ -12,11 +12,14 @@ repo while it is private.
 | `01_smoke_test.ipynb` | Tiny train, resume and score run to check the training code |
 | `02_tng_baseline.ipynb` | Dark-matter baseline on TNG300-3 |
 | `03_bolshoi_transfer.ipynb` | The TNG baseline applied to Bolshoi without retraining |
+| `04_subhalo_smoke_test.ipynb` | Tiny run checking FiLM, curriculum and `init_from` before the subhalo runs |
+| `05_subhalo_train.ipynb` | Trains one config from `configs/subhalo/` per session |
+| `06_subhalo_compare.ipynb` | Test MCC by run and spacing, and the FiLM spacing sweep |
 
 Planned:
 
 | Notebook | Purpose |
 |---|---|
-| `05_redshift_space.ipynb` | Redshift-space inputs with real-space labels |
-| `06_survey.ipynb` | Survey masks and radial selection |
-| `07_confidence.ipynb` | Temperature scaling and reliability diagrams |
+| `07_redshift_space.ipynb` | Redshift-space inputs with real-space labels |
+| `08_survey.ipynb` | Survey masks and radial selection |
+| `09_confidence.ipynb` | Temperature scaling and reliability diagrams |
