@@ -15,6 +15,7 @@ seeds are given), holding:
 - ``best.keras``: the model at the best validation score
 - ``last.keras``, ``ema.npz``, ``state.json``: what a resumed run needs
 - ``test_scores.json``: scores on the held-out test slab, written at the end
+  (one entry per input scored)
 
 Running the same config again continues an interrupted run from its last
 completed epoch (set ``training.resume: false`` to refuse instead). See
@@ -37,7 +38,7 @@ from .catalog import Catalog
 from .config import load_config, save_config
 from .evaluate import confusion_matrix, scores
 from .losses import build_loss
-from .models import load_model, unet3d
+from .models import copy_weights, is_conditioned, load_model, unet3d
 from .pipeline import CropSampler
 from .predict import predict_volume
 from .preprocess import Normalizer, auto_class_weights
@@ -79,26 +80,36 @@ def run(config, seed: int | None = None, catalog: Catalog | None = None) -> Path
         class_weights = auto_class_weights(labels.data[train_mask])
     (out / "class_weights.json").write_text(json.dumps(class_weights))
 
+    names = cfg["data"]["inputs"]
+    conditioned = cfg["model"]["conditioning"] is not None
+    spacings = [_spacing(catalog, n) for n in names] if conditioned else None
     y = [labels.data] * len(inputs)
     train_data = CropSampler(inputs, y, regions["train"], crop=tr["crop"],
                              batch_size=tr["batch_size"], steps_per_epoch=tr["steps_per_epoch"],
-                             rotate=tr["rotate"], seed=cfg["seed"])
-    # Validation crops can be smaller than training crops: the validation
-    # slab is thinner than the training slab, and the network takes any size.
-    val_source = CropSampler(inputs, y, regions["val"], crop=tr["val_crop"],
+                             rotate=tr["rotate"], seed=cfg["seed"], spacings=spacings,
+                             curriculum=tr["curriculum"])
+    # Fixed validation crops, the same number for each input, scored per input.
+    # They can be smaller than training crops: the validation slab is thinner
+    # than the training slab, and the network takes any size.
+    val_batches = {}
+    for i, name in enumerate(names):
+        source = CropSampler([inputs[i]], [labels.data], regions["val"], crop=tr["val_crop"],
                              batch_size=tr["batch_size"], steps_per_epoch=tr["val_batches"],
-                             rotate=False, seed=cfg["seed"] + 1)
-    val_batches = [(np.asarray(x), np.asarray(t, np.uint8))
-                   for x, t in (val_source[i] for i in range(len(val_source)))]
-    del val_source
+                             rotate=False, seed=cfg["seed"] + 1,
+                             spacings=[spacings[i]] if conditioned else None)
+        val_batches[_label(name)] = [(_to_numpy(x), np.asarray(t, np.uint8))
+                                     for x, t in (source[j] for j in range(len(source)))]
+        del source
 
-    # Model and optimizer, fresh or restored.
+    # Model and optimizer: restored, started from a trained model, or fresh.
     loss = build_loss(tr["loss"], class_weights)
     if resuming:
         model = keras.models.load_model(out / "last.keras")
         optimizer = model.optimizer
     else:
         model = unet3d(**cfg["model"])
+        if tr["init_from"]:
+            _init_from(model, tr["init_from"], cfg["output"])
         optimizer = _optimizer(tr)
     model.compile(optimizer=optimizer, loss=loss, metrics=["sparse_categorical_accuracy"],
                   jit_compile=tr["xla"])
@@ -133,30 +144,84 @@ def run(config, seed: int | None = None, catalog: Catalog | None = None) -> Path
 def evaluate_run(out: str | Path, catalog: Catalog | None = None) -> dict:
     """Predict each input's full box with ``best.keras`` and score the test slab.
 
+    Scores the inputs in ``evaluate.inputs`` (default: the training inputs).
+    An input the model was not trained on gets its own normalization, fit
+    on the training slab like the others. A model conditioned on spacing is
+    given each input's spacing from the catalog.
+
     Writes ``test_scores.json`` (scores and confusion matrix per input) and
     returns the same dict.
     """
     out = Path(out)
     cfg = load_config(out / "config.yaml")
-    ev = cfg["evaluate"]
+    names = cfg["evaluate"]["inputs"] or cfg["data"]["inputs"]
     catalog = catalog or Catalog()
     model = load_model(out / "best.keras")
-    norms = json.loads((out / "normalization.json").read_text())
-    labels = catalog.load(cfg["data"]["labels"]).data
-    test = Region(**json.loads((out / "split.json").read_text())["test"])
-    mask = test.mask(labels.shape[0])
+    labels, mask, norms = _test_setup(out, cfg, catalog, names)
 
     results = {}
-    for name in cfg["data"]["inputs"]:
-        x = Normalizer(**norms[name])(catalog.load(name).data)
-        probs = predict_volume(lambda b: model.predict_on_batch(b), x, crop=ev["crop"],
-                               margin=ev["margin"], batch_size=ev["batch_size"], tta=ev["tta"])
-        cm = confusion_matrix(labels, probs.argmax(-1), mask=mask)
-        results[name] = {**scores(cm), "confusion_matrix": cm.tolist()}
-        print(name, {k: round(v, 3) for k, v in results[name].items()
-                     if k in ("mcc", "void_f1", "halo_f1", "balanced_accuracy")})
+    for name in names:
+        x = norms[name](catalog.load(name).data)
+        spacing = _spacing(catalog, name) if is_conditioned(model) else None
+        results[name] = _score(model, x, labels, mask, cfg["evaluate"], spacing)
+        _print_scores(name, results[name])
     (out / "test_scores.json").write_text(json.dumps(results, indent=2))
     return results
+
+
+def spacing_sweep(out: str | Path, name: str, spacings: list[float],
+                  catalog: Catalog | None = None) -> dict:
+    """Score one input while telling a conditioned model a range of spacings.
+
+    A check that the model uses its spacing input: if the scores barely
+    change when it is told the wrong spacing, the conditioning is doing
+    nothing. Writes ``spacing_sweep_<label>.json`` and returns
+    ``{spacing: scores}``.
+    """
+    out = Path(out)
+    cfg = load_config(out / "config.yaml")
+    catalog = catalog or Catalog()
+    model = load_model(out / "best.keras")
+    if not is_conditioned(model):
+        raise ValueError(f"{out.name} is not conditioned on spacing")
+    labels, mask, norms = _test_setup(out, cfg, catalog, [name])
+    x = norms[name](catalog.load(name).data)
+    results = {}
+    for s in spacings:
+        results[str(s)] = _score(model, x, labels, mask, cfg["evaluate"], s)
+        _print_scores(f"{name} told {s}", results[str(s)])
+    (out / f"spacing_sweep_{_label(name)}.json").write_text(json.dumps(results, indent=2))
+    return results
+
+
+def _test_setup(out, cfg, catalog, names):
+    """Labels, test mask and a normalizer for each input name."""
+    saved = json.loads((out / "normalization.json").read_text())
+    labels = catalog.load(cfg["data"]["labels"]).data
+    regions = json.loads((out / "split.json").read_text())
+    mask = Region(**regions["test"]).mask(labels.shape[0])
+    train_mask = Region(**regions["train"]).mask(labels.shape[0])
+    norms = {n: Normalizer(**saved[n]) if n in saved
+             else Normalizer.fit(catalog.load(n).data, train_mask) for n in names}
+    return labels, mask, norms
+
+
+def _score(model, x, labels, mask, ev, spacing=None):
+    if spacing is None:
+        fn = model.predict_on_batch
+    else:
+        def fn(b):
+            s = np.full((len(b), 1, 1, 1, 1), spacing, np.float32)
+            return model.predict_on_batch({"density": b, "spacing": s})
+    probs = predict_volume(fn, x, crop=ev["crop"], margin=ev["margin"],
+                           batch_size=ev["batch_size"], tta=ev["tta"])
+    cm = confusion_matrix(labels, probs.argmax(-1), mask=mask)
+    return {**scores(cm), "confusion_matrix": cm.tolist()}
+
+
+def _print_scores(name, result):
+    print(name, {k: round(v, 3) for k, v in result.items()
+                 if k in ("mcc", "void_f1", "halo_f1", "balanced_accuracy")})
 
 
 def run_seeds(config, seeds: list[int], catalog: Catalog | None = None) -> dict:
@@ -183,6 +248,38 @@ def _normalized_inputs(cfg, catalog, train_mask, out, resuming):
         inputs.append(norms[name](data))
     path.write_text(json.dumps({k: v.to_dict() for k, v in norms.items()}, indent=2))
     return inputs
+
+
+def _spacing(catalog, name):
+    spacing = catalog.info(name).get("spacing")
+    if spacing is None:
+        raise ValueError(f"{name} has no 'spacing' in the catalog, which conditioning needs")
+    return float(spacing)
+
+
+def _label(name):
+    """Short label for a dataset name, e.g. 'tng300-3/subhalos/L10' -> 'L10'."""
+    return name.rsplit("/", 1)[-1]
+
+
+def _to_numpy(x):
+    if isinstance(x, dict):
+        return {k: np.asarray(v) for k, v in x.items()}
+    return np.asarray(x)
+
+
+def _init_from(model, source, output):
+    """Copy weights from a saved model (a .keras file or a run folder's best.keras)."""
+    path = Path(source)
+    if not path.is_absolute():
+        path = Path(output) / path
+    if path.is_dir():
+        path = path / "best.keras"
+    copied, skipped = copy_weights(load_model(path), model)
+    print(f"initialized {len(copied)} layers from {path}"
+          + (f"; left {len(skipped)} as built: {', '.join(skipped)}" if skipped else ""))
+    if not copied:
+        raise ValueError(f"no layers of {path} match this model")
 
 
 def _optimizer(tr):

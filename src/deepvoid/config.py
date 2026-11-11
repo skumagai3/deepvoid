@@ -29,6 +29,7 @@ DEFAULTS: dict[str, Any] = {
         "batch_norm": True,
         "bn_momentum": 0.99,
         "dropout": 0.0,
+        "conditioning": None,
     },
     "training": {
         "crop": 96,
@@ -38,6 +39,8 @@ DEFAULTS: dict[str, Any] = {
         "val_batches": 32,
         "epochs": 150,
         "rotate": True,
+        "init_from": None,
+        "curriculum": None,
         "optimizer": {"name": "adamw", "learning_rate": 1.0e-3,
                       "weight_decay": 1.0e-4, "clipnorm": 1.0},
         "schedule": {"name": "cosine", "warmup_epochs": 3, "min_lr_ratio": 0.01},
@@ -48,7 +51,7 @@ DEFAULTS: dict[str, Any] = {
         "xla": True,
         "resume": True,
     },
-    "evaluate": {"crop": 128, "margin": 16, "batch_size": 4, "tta": "none"},
+    "evaluate": {"crop": 128, "margin": 16, "batch_size": 4, "tta": "none", "inputs": None},
 }
 
 

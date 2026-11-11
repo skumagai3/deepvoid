@@ -6,6 +6,12 @@ the crops are gathered in a single GPU call, and the whole batch gets one of
 the 48 symmetries of a cube. A 512^3 volume in float16 is about 0.27 GB, so
 the data never has to leave the GPU.
 
+With several inputs, the input for each batch is drawn with the
+probabilities set by ``curriculum.py`` (equal by default). When
+``spacings`` are given, each batch is a dict with the density crops and the
+tracer spacing of the input they came from, for a model conditioned on
+spacing.
+
 Randomness is stateless: batch ``i`` of epoch ``e`` always uses the same
 crops for a given seed, which makes resumed runs see the same data they
 would have seen without the interruption.
@@ -19,6 +25,7 @@ import numpy as np
 import tensorflow as tf
 import keras
 
+from .curriculum import input_probabilities
 from .split import Region
 
 # Axis orders for the 6 permutations of (x, y, z); with the 8 sign flips
@@ -43,14 +50,24 @@ class CropSampler(keras.utils.PyDataset):
         Apply a random cube symmetry to each batch.
     seed:
         Base seed; with the epoch and batch index it fixes every batch.
+    spacings:
+        Tracer spacing of each input (h^-1 Mpc). If given, batches are
+        ``({"density": x, "spacing": s}, y)`` with s of shape (batch, 1, 1, 1, 1).
+    curriculum:
+        Sampling weights over epochs, see :func:`input_probabilities`.
     """
 
     def __init__(self, inputs: list[np.ndarray], labels: list[np.ndarray], region: Region,
                  crop: int = 96, batch_size: int = 8, steps_per_epoch: int = 200,
-                 rotate: bool = True, seed: int = 0, **kwargs):
+                 rotate: bool = True, seed: int = 0, spacings: list[float] | None = None,
+                 curriculum: dict | None = None, **kwargs):
         super().__init__(**kwargs)
         if len(inputs) != len(labels):
             raise ValueError("need one label array per input array")
+        if spacings is not None and len(spacings) != len(inputs):
+            raise ValueError("need one spacing per input array")
+        self.spacings, self.curriculum = spacings, curriculum
+        self.n_inputs = len(inputs)
         self.device = "/GPU:0" if tf.config.list_physical_devices("GPU") else "/CPU:0"
         with tf.device(self.device):
             self.x = [tf.identity(tf.constant(a, dtype=tf.float16)) for a in inputs]
@@ -60,14 +77,17 @@ class CropSampler(keras.utils.PyDataset):
         self.low = tf.constant([r.start for r in ranges], tf.int32)
         self.count = tf.constant([len(r) for r in ranges], tf.int32)
         self.crop, self.batch_size, self.steps = crop, batch_size, steps_per_epoch
-        self.rotate, self.seed, self.epoch = rotate, seed, 0
+        self.rotate, self.seed = rotate, seed
         self.offsets = tf.range(crop, dtype=tf.int32)
+        self.set_epoch(0)
 
     def __len__(self) -> int:
         return self.steps
 
     def set_epoch(self, epoch: int) -> None:
         self.epoch = epoch
+        p = input_probabilities(self.curriculum, self.n_inputs, epoch)
+        self.log_p = tf.constant(np.log(p)[None], tf.float32)
 
     def __getitem__(self, index):
         key = tf.constant([self.seed, self.epoch * self.steps + index], tf.int64)
@@ -77,7 +97,7 @@ class CropSampler(keras.utils.PyDataset):
     def batch(self, key):
         """One batch for a stateless random key of shape (2,)."""
         keys = tf.random.experimental.stateless_split(key, num=4)
-        v = int(tf.random.stateless_uniform([], keys[0], 0, len(self.x), dtype=tf.int32))
+        v = int(tf.random.stateless_categorical(self.log_p, 1, keys[0])[0, 0])
         u = tf.random.stateless_uniform([self.batch_size, 3], keys[1])
         origins = self.low + tf.cast(u * tf.cast(self.count, tf.float32), tf.int32)
         x = _gather_crops(self.x[v], origins, self.offsets)
@@ -86,7 +106,11 @@ class CropSampler(keras.utils.PyDataset):
             p = tf.random.stateless_uniform([], keys[2], 0, 6, dtype=tf.int32)
             flips = tf.random.stateless_uniform([3], keys[3], 0, 2, dtype=tf.int32)
             x, y = _symmetry(x, p, flips), _symmetry(y, p, flips)
-        return tf.cast(x[..., None], tf.float32), tf.cast(y, tf.int32)
+        x, y = tf.cast(x[..., None], tf.float32), tf.cast(y, tf.int32)
+        if self.spacings is None:
+            return x, y
+        s = tf.fill([self.batch_size, 1, 1, 1, 1], float(self.spacings[v]))
+        return {"density": x, "spacing": s}, y
 
 
 @tf.function(reduce_retracing=True)

@@ -233,3 +233,35 @@ def test_default_crops_fit_their_slabs_for_a_512_box():
     regions = slab_split(512, **DEFAULTS["data"]["split"])
     regions["train"].crop_origins(tr["crop"], 512)
     regions["val"].crop_origins(tr["val_crop"], 512)
+
+
+# ---------------------------------------------------------------- curriculum / subhalo configs
+
+def test_curriculum_moves_from_start_to_end_weights():
+    from deepvoid.curriculum import input_probabilities
+    np.testing.assert_allclose(input_probabilities(None, 4, 7), 0.25)
+    c = {"start": [4, 3, 2, 1], "end": [1, 1, 1, 1], "epochs": 30}
+    np.testing.assert_allclose(input_probabilities(c, 4, 0), [0.4, 0.3, 0.2, 0.1])
+    np.testing.assert_allclose(input_probabilities(c, 4, 15), [0.325, 0.275, 0.225, 0.175])
+    np.testing.assert_allclose(input_probabilities(c, 4, 30), 0.25)
+    np.testing.assert_allclose(input_probabilities(c, 4, 100), 0.25)
+    with pytest.raises(ValueError):
+        input_probabilities({"start": [1, 0, 1, 1]}, 4, 0)
+    with pytest.raises(ValueError):
+        input_probabilities({"start": [1, 1]}, 4, 0)
+
+
+def test_subhalo_configs_are_valid_and_inputs_have_spacings():
+    from pathlib import Path
+    from deepvoid.config import load_config
+    catalog = Catalog()
+    paths = sorted((Path(__file__).parents[1] / "configs" / "subhalo").glob("*.yaml"))
+    assert len(paths) == 5
+    for path in paths:
+        cfg = load_config(path)
+        names = cfg["data"]["inputs"] + (cfg["evaluate"]["inputs"] or [])
+        for name in names:
+            assert catalog.info(name)["spacing"] > 0
+        if cfg["training"]["curriculum"]:
+            from deepvoid.curriculum import input_probabilities
+            input_probabilities(cfg["training"]["curriculum"], len(cfg["data"]["inputs"]), 0)

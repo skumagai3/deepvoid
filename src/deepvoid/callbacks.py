@@ -88,33 +88,43 @@ class EMA(keras.callbacks.Callback):
 class Validation(keras.callbacks.Callback):
     """Scores the fixed validation crops at the end of every epoch.
 
-    Adds ``val_loss`` (unweighted cross-entropy), ``val_accuracy``,
-    ``val_mcc``, ``val_void_f1`` and ``val_halo_f1`` to the epoch logs, and
-    writes a validation slice (truth above, prediction below) to TensorBoard.
-    Uses the averaged weights when an :class:`EMA` is given.
+    ``batches`` maps a label (one per input, e.g. ``"L10"``) to that input's
+    list of (x, y) batches. Adds ``val_loss`` (unweighted cross-entropy),
+    ``val_accuracy``, ``val_mcc``, ``val_void_f1`` and ``val_halo_f1``,
+    pooled over all inputs, to the epoch logs, and with more than one input
+    also ``val_mcc_<label>`` for each. Writes a validation slice (truth
+    above, prediction below) to TensorBoard. Uses the averaged weights when
+    an :class:`EMA` is given.
     """
 
-    def __init__(self, batches, log_dir: Path, ema: EMA | None = None):
+    def __init__(self, batches: dict[str, list], log_dir: Path, ema: EMA | None = None):
         super().__init__()
         self.batches, self.ema = batches, ema
         self.writer = tf.summary.create_file_writer(str(log_dir / "validation"))
 
     def on_epoch_end(self, epoch, logs=None):
+        total, nll, count, first, per_input = 0, 0.0, 0, None, {}
         with self.ema.swapped() if self.ema else contextlib.nullcontext():
-            cm, nll, count, first = 0, 0.0, 0, None
-            for x, y in self.batches:
-                y = np.asarray(y)
-                p = np.asarray(self.model.predict_on_batch(x), dtype=np.float32)
-                pred = p.argmax(-1)
-                cm = cm + confusion_matrix(y, pred)
-                nll += -np.log(np.clip(np.take_along_axis(p, y[..., None], -1), 1e-7, 1)).sum()
-                count += y.size
-                if first is None:
-                    first = (y[0], pred[0])
-        s = scores(cm)
+            for label, batches in self.batches.items():
+                cm = 0
+                for x, y in batches:
+                    y = np.asarray(y)
+                    p = np.asarray(self.model.predict_on_batch(x), dtype=np.float32)
+                    pred = p.argmax(-1)
+                    cm = cm + confusion_matrix(y, pred)
+                    nll += -np.log(np.clip(np.take_along_axis(p, y[..., None], -1),
+                                           1e-7, 1)).sum()
+                    count += y.size
+                    if first is None:
+                        first = (y[0], pred[0])
+                per_input[label] = scores(cm)["mcc"]
+                total = total + cm
+        s = scores(total)
         if logs is not None:
             logs.update(val_loss=nll / count, val_accuracy=s["accuracy"], val_mcc=s["mcc"],
                         val_void_f1=s["void_f1"], val_halo_f1=s["halo_f1"])
+            if len(per_input) > 1:
+                logs.update({f"val_mcc_{k}": v for k, v in per_input.items()})
         k = first[0].shape[0] // 2
         image = np.concatenate([PALETTE[first[0][k]], PALETTE[first[1][k]]], axis=0)
         with self.writer.as_default():

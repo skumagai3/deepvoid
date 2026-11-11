@@ -1,11 +1,12 @@
 # Training
 
 ```python
-from deepvoid.train import run, run_seeds, evaluate_run
+from deepvoid.train import run, run_seeds, evaluate_run, spacing_sweep
 
 out = run("configs/tng_dm_baseline.yaml")                       # one run
 summary = run_seeds("configs/tng_dm_baseline.yaml", [1, 2, 3])  # mean and std over seeds
 evaluate_run(out)                                               # re-score a finished run
+spacing_sweep(out, "tng300-3/subhalos/L10", [3, 5, 7, 10])     # FiLM check, see below
 ```
 
 From a shell: `python -m deepvoid.train configs/tng_dm_baseline.yaml [--seeds 1 2 3]`.
@@ -28,13 +29,16 @@ as `config.yaml` in the run folder.
 | `model.depth`, `model.base_filters` | 4, 16 | U-Net size |
 | `model.batch_norm`, `model.bn_momentum` | true, 0.99 | Batch normalization |
 | `model.dropout` | 0 | Dropout at the bottom of the U-Net |
+| `model.conditioning` | null | Condition on tracer spacing (FiLM), e.g. `{units: 32, noise: 0.1}`; see below |
 | `training.crop` | 96 | Training crop side in cells |
 | `training.batch_size` | 8 | Crops per step |
 | `training.steps_per_epoch` | 200 | Steps between validation passes |
 | `training.val_crop` | 64 | Validation crop side; must fit inside the validation slab (70 cells for a 512^3 box with the default split) |
-| `training.val_batches` | 32 | Fixed validation crops, in batches |
+| `training.val_batches` | 32 | Fixed validation crops per input, in batches |
 | `training.epochs` | 150 | Upper limit; early stopping usually ends sooner |
 | `training.rotate` | true | Random cube symmetry per batch (48 rotations and reflections) |
+| `training.init_from` | null | Start from a trained model: a `.keras` file or a run folder (its `best.keras`), relative to `output` |
+| `training.curriculum` | null | Sampling weights over inputs that change with the epoch; see below |
 | `training.optimizer` | AdamW, lr 1e-3, weight decay 1e-4, clipnorm 1.0 | `name` is `adamw` or `adam`; `clipnorm` clips the gradient norm |
 | `training.schedule` | cosine, 3 warmup epochs, min 1% of lr | `cosine` (linear warmup, then cosine decay) or `constant` |
 | `training.ema` | 0.999 | Decay of the weight average; `null` turns it off |
@@ -47,6 +51,7 @@ as `config.yaml` in the run folder.
 | `training.resume` | true | Continue an interrupted run in the same folder |
 | `evaluate.crop`, `evaluate.margin` | 128, 16 | Crop size and discarded edge for full-box prediction |
 | `evaluate.tta` | `none` | Test-time augmentation: `none`, `flips` (8x) or `full` (48x) |
+| `evaluate.inputs` | null | Inputs to score on the test slab; null means the training inputs |
 
 ## What happens in a run
 
@@ -71,6 +76,50 @@ as `config.yaml` in the run folder.
 The learning rate follows its schedule whether or not training stops early.
 The schedule is set when a run starts, so changing `training.epochs` when
 resuming changes when training ends but not the schedule.
+
+## Several inputs, spacing and curriculum
+
+`data.inputs` can list several fields that share one label set, such as
+subhalo fields at tracer spacings 3, 5, 7 and 10 h^-1 Mpc
+(`configs/subhalo/`). Each training batch comes from one input, chosen
+with equal probability unless a curriculum says otherwise. Each input gets
+its own normalization, fit on the training slab. Validation crops are drawn
+from every input, and with more than one input the log also has
+`val_mcc_<label>` for each (`val_mcc_L3`, ...). `val_mcc` itself is pooled
+over all inputs. `test_scores.json` has one entry per input scored.
+
+**Starting from a trained model.** `training.init_from` copies weights from
+a saved model, layer by layer, matching names and shapes; the run log says
+how many layers were copied. Every layer stays trainable. Use a lower
+learning rate than from scratch (`configs/subhalo/B_finetune_L10.yaml` uses
+2e-4 with one warmup epoch).
+
+**Spacing conditioning (FiLM).** With `model.conditioning`, the model also
+takes the tracer spacing lambda = n^(-1/3), read from each input's
+`spacing` in the catalog. log(lambda) goes through a two-layer network
+with `units` outputs, and after every normalization layer the features are
+scaled and shifted by amounts computed from it (`models/film.py`). Those
+layers start at zero, so the conditioned model starts out identical to the
+plain one, and a plain model's weights can be loaded into it with
+`init_from`. During training lambda is multiplied by exp(N(0, `noise`)),
+so the model cannot rely on its exact value.
+
+To check the model uses lambda, `spacing_sweep(out, name, spacings)`
+scores one input while telling the model each of the given spacings, and
+writes `spacing_sweep_<label>.json`. If the scores barely change when the
+spacing is wrong, the conditioning is doing nothing.
+
+**Curriculum.** `training.curriculum` changes how often each input is drawn:
+
+```yaml
+curriculum: {start: [4, 3, 2, 1], end: [1, 1, 1, 1], epochs: 30}
+```
+
+The weights (one per input, in the order of `data.inputs`) move linearly
+from `start` to `end` over `epochs` epochs and stay at `end` after that.
+All weights must be positive, so every input is seen from the first epoch
+on; only the mix changes. Training on one input at a time tends to forget
+the earlier ones, which this avoids.
 
 ## Watching a run
 
