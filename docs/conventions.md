@@ -47,6 +47,9 @@ Cloud-in-cell, grid points at integer multiples of the cell size
   tuning.
 - Input normalization (log10(rho/rho_bar + 1e-3), then standardized) is fit on
   the training slab and saved with each run.
+- Training crops (96^3 by default) are drawn inside the training slab, and the
+  model is chosen by validation MCC on fixed crops from the validation slab.
+  Reported scores come from full-box prediction scored on the test slab only.
 
 ## Files
 

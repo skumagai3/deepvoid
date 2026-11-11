@@ -1,6 +1,6 @@
-"""Input normalization.
+"""Input normalization and class weights.
 
-Statistics are always fit on the training region only and saved with the
+Normalization statistics are always fit on the training region only and saved with the
 model, so validation, test and new volumes are scaled exactly as the
 training data were.
 """
@@ -42,3 +42,16 @@ class Normalizer:
 
     def to_dict(self) -> dict:
         return asdict(self)
+
+
+def auto_class_weights(labels: np.ndarray, n_classes: int = 4) -> list[float]:
+    """Class weights from label frequencies: w_c proportional to f_c^(-1/2).
+
+    The square root keeps very rare classes (halos, ~0.5% of voxels) from
+    dominating. Weights are scaled so the average weight per voxel is 1,
+    which keeps the loss on the same scale as unweighted cross-entropy.
+    """
+    f = np.bincount(labels.ravel(), minlength=n_classes) / labels.size
+    w = np.where(f > 0, f, 1.0) ** -0.5
+    w = w / np.sum(f * w)
+    return [float(x) for x in w]

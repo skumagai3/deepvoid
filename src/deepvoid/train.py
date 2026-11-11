@@ -1,130 +1,230 @@
-"""Train a model from a config file.
+"""Train and evaluate a model from a config.
 
     python -m deepvoid.train configs/tng_dm_baseline.yaml
+    python -m deepvoid.train configs/tng_dm_baseline.yaml --seeds 1 2 3
 
-or, in a notebook, ``deepvoid.train.run("configs/tng_dm_baseline.yaml")``.
+or in a notebook, ``run("configs/tng_dm_baseline.yaml")``.
 
-A run directory gets the config, the fitted normalization, a CSV training
-log, TensorBoard logs and the best checkpoint, so every result can be traced
-back to exactly what produced it. Requires TensorFlow.
+Each run gets its own folder, ``<output>/<name>`` (``<name>_seed<n>`` when
+seeds are given), holding:
 
-Progress while a run is going:
+- ``config.yaml``: every setting used, defaults included
+- ``normalization.json``, ``split.json``, ``class_weights.json``
+- ``log.csv``: one row per epoch, rewritten in full each epoch
+- ``tensorboard/``: losses, scores and a validation slice per epoch
+- ``best.keras``: the model at the best validation score
+- ``last.keras``, ``ema.npz``, ``state.json``: what a resumed run needs
+- ``test_scores.json``: scores on the held-out test slab, written at the end
 
-- ``log.csv`` gains a row per epoch: losses, accuracy, and validation MCC and
-  void F1 computed on the fixed validation crops.
-- ``tensorboard/`` holds the same scalars plus, each epoch, an image of a
-  validation slice (truth above, prediction below). In Colab, start
-  ``%tensorboard --logdir <run dir>`` before training.
+Running the same config again continues an interrupted run from its last
+completed epoch (set ``training.resume: false`` to refuse instead). See
+``docs/training.md`` for the settings. Requires TensorFlow.
 """
 
 from __future__ import annotations
 
+import argparse
 import json
 import shutil
-import sys
+import tempfile
 from pathlib import Path
 
 import keras
 import numpy as np
-import yaml
 
+from .callbacks import EMA, RunState, Validation, read_log
 from .catalog import Catalog
+from .config import load_config, save_config
 from .evaluate import confusion_matrix, scores
-from .losses import WeightedSCCE
+from .losses import build_loss
 from .models import unet3d
 from .pipeline import CropSampler
-from .preprocess import Normalizer
-from .split import slab_split
+from .predict import predict_volume
+from .preprocess import Normalizer, auto_class_weights
+from .split import Region, slab_split
 
 
-def run(config_path: str, catalog: Catalog | None = None) -> Path:
-    cfg = yaml.safe_load(open(config_path))
-    data, model_cfg, tr = cfg["data"], cfg["model"], cfg["training"]
+def run(config, seed: int | None = None, catalog: Catalog | None = None) -> Path:
+    """Train (or resume) one run, score it on the test slab, return its folder."""
+    cfg = load_config(config)
+    if seed is not None:
+        cfg["seed"] = seed
+        cfg["name"] = f"{cfg['name']}_seed{seed}"
+    tr = cfg["training"]
     catalog = catalog or Catalog()
-    keras.utils.set_random_seed(tr.get("seed", 0))
-    if tr.get("mixed_precision", True):
-        keras.mixed_precision.set_global_policy("mixed_float16")
-
     out = Path(cfg["output"]) / cfg["name"]
     out.mkdir(parents=True, exist_ok=True)
-    shutil.copy(config_path, out / "config.yaml")
 
-    labels = catalog.load(data["labels"])
-    regions = slab_split(labels.n, **data.get("split", {}))
+    resuming = tr["resume"] and (out / "state.json").exists() and (out / "last.keras").exists()
+    if resuming:
+        _check_same_config(cfg, out / "config.yaml")
+        print(f"resuming {out}")
+    elif (out / "state.json").exists():
+        raise FileExistsError(f"{out} already has a run; use a new name or resume: true")
+    save_config(cfg, out / "config.yaml")
+
+    keras.utils.set_random_seed(cfg["seed"])
+    if tr["mixed_precision"]:
+        keras.mixed_precision.set_global_policy("mixed_float16")
+
+    # Data, split and normalization (fit on the training slab only).
+    labels = catalog.load(cfg["data"]["labels"])
+    regions = slab_split(labels.n, **cfg["data"]["split"])
     train_mask = regions["train"].mask(labels.n)
-
-    # One normalizer per input field, fit on the training slab only.
-    inputs, norms = [], {}
-    for name in data["inputs"]:
-        vol = catalog.load(name)
-        norms[name] = Normalizer.fit(vol.data, train_mask)
-        inputs.append(norms[name](vol.data))
-    (out / "normalization.json").write_text(
-        json.dumps({k: v.to_dict() for k, v in norms.items()}, indent=2))
+    inputs = _normalized_inputs(cfg, catalog, train_mask, out, resuming)
     (out / "split.json").write_text(json.dumps({k: vars(v) for k, v in regions.items()}))
 
-    y = [labels.data] * len(inputs)
-    sampler = dict(crop=tr["crop"], batch_size=tr["batch_size"])
-    train_data = CropSampler(inputs, y, regions["train"], steps_per_epoch=tr["steps_per_epoch"],
-                             seed=tr.get("seed"), **sampler)
-    # A fixed set of validation crops, so val loss is comparable across epochs.
-    val_source = CropSampler(inputs, y, regions["val"], steps_per_epoch=tr["val_steps"],
-                             rotate=False, seed=1234, **sampler)
-    val_batches = [val_source[i] for i in range(len(val_source))]
+    class_weights = tr["loss"]["class_weights"]
+    if class_weights == "auto":
+        class_weights = auto_class_weights(labels.data[train_mask])
+    (out / "class_weights.json").write_text(json.dumps(class_weights))
 
-    model = unet3d(**model_cfg)
-    model.compile(optimizer=keras.optimizers.Adam(tr["learning_rate"]),
-                  loss=WeightedSCCE(tr.get("class_weights")),
-                  metrics=["sparse_categorical_accuracy"])
-    callbacks = [  # ValidationScores first: it adds to the logs the others record
-        ValidationScores(val_batches, out / "tensorboard"),
-        keras.callbacks.TensorBoard(str(out / "tensorboard"), write_graph=False),
-        keras.callbacks.ModelCheckpoint(str(out / "best.keras"), save_best_only=True),
-        keras.callbacks.CSVLogger(str(out / "log.csv")),
-        keras.callbacks.ReduceLROnPlateau(factor=0.25, patience=10),
-        keras.callbacks.EarlyStopping(patience=25, restore_best_weights=True),
+    y = [labels.data] * len(inputs)
+    sampling = dict(crop=tr["crop"], batch_size=tr["batch_size"])
+    train_data = CropSampler(inputs, y, regions["train"], steps_per_epoch=tr["steps_per_epoch"],
+                             rotate=tr["rotate"], seed=cfg["seed"], **sampling)
+    val_source = CropSampler(inputs, y, regions["val"], steps_per_epoch=tr["val_batches"],
+                             rotate=False, seed=cfg["seed"] + 1, **sampling)
+    val_batches = [(np.asarray(x), np.asarray(t, np.uint8))
+                   for x, t in (val_source[i] for i in range(len(val_source)))]
+    del val_source
+
+    # Model and optimizer, fresh or restored.
+    loss = build_loss(tr["loss"], class_weights)
+    if resuming:
+        model = keras.models.load_model(out / "last.keras")
+        optimizer = model.optimizer
+    else:
+        model = unet3d(**cfg["model"])
+        optimizer = _optimizer(tr)
+    model.compile(optimizer=optimizer, loss=loss, metrics=["sparse_categorical_accuracy"],
+                  jit_compile=tr["xla"])
+
+    state = json.loads((out / "state.json").read_text()) if resuming else {}
+    first_epoch = state.get("epoch", -1) + 1
+    patience = tr["early_stopping"]["patience"]
+
+    tb_local = Path(tempfile.gettempdir()) / "deepvoid_tensorboard" / cfg["name"]
+    if resuming and (out / "tensorboard").exists() and not tb_local.exists():
+        shutil.copytree(out / "tensorboard", tb_local)
+    ema = EMA(tr["ema"]) if tr["ema"] else None
+    if ema and resuming and (out / "ema.npz").exists():
+        ema.load(out / "ema.npz")
+
+    callbacks = ([ema] if ema else []) + [
+        Validation(val_batches, tb_local, ema),
+        keras.callbacks.TensorBoard(str(tb_local), write_graph=False),
+        RunState(out, train_data, monitor=tr["early_stopping"]["monitor"], patience=patience,
+                 ema=ema, tb_local=tb_local, state=state, rows=read_log(out / "log.csv")),
     ]
-    model.fit(train_data, validation_data=_as_dataset(val_batches),
-              epochs=tr["epochs"], callbacks=callbacks)
+    if first_epoch < tr["epochs"] and state.get("wait", 0) < patience:
+        model.fit(train_data, epochs=tr["epochs"], initial_epoch=first_epoch,
+                  callbacks=callbacks, verbose=2)
+    else:
+        print("training already finished")
+
+    evaluate_run(out, catalog)
     return out
 
 
-class ValidationScores(keras.callbacks.Callback):
-    """Each epoch: MCC and void F1 on the fixed validation crops, and a slice image."""
+def evaluate_run(out: str | Path, catalog: Catalog | None = None) -> dict:
+    """Predict each input's full box with ``best.keras`` and score the test slab.
 
-    PALETTE = np.array([[43, 108, 176], [154, 230, 180], [246, 173, 85], [197, 48, 48]],
-                       dtype=np.uint8)  # void, wall, filament, halo
+    Writes ``test_scores.json`` (scores and confusion matrix per input) and
+    returns the same dict.
+    """
+    out = Path(out)
+    cfg = load_config(out / "config.yaml")
+    ev = cfg["evaluate"]
+    catalog = catalog or Catalog()
+    model = keras.models.load_model(out / "best.keras")
+    norms = json.loads((out / "normalization.json").read_text())
+    labels = catalog.load(cfg["data"]["labels"]).data
+    test = Region(**json.loads((out / "split.json").read_text())["test"])
+    mask = test.mask(labels.shape[0])
 
-    def __init__(self, batches, log_dir):
-        super().__init__()
-        import tensorflow as tf
-        self.batches = batches
-        self.writer = tf.summary.create_file_writer(str(Path(log_dir) / "snapshots"))
-
-    def on_epoch_end(self, epoch, logs=None):
-        import tensorflow as tf
-        cm, first = 0, None
-        for x, y in self.batches:
-            pred = np.asarray(self.model.predict_on_batch(x)).argmax(-1)
-            cm = cm + confusion_matrix(np.asarray(y), pred)
-            if first is None:
-                first = (np.asarray(y)[0], pred[0])
-        s = scores(cm)
-        if logs is not None:
-            logs["val_mcc"], logs["val_void_f1"] = s["mcc"], s["void_f1"]
-        k = first[0].shape[0] // 2
-        image = np.concatenate([self.PALETTE[first[0][k]], self.PALETTE[first[1][k]]], axis=0)
-        with self.writer.as_default():
-            tf.summary.image("val slice: truth (top), prediction (bottom)", image[None], step=epoch)
-        self.writer.flush()
+    results = {}
+    for name in cfg["data"]["inputs"]:
+        x = Normalizer(**norms[name])(catalog.load(name).data)
+        probs = predict_volume(lambda b: model.predict_on_batch(b), x, crop=ev["crop"],
+                               margin=ev["margin"], batch_size=ev["batch_size"], tta=ev["tta"])
+        cm = confusion_matrix(labels, probs.argmax(-1), mask=mask)
+        results[name] = {**scores(cm), "confusion_matrix": cm.tolist()}
+        print(name, {k: round(v, 3) for k, v in results[name].items()
+                     if k in ("mcc", "void_f1", "halo_f1", "balanced_accuracy")})
+    (out / "test_scores.json").write_text(json.dumps(results, indent=2))
+    return results
 
 
-def _as_dataset(batches):
-    import tensorflow as tf
-    x = np.concatenate([b[0] for b in batches])
-    y = np.concatenate([b[1] for b in batches])
-    return tf.data.Dataset.from_tensor_slices((x, y)).batch(len(batches[0][0]))
+def run_seeds(config, seeds: list[int], catalog: Catalog | None = None) -> dict:
+    """Run one config with several seeds; return mean and std of each test score."""
+    outs = [run(config, seed=s, catalog=catalog) for s in seeds]
+    per_seed = [json.loads((o / "test_scores.json").read_text()) for o in outs]
+    summary = {}
+    for name in per_seed[0]:
+        keys = [k for k in per_seed[0][name] if k != "confusion_matrix"]
+        values = {k: np.array([r[name][k] for r in per_seed]) for k in keys}
+        summary[name] = {k: {"mean": float(v.mean()),
+                             "std": float(v.std(ddof=1)) if len(v) > 1 else 0.0}
+                         for k, v in values.items()}
+    return summary
+
+
+def _normalized_inputs(cfg, catalog, train_mask, out, resuming):
+    path = out / "normalization.json"
+    saved = json.loads(path.read_text()) if resuming and path.exists() else {}
+    inputs, norms = [], {}
+    for name in cfg["data"]["inputs"]:
+        data = catalog.load(name).data
+        norms[name] = Normalizer(**saved[name]) if name in saved else Normalizer.fit(data, train_mask)
+        inputs.append(norms[name](data))
+    path.write_text(json.dumps({k: v.to_dict() for k, v in norms.items()}, indent=2))
+    return inputs
+
+
+def _optimizer(tr):
+    opt, sched = tr["optimizer"], tr["schedule"]
+    lr = opt["learning_rate"]
+    if sched["name"] == "cosine":
+        total = tr["epochs"] * tr["steps_per_epoch"]
+        warmup = sched["warmup_epochs"] * tr["steps_per_epoch"]
+        lr = keras.optimizers.schedules.CosineDecay(
+            initial_learning_rate=0.0, decay_steps=max(total - warmup, 1),
+            alpha=sched["min_lr_ratio"], warmup_target=opt["learning_rate"],
+            warmup_steps=warmup)
+    elif sched["name"] != "constant":
+        raise ValueError("schedule must be 'cosine' or 'constant'")
+    if opt["name"] == "adamw":
+        return keras.optimizers.AdamW(learning_rate=lr, weight_decay=opt["weight_decay"],
+                                      clipnorm=opt["clipnorm"])
+    if opt["name"] == "adam":
+        return keras.optimizers.Adam(learning_rate=lr, clipnorm=opt["clipnorm"])
+    raise ValueError("optimizer must be 'adamw' or 'adam'")
+
+
+def _check_same_config(cfg, saved_path):
+    """Refuse to resume with different settings, except the epoch count and evaluation."""
+    saved = load_config(saved_path)
+    a, b = json.loads(json.dumps(cfg)), json.loads(json.dumps(saved))
+    for c in (a, b):
+        c["training"].pop("epochs")
+        c["training"].pop("resume")
+        c.pop("evaluate")
+    if a != b:
+        raise ValueError(f"settings differ from the run being resumed in {saved_path.parent}; "
+                         "use a new name for a new run")
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Train a DeepVoid model from a config.")
+    parser.add_argument("config")
+    parser.add_argument("--seeds", type=int, nargs="*")
+    args = parser.parse_args()
+    if args.seeds:
+        print(json.dumps(run_seeds(args.config, args.seeds), indent=2))
+    else:
+        print(run(args.config))
 
 
 if __name__ == "__main__":
-    print(run(sys.argv[1]))
+    main()

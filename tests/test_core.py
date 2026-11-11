@@ -178,3 +178,50 @@ def test_temperature_scaling_fixes_overconfidence():
     assert t == pytest.approx(2.0, rel=0.1)
     assert reliability(apply_temperature(overconfident, t), labels)["ece"] < \
         reliability(overconfident, labels)["ece"]
+
+
+# ---------------------------------------------------------------- config / tta / class weights
+
+def test_config_fills_defaults_and_rejects_typos():
+    from deepvoid.config import load_config
+    cfg = load_config({"name": "x", "data": {"inputs": ["a"], "labels": "b"},
+                       "training": {"crop": 64}})
+    assert cfg["training"]["crop"] == 64 and cfg["training"]["batch_size"] == 8
+    assert cfg["training"]["optimizer"]["name"] == "adamw"
+    with pytest.raises(KeyError):
+        load_config({"name": "x", "data": {"inputs": ["a"], "labels": "b"},
+                     "training": {"patience": 5}})
+
+
+def test_packaged_baseline_config_is_valid():
+    from pathlib import Path
+    from deepvoid.config import load_config
+    cfg = load_config(Path(__file__).parents[1] / "configs" / "tng_dm_baseline.yaml")
+    assert cfg["training"]["loss"]["class_weights"] == "auto"
+
+
+def test_tta_is_exact_for_an_equivariant_model():
+    from deepvoid.predict import symmetries, with_tta
+    assert len(symmetries("flips")) == 8 and len(symmetries("full")) == 48
+    onehot = lambda b: np.eye(4, dtype=np.float32)[b[..., 0].astype(int)]
+    batch = rng.integers(0, 4, (2, 6, 6, 6, 1)).astype(np.float32)
+    np.testing.assert_allclose(with_tta(onehot, "full")(batch), onehot(batch))
+
+
+def test_tta_undoes_each_transform():
+    from deepvoid.predict import with_tta
+    # A model that depends on position is not equivariant, so averaging over
+    # flips should blur it; undoing transforms correctly keeps the mean intact.
+    ramp = lambda b: np.repeat(np.linspace(0, 1, b.shape[1])[None, :, None, None, None],
+                               b.shape[0], 0) * np.ones(b.shape[:4] + (4,))
+    out = with_tta(ramp, "flips")(np.zeros((1, 8, 8, 8, 1)))
+    np.testing.assert_allclose(out, 0.5)
+
+
+def test_auto_class_weights_balance_to_one():
+    from deepvoid.preprocess import auto_class_weights
+    labels = np.repeat(np.arange(4), [650, 260, 85, 5])
+    w = np.array(auto_class_weights(labels))
+    f = np.bincount(labels) / labels.size
+    assert np.isclose(np.sum(f * w), 1.0) and w[3] > w[2] > w[1] > w[0]
+    assert w[3] / w[0] == pytest.approx(np.sqrt(650 / 5))
