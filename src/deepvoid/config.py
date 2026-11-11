@@ -22,6 +22,7 @@ DEFAULTS: dict[str, Any] = {
         "inputs": [],
         "labels": None,
         "split": {"fractions": [0.7, 0.15, 0.15], "buffer": 16, "axis": 0},
+        "smoothing": None,
     },
     "model": {
         "depth": 4,

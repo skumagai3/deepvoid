@@ -43,8 +43,9 @@ class CropSampler(keras.utils.PyDataset):
     Parameters
     ----------
     inputs, labels:
-        One normalized input array and one integer label array per volume,
-        each (n, n, n). Several inputs may share a label array.
+        One normalized input array, (n, n, n) or (n, n, n, channels), and one
+        integer label array, (n, n, n), per volume. Several inputs may share
+        a label array.
     region:
         The slab crops are drawn from; they never leave it.
     crop, batch_size, steps_per_epoch:
@@ -78,7 +79,7 @@ class CropSampler(keras.utils.PyDataset):
         label_ids = list(dict.fromkeys(id(a) for a in labels))
         by_id = {id(a): a for a in labels}
         with tf.device(self.device):
-            self.x = tf.identity(tf.constant(np.stack([np.asarray(a, np.float16)
+            self.x = tf.identity(tf.constant(np.stack([_with_channels(np.asarray(a, np.float16))
                                                        for a in inputs])))
             self.y = tf.identity(tf.constant(np.stack([np.asarray(by_id[i], np.uint8)
                                                        for i in label_ids])))
@@ -120,7 +121,7 @@ class CropSampler(keras.utils.PyDataset):
             p = tf.random.stateless_uniform([], keys[2], 0, 6, dtype=tf.int32)
             flips = tf.random.stateless_uniform([3], keys[3], 0, 2, dtype=tf.int32)
             x, y = _symmetry(x, p, flips), _symmetry(y, p, flips)
-        x, y = tf.cast(x[..., None], tf.float32), tf.cast(y, tf.int32)
+        x, y = tf.cast(x, tf.float32), tf.cast(y, tf.int32)
         if self.spacings is None:
             return x, y
         s = tf.reshape(tf.gather(self.spacing_of, v), [-1, 1, 1, 1, 1])
@@ -129,7 +130,11 @@ class CropSampler(keras.utils.PyDataset):
 
 @tf.function(reduce_retracing=True)
 def _gather_crops(volumes, which, origins, offsets):
-    """Crop i of side len(offsets) from volumes[which[i]] at origins[i]; (batch, c, c, c)."""
+    """Crop i of side len(offsets) from volumes[which[i]] at origins[i].
+
+    Returns (batch, c, c, c) for label volumes and (batch, c, c, c, channels)
+    for input volumes.
+    """
     b, c = tf.shape(origins)[0], tf.shape(offsets)[0]
     shape = [b, c, c, c]
     ix = origins[:, 0, None] + offsets
@@ -146,8 +151,12 @@ def _gather_crops(volumes, which, origins, offsets):
 
 @tf.function(reduce_retracing=True)
 def _symmetry(batch, p, flips):
-    """Apply permutation ``PERMUTATIONS[p]`` and the given axis flips to (b, x, y, z)."""
-    perm = tf.concat([[0], PERMUTATIONS[p] + 1], axis=0)
+    """Apply permutation ``PERMUTATIONS[p]`` and the given axis flips to (b, x, y, z, ...)."""
+    perm = tf.concat([[0], PERMUTATIONS[p] + 1, tf.range(4, tf.rank(batch))], axis=0)
     batch = tf.transpose(batch, perm)
     axes = tf.boolean_mask(tf.constant([1, 2, 3]), tf.cast(flips, tf.bool))
     return tf.reverse(batch, axes)
+
+
+def _with_channels(a: np.ndarray) -> np.ndarray:
+    return a[..., None] if a.ndim == 3 else a

@@ -1,0 +1,23 @@
+# A with a second input channel: the same subhalo field Gaussian-smoothed
+# with sigma = half the tracer spacing (5 h^-1 Mpc at spacing 10). The raw
+# channel is kept, so the network still sees exact tracer positions.
+# Everything else matches A_scratch_L10, so A vs this run isolates the
+# smoothed channel. See src/deepvoid/inputs.py.
+
+name: subhalo_A_smooth2ch_L10
+output: /content/drive/MyDrive/deepvoid_runs
+seed: 12
+
+data:
+  inputs: [tng300-3/subhalos/L10]
+  labels: tng300-3/mask
+  smoothing: {sigma_spacing: 0.5, keep_raw: true}
+
+training:
+  epochs: 150                            # as A
+  loss: {name: scce, class_weights: auto}
+  early_stopping: {monitor: val_mcc, patience: 15, min_delta: 0.0}   # as A
+
+evaluate:
+  inputs: [tng300-3/subhalos/L3, tng300-3/subhalos/L5, tng300-3/subhalos/L7,
+           tng300-3/subhalos/L10]

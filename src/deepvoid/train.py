@@ -37,12 +37,14 @@ from .callbacks import EMA, RunState, Validation, read_log
 from .catalog import Catalog
 from .config import load_config, save_config
 from .evaluate import confusion_matrix, scores
+from .inputs import build as build_input
+from .inputs import n_channels
 from .losses import build_loss
 from .models import copy_weights, is_conditioned, load_model, unet3d
 from .pipeline import CropSampler
 from .predict import predict_volume
 from .resample import upsampled_argmax
-from .preprocess import Normalizer, auto_class_weights
+from .preprocess import auto_class_weights
 from .split import Region, slab_split
 
 
@@ -108,7 +110,7 @@ def run(config, seed: int | None = None, catalog: Catalog | None = None) -> Path
         model = keras.models.load_model(out / "last.keras")
         optimizer = model.optimizer
     else:
-        model = unet3d(**cfg["model"])
+        model = unet3d(**cfg["model"], in_channels=n_channels(cfg["data"]["smoothing"]))
         if tr["init_from"]:
             _init_from(model, tr["init_from"], cfg["output"])
         optimizer = _optimizer(tr)
@@ -161,11 +163,11 @@ def evaluate_run(out: str | Path, catalog: Catalog | None = None) -> dict:
     names = cfg["evaluate"]["inputs"] or cfg["data"]["inputs"]
     catalog = catalog or Catalog()
     model = load_model(out / "best.keras")
-    labels, mask, norms, factor = _test_setup(out, cfg, catalog, names)
+    labels, mask, make_x, factor = _test_setup(out, cfg, catalog)
 
     results = {}
     for name in names:
-        x = norms[name](catalog.load(name).data)
+        x = make_x(name)
         spacing = _spacing(catalog, name) if is_conditioned(model) else None
         results[name] = _score(model, x, labels, mask, cfg["evaluate"], spacing, factor)
         _print_scores(name, results[name])
@@ -188,8 +190,8 @@ def spacing_sweep(out: str | Path, name: str, spacings: list[float],
     model = load_model(out / "best.keras")
     if not is_conditioned(model):
         raise ValueError(f"{out.name} is not conditioned on spacing")
-    labels, mask, norms, factor = _test_setup(out, cfg, catalog, [name])
-    x = norms[name](catalog.load(name).data)
+    labels, mask, make_x, factor = _test_setup(out, cfg, catalog)
+    x = make_x(name)
     results = {}
     for s in spacings:
         results[str(s)] = _score(model, x, labels, mask, cfg["evaluate"], s, factor)
@@ -198,15 +200,21 @@ def spacing_sweep(out: str | Path, name: str, spacings: list[float],
     return results
 
 
-def _test_setup(out, cfg, catalog, names):
-    """Scoring labels and test mask, a normalizer per input, and the upsampling factor."""
-    saved = json.loads((out / "normalization.json").read_text())
+def _test_setup(out, cfg, catalog):
+    """Scoring labels and test mask, an input builder, and the upsampling factor.
+
+    The builder uses the run's saved normalization; an input the run never
+    saw is normalized from its own training slab.
+    """
+    norms = json.loads((out / "normalization.json").read_text())
     regions = {k: Region(**v) for k, v in json.loads((out / "split.json").read_text()).items()}
     labels = catalog.load(cfg["data"]["labels"]).data
     n = labels.shape[0]
     train_mask = regions["train"].mask(n)
-    norms = {name: Normalizer(**saved[name]) if name in saved
-             else Normalizer.fit(catalog.load(name).data, train_mask) for name in names}
+
+    def make_x(name):
+        return build_input(catalog, name, cfg["data"]["smoothing"], norms, train_mask)
+
     factor = 1
     if cfg["evaluate"]["labels"]:
         labels = catalog.load(cfg["evaluate"]["labels"]).data
@@ -216,7 +224,7 @@ def _test_setup(out, cfg, catalog, names):
                              f"of the training grid ({n})")
     test = regions["test"]
     test = Region(test.name, test.axis, test.start * factor, test.stop * factor)
-    return labels, test.mask(labels.shape[0]), norms, factor
+    return labels, test.mask(labels.shape[0]), make_x, factor
 
 
 def _score(model, x, labels, mask, ev, spacing=None, factor=1):
@@ -253,15 +261,13 @@ def run_seeds(config, seeds: list[int], catalog: Catalog | None = None) -> dict:
 
 
 def _normalized_inputs(cfg, catalog, train_mask, out, resuming):
+    """One (n, n, n, channels) array per input; normalization saved to the run folder."""
     path = out / "normalization.json"
-    saved = json.loads(path.read_text()) if resuming and path.exists() else {}
-    inputs, norms = [], {}
-    for name in cfg["data"]["inputs"]:
-        data = catalog.load(name).data
-        norms[name] = Normalizer(**saved[name]) if name in saved else Normalizer.fit(data, train_mask)
-        inputs.append(norms[name](data))
-    path.write_text(json.dumps({k: v.to_dict() for k, v in norms.items()}, indent=2))
-    return inputs
+    norms = json.loads(path.read_text()) if resuming and path.exists() else {}
+    arrays = [build_input(catalog, name, cfg["data"]["smoothing"], norms, train_mask)
+              for name in cfg["data"]["inputs"]]
+    path.write_text(json.dumps(norms, indent=2))
+    return arrays
 
 
 def _spacing(catalog, name):

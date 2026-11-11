@@ -58,11 +58,11 @@ def predict_volume(predict_fn: Callable[[np.ndarray], np.ndarray], x: np.ndarray
     Parameters
     ----------
     predict_fn:
-        Maps a batch of shape (B, crop, crop, crop, 1) to probabilities of
+        Maps a batch of shape (B, crop, crop, crop, channels) to probabilities of
         shape (B, crop, crop, crop, n_classes); for a Keras model use
         ``lambda b: model.predict_on_batch(b)``.
     x:
-        Normalized input, shape (n, n, n).
+        Normalized input, shape (n, n, n) or (n, n, n, channels).
     tta:
         ``"none"``, ``"flips"`` or ``"full"``; see the module docstring.
 
@@ -70,6 +70,8 @@ def predict_volume(predict_fn: Callable[[np.ndarray], np.ndarray], x: np.ndarray
     """
     if tta != "none":
         predict_fn = with_tta(predict_fn, tta)
+    if x.ndim == 3:
+        x = x[..., None]
     n = x.shape[0]
     stride = crop - 2 * margin
     if stride <= 0:
@@ -84,7 +86,7 @@ def predict_volume(predict_fn: Callable[[np.ndarray], np.ndarray], x: np.ndarray
     for b in range(0, len(tiles), batch_size):
         batch_tiles = tiles[b:b + batch_size]
         batch = np.stack([x[np.ix_(window(i), window(j), window(k))]
-                          for i, j, k in batch_tiles])[..., None]
+                          for i, j, k in batch_tiles])
         probs = np.asarray(predict_fn(batch.astype(np.float32)))
         keep = probs[:, margin:crop - margin, margin:crop - margin, margin:crop - margin]
         for (i, j, k), p in zip(batch_tiles, keep):

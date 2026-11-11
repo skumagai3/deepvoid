@@ -256,7 +256,7 @@ def test_subhalo_configs_are_valid_and_inputs_have_spacings():
     from deepvoid.config import load_config
     catalog = Catalog()
     paths = sorted((Path(__file__).parents[1] / "configs" / "subhalo").glob("*.yaml"))
-    assert len(paths) == 6
+    assert len(paths) == 7
     for path in paths:
         cfg = load_config(path)
         names = cfg["data"]["inputs"] + (cfg["evaluate"]["inputs"] or [])
@@ -316,3 +316,46 @@ def test_coarse_config_and_catalog_entries():
     regions = slab_split(256, **cfg["data"]["split"])
     regions["train"].crop_origins(cfg["training"]["crop"], 256)
     regions["val"].crop_origins(cfg["training"]["val_crop"], 256)
+
+
+# ---------------------------------------------------------------- input channels
+
+def test_smoothed_channel_fills_a_sparse_field(tmp_path):
+    from deepvoid.inputs import build, n_channels, smoothing_cells
+    points = np.zeros((32, 32, 32), np.float32)
+    points[tuple(rng.integers(0, 32, (3, 20)))] = 1.0       # 20 tracers in 32^3 cells
+    write_fvol(points, tmp_path / "pts.fvol")
+    spec = {"root": str(tmp_path),
+            "simulations": {"toy": {"sim": "Toy", "box_size": 64.0}},
+            "datasets": {"toy/pts": {"file": "pts.fvol", "sim": "toy", "field": "density",
+                                     "spacing": 8.0}}}
+    (tmp_path / "cat.yaml").write_text(yaml.safe_dump(spec))
+    catalog = Catalog(tmp_path / "cat.yaml")
+    train = slab_split(32, buffer=2)["train"].mask(32)
+
+    assert smoothing_cells({"sigma_spacing": 0.5}, 8.0, 2.0) == 2.0
+    norms = {}
+    x = build(catalog, "toy/pts", {"sigma_spacing": 0.5}, norms, train)
+    assert x.shape == (32, 32, 32, 2) and n_channels({"sigma_spacing": 0.5}) == 2
+    assert set(norms) == {"toy/pts", "toy/pts#smooth"}
+    raw, smooth = x[..., 0], x[..., 1]
+    # The raw channel is one value almost everywhere; the smoothed one varies.
+    assert len(np.unique(raw)) <= 3 and len(np.unique(smooth)) > 1000
+    # Saved normalization reproduces the same input.
+    np.testing.assert_allclose(build(catalog, "toy/pts", {"sigma_spacing": 0.5}, norms), x)
+    only = build(catalog, "toy/pts", {"sigma_mpc": 4.0, "keep_raw": False}, {}, train)
+    assert only.shape == (32, 32, 32, 1)
+    with pytest.raises(KeyError):
+        build(catalog, "toy/pts", {"sigma_mpc": 4.0, "typo": 1}, {}, train)
+
+
+def test_predict_volume_passes_all_channels():
+    x = rng.normal(size=(24, 24, 24, 2)).astype(np.float32)
+    x[..., 1] = rng.integers(0, 4, (24, 24, 24))
+    seen = []
+    def fn(b):
+        seen.append(b.shape[-1])
+        return np.eye(4, dtype=np.float32)[b[..., 1].astype(int)]
+    probs = predict_volume(fn, x, crop=16, margin=4, batch_size=2)
+    assert set(seen) == {2}
+    np.testing.assert_array_equal(probs.argmax(-1), x[..., 1])

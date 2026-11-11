@@ -26,6 +26,7 @@ as `config.yaml` in the run folder.
 | `data.inputs` | required | Input datasets from the catalog; several share one label set |
 | `data.labels` | required | Mask dataset from the catalog |
 | `data.split` | 0.7/0.15/0.15, buffer 16, axis 0 | Train, validation and test slabs |
+| `data.smoothing` | null | Add a Gaussian-smoothed copy of each input as a second channel: `{sigma_spacing: 0.5}` (sigma as a fraction of the tracer spacing) or `{sigma_mpc: 5}`; `keep_raw: false` drops the raw channel |
 | `model.depth`, `model.base_filters` | 4, 16 | U-Net size |
 | `model.batch_norm`, `model.bn_momentum` | true, 0.99 | Batch normalization |
 | `model.dropout` | 0 | Dropout at the bottom of the U-Net |
