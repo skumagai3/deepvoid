@@ -37,7 +37,7 @@ from .catalog import Catalog
 from .config import load_config, save_config
 from .evaluate import confusion_matrix, scores
 from .losses import build_loss
-from .models import unet3d
+from .models import load_model, unet3d
 from .pipeline import CropSampler
 from .predict import predict_volume
 from .preprocess import Normalizer, auto_class_weights
@@ -140,7 +140,7 @@ def evaluate_run(out: str | Path, catalog: Catalog | None = None) -> dict:
     cfg = load_config(out / "config.yaml")
     ev = cfg["evaluate"]
     catalog = catalog or Catalog()
-    model = keras.models.load_model(out / "best.keras")
+    model = load_model(out / "best.keras")
     norms = json.loads((out / "normalization.json").read_text())
     labels = catalog.load(cfg["data"]["labels"]).data
     test = Region(**json.loads((out / "split.json").read_text())["test"])
