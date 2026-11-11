@@ -265,3 +265,18 @@ def test_subhalo_configs_are_valid_and_inputs_have_spacings():
         if cfg["training"]["curriculum"]:
             from deepvoid.curriculum import input_probabilities
             input_probabilities(cfg["training"]["curriculum"], len(cfg["data"]["inputs"]), 0)
+
+
+def test_stopper_ignores_tiny_gains_but_keeps_the_best_model():
+    from deepvoid.stopping import Stopper
+    s = Stopper("max", patience=3, min_delta=0.01)
+    assert s.update(0, 0.50)                      # first score is the best
+    for epoch, v in enumerate([0.501, 0.502, 0.503], start=1):
+        assert s.update(epoch, v)                 # still saved as best...
+    assert s.should_stop and s.best == 0.503      # ...but too small to reset patience
+    s = Stopper("max", patience=3, min_delta=0.01, state=s.state() | {"wait": 0})
+    s.update(4, 0.52)
+    assert s.wait == 0 and s.ref == 0.52
+    loss = Stopper("min", patience=2, min_delta=0.1)
+    loss.update(0, 1.0); loss.update(1, 0.95)
+    assert loss.best == 0.95 and loss.wait == 1

@@ -45,7 +45,7 @@ as `config.yaml` in the run folder.
 | `training.loss.name` | `scce` | `scce` or `dice_scce` (cross-entropy plus Dice) |
 | `training.loss.class_weights` | null | `null`, `auto`, or a list of 4 weights |
 | `training.loss.dice_weight` | 1.0 | Weight of the Dice term in `dice_scce` |
-| `training.early_stopping` | `val_mcc`, patience 15 | Score to track and epochs to wait without improvement |
+| `training.early_stopping` | `val_mcc`, patience 15, min_delta 0.002 | Score to track, and epochs to wait without a gain of at least `min_delta` |
 | `training.mixed_precision` | true | float16 compute, float32 weights |
 | `training.xla` | true | Compile the training step with XLA |
 | `training.resume` | true | Continue an interrupted run in the same folder |
@@ -68,8 +68,10 @@ as `config.yaml` in the run folder.
    (loss, accuracy, MCC, void F1, halo F1). These are 64^3 by default,
    smaller than the training crops, because the validation slab is thinner
    than the training slab. The best epoch by the monitored
-   score is saved as `best.keras`, and training stops after `patience`
-   epochs without improvement.
+   score is saved as `best.keras` (any gain counts). Training stops after
+   `patience` epochs in which the score has not beaten its last reference
+   value by at least `min_delta`, so a score creeping up by tiny amounts
+   does not keep a run going.
 6. At the end, `best.keras` predicts the full box and is scored on the test
    slab, written to `test_scores.json`.
 

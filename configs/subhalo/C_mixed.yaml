@@ -16,4 +16,4 @@ training:
   val_batches: 16                        # per spacing
   optimizer: {name: adamw, learning_rate: 1.0e-3, weight_decay: 1.0e-3, clipnorm: 1.0}
   loss: {name: scce, class_weights: auto}
-  early_stopping: {monitor: val_mcc, patience: 15}
+  early_stopping: {monitor: val_mcc, patience: 15, min_delta: 0.002}

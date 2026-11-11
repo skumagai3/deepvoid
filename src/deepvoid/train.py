@@ -129,6 +129,7 @@ def run(config, seed: int | None = None, catalog: Catalog | None = None) -> Path
         Validation(val_batches, tb_local, ema),
         keras.callbacks.TensorBoard(str(tb_local), write_graph=False),
         RunState(out, train_data, monitor=tr["early_stopping"]["monitor"], patience=patience,
+                 min_delta=tr["early_stopping"]["min_delta"],
                  ema=ema, tb_local=tb_local, state=state, rows=read_log(out / "log.csv")),
     ]
     if first_epoch < tr["epochs"] and state.get("wait", 0) < patience:

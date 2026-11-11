@@ -46,7 +46,7 @@ DEFAULTS: dict[str, Any] = {
         "schedule": {"name": "cosine", "warmup_epochs": 3, "min_lr_ratio": 0.01},
         "ema": 0.999,
         "loss": {"name": "scce", "class_weights": None, "dice_weight": 1.0},
-        "early_stopping": {"monitor": "val_mcc", "patience": 15},
+        "early_stopping": {"monitor": "val_mcc", "patience": 15, "min_delta": 0.002},
         "mixed_precision": True,
         "xla": True,
         "resume": True,

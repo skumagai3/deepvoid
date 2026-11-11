@@ -17,6 +17,7 @@ import numpy as np
 import tensorflow as tf
 
 from .evaluate import confusion_matrix, scores
+from .stopping import Stopper
 
 PALETTE = np.array([[43, 108, 176], [154, 230, 180], [246, 173, 85], [197, 48, 48]],
                    dtype=np.uint8)  # void, wall, filament, halo
@@ -145,20 +146,18 @@ class RunState(keras.callbacks.Callback):
     - saves ``last.keras`` (raw weights and optimizer state), the EMA weights
       and ``state.json``, which together let a stopped run continue;
     - copies the TensorBoard logs from fast local disk to the run folder;
-    - stops training once the score has not improved for ``patience`` epochs.
+    - stops training once the score has not improved by at least
+      ``min_delta`` for ``patience`` epochs (see ``stopping.py``).
     """
 
     def __init__(self, out: Path, sampler, monitor: str = "val_mcc", patience: int = 15,
-                 ema: EMA | None = None, tb_local: Path | None = None,
-                 state: dict | None = None, rows: list[dict] | None = None):
+                 min_delta: float = 0.0, ema: EMA | None = None,
+                 tb_local: Path | None = None, state: dict | None = None,
+                 rows: list[dict] | None = None):
         super().__init__()
         self.out, self.sampler, self.ema = out, sampler, ema
-        self.monitor, self.patience, self.tb_local = monitor, patience, tb_local
-        self.mode = "min" if "loss" in monitor else "max"
-        state = state or {}
-        self.best = state.get("best", np.inf if self.mode == "min" else -np.inf)
-        self.best_epoch = state.get("best_epoch", -1)
-        self.wait = state.get("wait", 0)
+        self.monitor, self.tb_local = monitor, tb_local
+        self.stopper = Stopper("min" if "loss" in monitor else "max", patience, min_delta, state)
         self.rows = rows or []
 
     def on_epoch_begin(self, epoch, logs=None):
@@ -172,27 +171,25 @@ class RunState(keras.callbacks.Callback):
         self._write_log()
 
         value = logs[self.monitor]
-        improved = value < self.best if self.mode == "min" else value > self.best
-        if improved:
-            self.best, self.best_epoch, self.wait = float(value), epoch, 0
+        if self.stopper.update(epoch, value):
             with self.ema.swapped() if self.ema else contextlib.nullcontext():
                 _atomic_save(self.model, self.out / "best.keras")
-        else:
-            self.wait += 1
 
         _atomic_save(self.model, self.out / "last.keras")
         if self.ema:
             self.ema.save(self.out / "ema.npz")
-        state = {"epoch": epoch, "best": self.best, "best_epoch": self.best_epoch,
-                 "wait": self.wait, "monitor": self.monitor}
+        state = {"epoch": epoch, **self.stopper.state(), "monitor": self.monitor}
         (self.out / "state.json").write_text(json.dumps(state, indent=2))
         if self.tb_local is not None:
             shutil.copytree(self.tb_local, self.out / "tensorboard", dirs_exist_ok=True)
 
+        st = self.stopper
         print(f"epoch {epoch}: {self.monitor} {value:.4f} "
-              f"(best {self.best:.4f} at epoch {self.best_epoch})")
-        if self.wait >= self.patience:
-            print(f"stopping: no improvement in {self.monitor} for {self.patience} epochs")
+              f"(best {st.best:.4f} at epoch {st.best_epoch}; "
+              f"{st.wait}/{st.patience} epochs without a gain of {st.min_delta})")
+        if st.should_stop:
+            print(f"stopping: {self.monitor} has not improved by {st.min_delta} "
+                  f"in {st.patience} epochs")
             self.model.stop_training = True
 
     def _write_log(self):
