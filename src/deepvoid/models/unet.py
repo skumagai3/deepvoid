@@ -11,7 +11,7 @@ def _conv_block(x, filters: int, batch_norm: bool, name: str):
         x = layers.Conv3D(filters, 3, padding="same", use_bias=not batch_norm,
                           name=f"{name}_conv{i}")(x)
         if batch_norm:
-            x = layers.BatchNormalization(name=f"{name}_bn{i}")(x)
+            x = layers.BatchNormalization(momentum=0.9, name=f"{name}_bn{i}")(x)
         x = layers.Activation("relu", name=f"{name}_relu{i}")(x)
     return x
 
@@ -26,7 +26,9 @@ def unet3d(depth: int = 4, base_filters: int = 16, n_classes: int = 4,
     2^(depth - 1). Layers are named by block (``enc0``, ``enc1``, ...,
     ``bottom``, ``dec...``) so they can be frozen by name for curriculum
     training. The output is a float32 softmax, which keeps it stable under
-    mixed precision.
+    mixed precision. Batch-norm momentum is 0.9 rather than Keras's 0.99 so
+    the running statistics used at inference settle within a few hundred
+    steps.
     """
     inputs = keras.Input(shape=(None, None, None, in_channels), name="density")
     x, skips = inputs, []
