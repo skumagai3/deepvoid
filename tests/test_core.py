@@ -225,3 +225,11 @@ def test_auto_class_weights_balance_to_one():
     f = np.bincount(labels) / labels.size
     assert np.isclose(np.sum(f * w), 1.0) and w[3] > w[2] > w[1] > w[0]
     assert w[3] / w[0] == pytest.approx(np.sqrt(650 / 5))
+
+
+def test_default_crops_fit_their_slabs_for_a_512_box():
+    from deepvoid.config import DEFAULTS
+    tr = DEFAULTS["training"]
+    regions = slab_split(512, **DEFAULTS["data"]["split"])
+    regions["train"].crop_origins(tr["crop"], 512)
+    regions["val"].crop_origins(tr["val_crop"], 512)

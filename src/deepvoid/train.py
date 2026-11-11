@@ -80,11 +80,14 @@ def run(config, seed: int | None = None, catalog: Catalog | None = None) -> Path
     (out / "class_weights.json").write_text(json.dumps(class_weights))
 
     y = [labels.data] * len(inputs)
-    sampling = dict(crop=tr["crop"], batch_size=tr["batch_size"])
-    train_data = CropSampler(inputs, y, regions["train"], steps_per_epoch=tr["steps_per_epoch"],
-                             rotate=tr["rotate"], seed=cfg["seed"], **sampling)
-    val_source = CropSampler(inputs, y, regions["val"], steps_per_epoch=tr["val_batches"],
-                             rotate=False, seed=cfg["seed"] + 1, **sampling)
+    train_data = CropSampler(inputs, y, regions["train"], crop=tr["crop"],
+                             batch_size=tr["batch_size"], steps_per_epoch=tr["steps_per_epoch"],
+                             rotate=tr["rotate"], seed=cfg["seed"])
+    # Validation crops can be smaller than training crops: the validation
+    # slab is thinner than the training slab, and the network takes any size.
+    val_source = CropSampler(inputs, y, regions["val"], crop=tr["val_crop"],
+                             batch_size=tr["batch_size"], steps_per_epoch=tr["val_batches"],
+                             rotate=False, seed=cfg["seed"] + 1)
     val_batches = [(np.asarray(x), np.asarray(t, np.uint8))
                    for x, t in (val_source[i] for i in range(len(val_source)))]
     del val_source

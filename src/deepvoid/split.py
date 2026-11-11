@@ -41,8 +41,8 @@ class Region:
         full = range(0, n - crop + 1)
         along = range(self.start, self.stop - crop + 1)
         if len(along) == 0:
-            raise ValueError(f"region {self.name!r} ({self.size} cells) is thinner than "
-                             f"the crop ({crop})")
+            raise ValueError(f"the {self.name!r} slab is {self.size} cells thick, thinner than "
+                             f"the {crop}-cell crop; use a smaller crop or a larger slab")
         return tuple(along if a == self.axis else full for a in range(3))
 
 

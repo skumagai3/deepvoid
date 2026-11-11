@@ -31,6 +31,7 @@ as `config.yaml` in the run folder.
 | `training.crop` | 96 | Training crop side in cells |
 | `training.batch_size` | 8 | Crops per step |
 | `training.steps_per_epoch` | 200 | Steps between validation passes |
+| `training.val_crop` | 64 | Validation crop side; must fit inside the validation slab (70 cells for a 512^3 box with the default split) |
 | `training.val_batches` | 32 | Fixed validation crops, in batches |
 | `training.epochs` | 150 | Upper limit; early stopping usually ends sooner |
 | `training.rotate` | true | Random cube symmetry per batch (48 rotations and reflections) |
@@ -59,7 +60,9 @@ as `config.yaml` in the run folder.
    epoch and step are always the same.
 4. After each step the weight average (EMA) is updated.
 5. After each epoch the averaged weights score the fixed validation crops
-   (loss, accuracy, MCC, void F1, halo F1). The best epoch by the monitored
+   (loss, accuracy, MCC, void F1, halo F1). These are 64^3 by default,
+   smaller than the training crops, because the validation slab is thinner
+   than the training slab. The best epoch by the monitored
    score is saved as `best.keras`, and training stops after `patience`
    epochs without improvement.
 6. At the end, `best.keras` predicts the full box and is scored on the test

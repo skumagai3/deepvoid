@@ -34,6 +34,7 @@ DEFAULTS: dict[str, Any] = {
         "crop": 96,
         "batch_size": 8,
         "steps_per_epoch": 200,
+        "val_crop": 64,
         "val_batches": 32,
         "epochs": 150,
         "rotate": True,
