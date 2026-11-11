@@ -30,13 +30,27 @@ def unet3d(depth: int = 4, base_filters: int = 16, n_classes: int = 4,
     The input side length is left open, so a model trained on 64^3 crops can
     predict on larger cubes, as long as the side is divisible by
     2^(depth - 1). Layers are named by block (``enc0``, ``enc1``, ...,
-    ``bottom``, ``dec...``) so they can be matched or frozen by name. The output is a float32 softmax, which keeps it stable under
-    mixed precision.
+    ``bottom``, ``dec...``) so they can be matched or frozen by name. The
+    output is a float32 softmax, which keeps it stable under mixed precision.
+
+    With ``conditioning`` (a dict of :class:`SpacingEmbedding` settings,
+    e.g. ``{"units": 32, "noise": 0.1}``), the model takes a second input,
+    ``spacing``, of shape (batch, 1, 1, 1, 1) holding the tracer spacing in
+    h^-1 Mpc, and every convolution is followed by a FiLM layer (see
+    ``film.py``). Inputs are then passed as a dict with keys ``density``
+    and ``spacing``.
     """
     inputs = keras.Input(shape=(None, None, None, in_channels), name="density")
+    emb = None
+    model_inputs = inputs
+    if conditioning is not None:
+        spacing = keras.Input(shape=(None, None, None, 1), name="spacing")
+        emb = SpacingEmbedding(**conditioning, name="spacing_embedding")(spacing)
+        model_inputs = {"density": inputs, "spacing": spacing}
+    block = dict(batch_norm=batch_norm, bn_momentum=bn_momentum, embedding=emb)
     x, skips = inputs, []
     for level in range(depth - 1):
-        x = _conv_block(x, base_filters * 2 ** level, batch_norm, bn_momentum, f"enc{level}")
+        x = _conv_block(x, base_filters * 2 ** level, name=f"enc{level}", **block)
         skips.append(x)
         x = layers.MaxPooling3D(2, name=f"enc{level}_pool")(x)
 
