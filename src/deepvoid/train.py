@@ -5,8 +5,16 @@
 or, in a notebook, ``deepvoid.train.run("configs/tng_dm_baseline.yaml")``.
 
 A run directory gets the config, the fitted normalization, a CSV training
-log and the best checkpoint, so every result can be traced back to exactly
-what produced it. Requires TensorFlow.
+log, TensorBoard logs and the best checkpoint, so every result can be traced
+back to exactly what produced it. Requires TensorFlow.
+
+Progress while a run is going:
+
+- ``log.csv`` gains a row per epoch: losses, accuracy, and validation MCC and
+  void F1 computed on the fixed validation crops.
+- ``tensorboard/`` holds the same scalars plus, each epoch, an image of a
+  validation slice (truth above, prediction below). In Colab, start
+  ``%tensorboard --logdir <run dir>`` before training.
 """
 
 from __future__ import annotations
@@ -21,6 +29,7 @@ import numpy as np
 import yaml
 
 from .catalog import Catalog
+from .evaluate import confusion_matrix, scores
 from .losses import WeightedSCCE
 from .models import unet3d
 from .pipeline import CropSampler
@@ -67,7 +76,9 @@ def run(config_path: str, catalog: Catalog | None = None) -> Path:
     model.compile(optimizer=keras.optimizers.Adam(tr["learning_rate"]),
                   loss=WeightedSCCE(tr.get("class_weights")),
                   metrics=["sparse_categorical_accuracy"])
-    callbacks = [
+    callbacks = [  # ValidationScores first: it adds to the logs the others record
+        ValidationScores(val_batches, out / "tensorboard"),
+        keras.callbacks.TensorBoard(str(out / "tensorboard"), write_graph=False),
         keras.callbacks.ModelCheckpoint(str(out / "best.keras"), save_best_only=True),
         keras.callbacks.CSVLogger(str(out / "log.csv")),
         keras.callbacks.ReduceLROnPlateau(factor=0.25, patience=10),
@@ -76,6 +87,36 @@ def run(config_path: str, catalog: Catalog | None = None) -> Path:
     model.fit(train_data, validation_data=_as_dataset(val_batches),
               epochs=tr["epochs"], callbacks=callbacks)
     return out
+
+
+class ValidationScores(keras.callbacks.Callback):
+    """Each epoch: MCC and void F1 on the fixed validation crops, and a slice image."""
+
+    PALETTE = np.array([[43, 108, 176], [154, 230, 180], [246, 173, 85], [197, 48, 48]],
+                       dtype=np.uint8)  # void, wall, filament, halo
+
+    def __init__(self, batches, log_dir):
+        super().__init__()
+        import tensorflow as tf
+        self.batches = batches
+        self.writer = tf.summary.create_file_writer(str(Path(log_dir) / "snapshots"))
+
+    def on_epoch_end(self, epoch, logs=None):
+        import tensorflow as tf
+        cm, first = 0, None
+        for x, y in self.batches:
+            pred = np.asarray(self.model.predict_on_batch(x)).argmax(-1)
+            cm = cm + confusion_matrix(np.asarray(y), pred)
+            if first is None:
+                first = (np.asarray(y)[0], pred[0])
+        s = scores(cm)
+        if logs is not None:
+            logs["val_mcc"], logs["val_void_f1"] = s["mcc"], s["void_f1"]
+        k = first[0].shape[0] // 2
+        image = np.concatenate([self.PALETTE[first[0][k]], self.PALETTE[first[1][k]]], axis=0)
+        with self.writer.as_default():
+            tf.summary.image("val slice: truth (top), prediction (bottom)", image[None], step=epoch)
+        self.writer.flush()
 
 
 def _as_dataset(batches):
