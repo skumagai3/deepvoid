@@ -256,7 +256,7 @@ def test_subhalo_configs_are_valid_and_inputs_have_spacings():
     from deepvoid.config import load_config
     catalog = Catalog()
     paths = sorted((Path(__file__).parents[1] / "configs" / "subhalo").glob("*.yaml"))
-    assert len(paths) == 7
+    assert len(paths) == 10
     for path in paths:
         cfg = load_config(path)
         names = cfg["data"]["inputs"] + (cfg["evaluate"]["inputs"] or [])
@@ -409,3 +409,18 @@ def test_report_saves_numbers_as_plain_json(tmp_path):
     Report(tmp_path / "r").record(d=1)                       # reopening keeps earlier entries
     saved = json.loads((tmp_path / "r" / "results.json").read_text())
     assert saved == {"a": 0.5, "b": [0, 1, 2], "c": {"3": [1.0, None]}, "d": 1}
+
+
+def test_evaluation_figure_draws_and_saves(tmp_path):
+    import matplotlib
+    matplotlib.use("Agg")
+    from deepvoid.evaluate import confusion_matrix, scores
+    from deepvoid.figures import evaluation_figure, save_and_display
+    truth = rng.integers(0, 4, (32, 32))
+    pred = np.where(rng.random((32, 32)) < 0.8, truth, rng.integers(0, 4, (32, 32)))
+    cm = confusion_matrix(truth, pred)
+    res = {**scores(cm), "confusion_matrix": cm.tolist()}
+    rows = [dict(name=f"toy/L{L}", input=rng.normal(size=(32, 32)), truth=truth, pred=pred,
+                 result=res) for L in (3, 10)]
+    path = save_and_display(evaluation_figure(rows, "toy", box_size=205.0), tmp_path / "f.png")
+    assert path.exists() and path.stat().st_size > 10_000

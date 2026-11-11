@@ -1,0 +1,22 @@
+# Ablation: as A_smooth2ch_L10 but without the raw channel, so the network
+# sees only the smoothed field. Same schedule as A_smooth2ch so the two
+# validation curves can be compared epoch by epoch (A_smooth2ch was stopped
+# at epoch 46; stopping this one around there is enough).
+
+name: subhalo_A_smoothonly_L10
+output: /content/drive/MyDrive/deepvoid_runs
+seed: 12
+
+data:
+  inputs: [tng300-3/subhalos/L10]
+  labels: tng300-3/mask
+  smoothing: {sigma_spacing: 0.5, keep_raw: false}
+
+training:
+  epochs: 150                            # as A_smooth2ch
+  loss: {name: scce, class_weights: auto}
+  early_stopping: {monitor: val_mcc, patience: 15, min_delta: 0.0}
+
+evaluate:
+  inputs: [tng300-3/subhalos/L3, tng300-3/subhalos/L5, tng300-3/subhalos/L7,
+           tng300-3/subhalos/L10]

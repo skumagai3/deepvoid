@@ -1,0 +1,26 @@
+# B + smoothed channel: the dark-matter baseline fine-tuned at spacing 10
+# with the raw and smoothed (sigma = 5 h^-1 Mpc) subhalo channels. Tests
+# whether the two things that helped (starting from the DM model, the
+# smoothed input) add up. The DM model takes one channel, so its first
+# convolution is not copied; every later layer is.
+
+name: subhalo_B_smooth2ch_L10
+output: /content/drive/MyDrive/deepvoid_runs
+seed: 12
+
+data:
+  inputs: [tng300-3/subhalos/L10]
+  labels: tng300-3/mask
+  smoothing: {sigma_spacing: 0.5, keep_raw: true}
+
+training:
+  init_from: tng_dm_baseline_v2
+  epochs: 60
+  optimizer: {name: adamw, learning_rate: 2.0e-4, weight_decay: 1.0e-4, clipnorm: 1.0}
+  schedule: {name: cosine, warmup_epochs: 1, min_lr_ratio: 0.01}
+  loss: {name: scce, class_weights: auto}
+  early_stopping: {monitor: val_mcc, patience: 15, min_delta: 0.002}
+
+evaluate:
+  inputs: [tng300-3/subhalos/L3, tng300-3/subhalos/L5, tng300-3/subhalos/L7,
+           tng300-3/subhalos/L10]

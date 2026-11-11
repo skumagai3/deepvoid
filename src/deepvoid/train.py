@@ -16,6 +16,8 @@ seeds are given), holding:
 - ``last.keras``, ``ema.npz``, ``state.json``: what a resumed run needs
 - ``test_scores.json``: scores on the held-out test slab, written at the end
   (one entry per input scored)
+- ``test_figure.png``: a slice through the test slab and the confusion matrix
+  for each input scored
 
 Running the same config again continues an interrupted run from its last
 completed epoch (set ``training.resume: false`` to refuse instead). See
@@ -156,10 +158,11 @@ def evaluate_run(out: str | Path, catalog: Catalog | None = None, **overrides) -
     upsampled to it and scored on the same test slab at that resolution.
 
     Writes ``test_scores.json`` (scores and confusion matrix per input) and
-    returns the same dict. Keyword arguments override the run's
+    ``test_figure.png`` (a slice through the test slab and the confusion
+    matrix for each input), and returns the scores. Keyword arguments override the run's
     ``evaluate`` settings, e.g. ``evaluate_run(out, margin=32)`` to re-score
-    a finished run; the results then go to ``test_scores_margin32.json`` so
-    the original scores are kept.
+    a finished run; the results then go to ``test_scores_margin32.json`` and
+    ``test_figure_margin32.png`` so the originals are kept.
     """
     out = Path(out)
     cfg = load_config(out / "config.yaml")
@@ -171,15 +174,24 @@ def evaluate_run(out: str | Path, catalog: Catalog | None = None, **overrides) -
     catalog = catalog or Catalog()
     model = load_model(out / "best.keras")
     labels, mask, make_x, factor = _test_setup(out, cfg, catalog)
+    # Slice for the figure: the middle of the test slab, on the scoring grid.
+    test = Region(**json.loads((out / "split.json").read_text())["test"])
+    mid = (test.start + test.size // 2) * factor
+    axis = test.axis
 
-    results = {}
+    results, rows = {}, []
     for name in names:
         x = make_x(name)
         spacing = _spacing(catalog, name) if is_conditioned(model) else None
-        results[name] = _score(model, x, labels, mask, cfg["evaluate"], spacing, factor)
+        results[name], pred = _score(model, x, labels, mask, cfg["evaluate"], spacing, factor,
+                                     keep=(axis, mid))
+        rows.append(dict(name=name, result=results[name], pred=pred,
+                         truth=np.take(labels, mid, axis=axis),
+                         input=np.take(x[..., -1], mid // factor, axis=axis)))
         _print_scores(name, results[name])
     suffix = "".join(f"_{k}{v}" for k, v in sorted(overrides.items()) if not isinstance(v, (list, dict)))
     (out / f"test_scores{suffix}.json").write_text(json.dumps(results, indent=2))
+    _figure(out, rows, suffix, catalog.info(names[0]).get("box_size"))
     return results
 
 
@@ -202,7 +214,7 @@ def spacing_sweep(out: str | Path, name: str, spacings: list[float],
     x = make_x(name)
     results = {}
     for s in spacings:
-        results[str(s)] = _score(model, x, labels, mask, cfg["evaluate"], s, factor)
+        results[str(s)], _ = _score(model, x, labels, mask, cfg["evaluate"], s, factor)
         _print_scores(f"{name} told {s}", results[str(s)])
     (out / f"spacing_sweep_{_label(name)}.json").write_text(json.dumps(results, indent=2))
     return results
@@ -235,7 +247,18 @@ def _test_setup(out, cfg, catalog):
     return labels, test.mask(labels.shape[0]), make_x, factor
 
 
-def _score(model, x, labels, mask, ev, spacing=None, factor=1):
+def _figure(out, rows, suffix, box_size):
+    """Test-slab figure for evaluate_run; a failure here never loses the scores."""
+    try:
+        from .figures import evaluation_figure, save_and_display
+        fig = evaluation_figure(rows, f"{out.name}: test slab, middle slice", box_size)
+        save_and_display(fig, out / f"test_figure{suffix}.png")
+    except Exception as err:                      # noqa: BLE001
+        print(f"could not draw the test figure: {err}")
+
+
+def _score(model, x, labels, mask, ev, spacing=None, factor=1, keep=None):
+    """Scores on the test mask, and the predicted slice ``keep = (axis, index)`` if given."""
     if spacing is None:
         fn = model.predict_on_batch
     else:
@@ -246,7 +269,8 @@ def _score(model, x, labels, mask, ev, spacing=None, factor=1):
                            batch_size=ev["batch_size"], tta=ev["tta"])
     pred = probs.argmax(-1) if factor == 1 else upsampled_argmax(probs, factor)
     cm = confusion_matrix(labels, pred, mask=mask)
-    return {**scores(cm), "confusion_matrix": cm.tolist()}
+    kept = np.take(pred, keep[1], axis=keep[0]) if keep else None
+    return {**scores(cm), "confusion_matrix": cm.tolist()}, kept
 
 
 def _print_scores(name, result):

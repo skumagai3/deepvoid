@@ -75,7 +75,7 @@ as `config.yaml` in the run folder.
    value by at least `min_delta`, so a score creeping up by tiny amounts
    does not keep a run going.
 6. At the end, `best.keras` predicts the full box and is scored on the test
-   slab, written to `test_scores.json`.
+   slab, written to `test_scores.json`, with a figure (`test_figure.png`): a slice through the middle of the test slab (input, truth, prediction, wrong voxels) and the confusion matrix for each input.
 
 The learning rate follows its schedule whether or not training stops early,
 so `training.epochs` should be close to how long a run actually needs: if
