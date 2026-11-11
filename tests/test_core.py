@@ -471,3 +471,21 @@ def test_void_reliability_bins_scores_against_void_fraction():
     over = void_reliability(np.clip(s * 1.5, 0, 1), truth)   # scores larger than the void fraction
     assert over["ece"] > 0.05
     assert rel["counts"].sum() == 200_000
+
+
+def test_precision_recall_readouts_and_pr_figure(tmp_path):
+    import matplotlib
+    matplotlib.use("Agg")
+    from deepvoid.evaluate import precision_at_recall, recall_at_precision, void_threshold_curve
+    from deepvoid.figures import save_and_display, void_pr_figure
+    truth = rng.integers(0, 2, 20000)
+    score = np.clip(0.5 * (truth == 0) + 0.5 * rng.random(20000), 0, 1)
+    c = void_threshold_curve(score, truth)
+    p90 = precision_at_recall(c, 0.9)
+    assert 0.5 < p90 <= 1.0
+    assert recall_at_precision(c, p90) >= 0.9
+    assert np.isnan(recall_at_precision(c, 1.01))
+    plain_c = {k: np.asarray(v).tolist() for k, v in c.items()}
+    fig = void_pr_figure({"runA": {"L10": plain_c, "L3": plain_c}, "runB": {"L10": plain_c}},
+                         points={"runA": {"L10": (0.9, p90)}})
+    assert save_and_display(fig, tmp_path / "pr.png").exists()

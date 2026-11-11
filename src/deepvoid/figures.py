@@ -44,7 +44,7 @@ def evaluation_figure(rows: list[dict], title: str, box_size: float | None = Non
         if hi <= lo:                                  # a sparse raw field is mostly one value
             hi = img.max() if img.max() > lo else lo + 1
         axes[r, 0].imshow(img.T, origin="lower", extent=ext, cmap="magma", vmin=lo, vmax=hi)
-        axes[r, 0].set_title(f"{label}: input (last channel)")
+        axes[r, 0].set_title(f"{label} input: {row.get('input_label', 'input')}")
         pred_title = "prediction" if threshold is None else f"prediction (void if score ≥ {threshold:.2f})"
         for c, (key, name) in enumerate((("truth", "truth"), ("pred", pred_title)), start=1):
             axes[r, c].imshow(row[key].T, origin="lower", extent=ext, cmap=cmap,
@@ -54,7 +54,7 @@ def evaluation_figure(rows: list[dict], title: str, box_size: float | None = Non
         axes[r, 3].imshow(wrong.T, origin="lower", extent=ext, cmap=cmap, vmin=-0.5, vmax=3.5,
                           interpolation="nearest")
         axes[r, 3].set_facecolor("#eeeeee")
-        axes[r, 3].set_title("wrong voxels (true class)")
+        axes[r, 3].set_title("misclassified voxels, coloured by true class")
         f1 = "  ".join(f"{k[0]} {res[f'{k}_f1']:.2f}" for k in CLASS_NAMES)
         axes[r, 2].set_xlabel(f"void MCC {res['void_mcc']:.3f}   MCC {res['mcc']:.3f}\n"
                               f"F1: {f1}", fontsize=10)
@@ -70,7 +70,7 @@ def evaluation_figure(rows: list[dict], title: str, box_size: float | None = Non
         ax.set_xticks(range(4), CLASS_NAMES, fontsize=8)
         ax.set_yticks(range(4), CLASS_NAMES, fontsize=8)
         ax.set_xlabel("predicted"); ax.set_ylabel("true")
-        ax.set_title("confusion (fraction of true class)")
+        ax.set_title("confusion matrix (rows sum to 1)")
 
         curve = row["result"].get("void_curve", {}).get("test")
         if curves and curve:
@@ -82,7 +82,7 @@ def evaluation_figure(rows: list[dict], title: str, box_size: float | None = Non
                 ax.axvline(threshold, color="grey", ls="--", lw=1, label=f"chosen {threshold:.2f}")
             ax.set_xlim(0, 1); ax.set_ylim(0, 1); ax.grid(alpha=0.3)
             ax.set_xlabel("threshold on void score")
-            ax.set_title("void vs rest on the test slab")
+            ax.set_title("void vs rest: scores against threshold")
             ax.legend(fontsize=8, loc="lower left")
 
         rel = row["result"].get("void_reliability")
@@ -95,7 +95,7 @@ def evaluation_figure(rows: list[dict], title: str, box_size: float | None = Non
             ax.set_xlim(0, 1); ax.set_ylim(0, 1); ax.grid(alpha=0.3)
             ax.set_xlabel("mean void score in bin")
             ax.set_ylabel("fraction labelled void")
-            ax.set_title(f"void score reliability (ECE {rel['ece']:.3f})")
+            ax.set_title(f"void-score calibration (ECE {rel['ece']:.3f})")
     for ax in axes[:, :4].ravel():
         ax.set_xticks([]); ax.set_yticks([])
     fig.suptitle(title, y=1.0)
@@ -117,3 +117,38 @@ def save_and_display(fig, path: str | Path) -> Path:
     except ImportError:
         pass
     return path
+
+
+def void_pr_figure(curves: dict[str, dict[str, dict]], points: dict | None = None,
+                   title: str = "Void precision against recall on the test slab"):
+    """Void precision (purity) against recall (completeness), one panel per spacing.
+
+    ``curves`` maps run name -> spacing label -> curve (``precision`` and
+    ``recall`` at each threshold). ``points`` optionally maps run name ->
+    spacing label -> (recall, precision) of the operating point actually
+    used, marked on the curve. Curves cover thresholds 0.05-0.95 only.
+    """
+    import matplotlib.pyplot as plt
+
+    labels = sorted({L for c in curves.values() for L in c}, key=lambda s: int(s.lstrip("L")))
+    fig, axes = plt.subplots(1, len(labels), figsize=(5.2 * len(labels), 5), squeeze=False)
+    colors = plt.rcParams["axes.prop_cycle"].by_key()["color"]
+    for ax, L in zip(axes[0], labels):
+        for i, (run, by_label) in enumerate(curves.items()):
+            if L not in by_label:
+                continue
+            c = by_label[L]
+            color = colors[i % len(colors)]
+            ax.plot(c["recall"], c["precision"], "-", color=color, lw=1.5, label=run)
+            if points and L in points.get(run, {}):
+                rec, prec = points[run][L]
+                ax.plot(rec, prec, "o", color=color, ms=6)
+        ax.set_xlim(0.5, 1.0); ax.set_ylim(0.5, 1.0); ax.grid(alpha=0.3)
+        ax.set_xlabel("void recall (completeness)")
+        ax.set_ylabel("void precision (purity)")
+        ax.set_title(f"tracer spacing {L.lstrip('L')} h⁻¹ Mpc")
+    axes[0, -1].legend(fontsize=8, loc="lower left")
+    fig.suptitle(f"{title}\n(dots: the tuned threshold each run uses)", y=1.03)
+    fig.tight_layout()
+    return fig
+

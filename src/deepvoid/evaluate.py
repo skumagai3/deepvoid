@@ -118,6 +118,22 @@ def decide(probs: np.ndarray, void_threshold: float | None = None) -> np.ndarray
     return np.where(probs[..., 0] >= void_threshold, 0, rest).astype(np.uint8)
 
 
+def precision_at_recall(curve: dict, recall: float) -> float:
+    """Highest void precision among thresholds whose void recall is at least ``recall``.
+
+    Read off a :func:`void_threshold_curve`; NaN if no threshold reaches
+    that recall.
+    """
+    ok = np.asarray(curve["recall"]) >= recall
+    return float(np.max(np.asarray(curve["precision"])[ok])) if ok.any() else float("nan")
+
+
+def recall_at_precision(curve: dict, precision: float) -> float:
+    """Highest void recall among thresholds whose void precision is at least ``precision``."""
+    ok = np.asarray(curve["precision"]) >= precision
+    return float(np.max(np.asarray(curve["recall"])[ok])) if ok.any() else float("nan")
+
+
 def void_reliability(s_void: np.ndarray, truth: np.ndarray, mask: np.ndarray | None = None,
                      n_bins: int = 10) -> dict:
     """Is the void score a calibrated estimate of the void fraction?

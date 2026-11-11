@@ -188,12 +188,14 @@ def evaluate_run(out: str | Path, catalog: Catalog | None = None, **overrides) -
         results[name], pred = _score(model, x, labels, masks, cfg["evaluate"], spacing, factor,
                                      keep=(axis, mid))
         rows.append(dict(name=name, result=results[name], pred=pred,
+                         input_label=("smoothed tracer field" if cfg["data"]["smoothing"]
+                                      else "tracer field"),
                          truth=np.take(labels, mid, axis=axis),
                          input=np.take(x[..., -1], mid // factor, axis=axis)))
         _print_scores(name, results[name])
     suffix = "".join(f"_{k}{v}" for k, v in sorted(overrides.items()) if not isinstance(v, (list, dict)))
     (out / f"test_scores{suffix}.json").write_text(json.dumps(results, indent=2))
-    _figure(out, rows, suffix, catalog.info(names[0]).get("box_size"))
+    _figure(out, rows, suffix, catalog.info(names[0]).get("box_size"), (axis, mid))
     return results
 
 
@@ -251,11 +253,14 @@ def _test_setup(out, cfg, catalog):
     return labels, masks, make_x, factor
 
 
-def _figure(out, rows, suffix, box_size):
+def _figure(out, rows, suffix, box_size, where):
     """Test-slab figure for evaluate_run; a failure here never loses the scores."""
     try:
         from .figures import evaluation_figure, save_and_display
-        fig = evaluation_figure(rows, f"{out.name}: test slab, middle slice", box_size)
+        axis, index = where
+        title = (f"{out.name}: test-slab predictions, slice {'xyz'[axis]} = {index} "
+                 f"(one row per tracer spacing)")
+        fig = evaluation_figure(rows, title, box_size)
         save_and_display(fig, out / f"test_figure{suffix}.png")
     except Exception as err:                      # noqa: BLE001
         print(f"could not draw the test figure: {err}")
