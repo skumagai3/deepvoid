@@ -126,9 +126,12 @@ def void_pr_figure(curves: dict[str, dict[str, dict]], points: dict | None = Non
     ``curves`` maps run name -> spacing label -> curve (``precision`` and
     ``recall`` at each threshold). ``points`` optionally maps run name ->
     spacing label -> (recall, precision) of the operating point actually
-    used, marked on the curve. Curves cover thresholds 0.05-0.95 only.
+    used, marked on the curve. The legend gives each curve's average
+    precision (area under precision against recall).
     """
     import matplotlib.pyplot as plt
+
+    from .evaluate import average_precision
 
     labels = sorted({L for c in curves.values() for L in c}, key=lambda s: int(s.lstrip("L")))
     fig, axes = plt.subplots(1, len(labels), figsize=(5.2 * len(labels), 5), squeeze=False)
@@ -139,7 +142,8 @@ def void_pr_figure(curves: dict[str, dict[str, dict]], points: dict | None = Non
                 continue
             c = by_label[L]
             color = colors[i % len(colors)]
-            ax.plot(c["recall"], c["precision"], "-", color=color, lw=1.5, label=run)
+            ax.plot(c["recall"], c["precision"], "-", color=color, lw=1.5,
+                    label=f"{run} (AP {average_precision(c):.3f})")
             if points and L in points.get(run, {}):
                 rec, prec = points[run][L]
                 ax.plot(rec, prec, "o", color=color, ms=6)
@@ -147,7 +151,8 @@ def void_pr_figure(curves: dict[str, dict[str, dict]], points: dict | None = Non
         ax.set_xlabel("void recall (completeness)")
         ax.set_ylabel("void precision (purity)")
         ax.set_title(f"tracer spacing {L.lstrip('L')} h⁻¹ Mpc")
-    axes[0, -1].legend(fontsize=8, loc="lower left")
+    for ax in axes[0]:
+        ax.legend(fontsize=8, loc="lower left")
     fig.suptitle(f"{title}\n(dots: the tuned threshold each run uses)", y=1.03)
     fig.tight_layout()
     return fig

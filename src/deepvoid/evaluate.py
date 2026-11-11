@@ -78,7 +78,7 @@ def binary_scores(tp, fp, fn, tn) -> dict:
     return {"precision": precision, "recall": recall, "f1": f1, "iou": iou, "mcc": mcc}
 
 
-THRESHOLDS = np.round(np.arange(0.05, 0.951, 0.01), 2)
+THRESHOLDS = np.round(np.arange(0.0, 1.0001, 0.01), 2)
 
 
 def void_threshold_curve(p_void: np.ndarray, truth: np.ndarray, mask: np.ndarray | None = None,
@@ -116,6 +116,19 @@ def decide(probs: np.ndarray, void_threshold: float | None = None) -> np.ndarray
         return probs.argmax(-1).astype(np.uint8)
     rest = probs[..., 1:].argmax(-1).astype(np.uint8) + 1
     return np.where(probs[..., 0] >= void_threshold, 0, rest).astype(np.uint8)
+
+
+def average_precision(curve: dict) -> float:
+    """Area under void precision as a function of recall (step rule).
+
+    AP = sum_k (R_k - R_{k+1}) P_k over thresholds in increasing order, with
+    recall 0 beyond the last threshold. Thresholds run from 0 to 1 in steps
+    of 0.01, so this is exact up to that resolution of the threshold grid.
+    """
+    r = np.asarray(curve["recall"], float)
+    p = np.asarray(curve["precision"], float)
+    r_next = np.append(r[1:], 0.0)
+    return float(np.sum((r - r_next) * p))
 
 
 def precision_at_recall(curve: dict, recall: float) -> float:

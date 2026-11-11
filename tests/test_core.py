@@ -489,3 +489,12 @@ def test_precision_recall_readouts_and_pr_figure(tmp_path):
     fig = void_pr_figure({"runA": {"L10": plain_c, "L3": plain_c}, "runB": {"L10": plain_c}},
                          points={"runA": {"L10": (0.9, p90)}})
     assert save_and_display(fig, tmp_path / "pr.png").exists()
+
+
+def test_average_precision_limits():
+    from deepvoid.evaluate import average_precision, void_threshold_curve
+    truth = rng.integers(0, 2, 20000)
+    perfect = void_threshold_curve((truth == 0).astype(float) * 0.99 + 0.005, truth)
+    assert average_precision(perfect) == pytest.approx(1.0, abs=1e-6)
+    blind = void_threshold_curve(rng.random(20000), truth)
+    assert average_precision(blind) == pytest.approx((truth == 0).mean(), abs=0.02)
