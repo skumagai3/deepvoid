@@ -256,7 +256,7 @@ def test_subhalo_configs_are_valid_and_inputs_have_spacings():
     from deepvoid.config import load_config
     catalog = Catalog()
     paths = sorted((Path(__file__).parents[1] / "configs" / "subhalo").glob("*.yaml"))
-    assert len(paths) == 5
+    assert len(paths) == 6
     for path in paths:
         cfg = load_config(path)
         names = cfg["data"]["inputs"] + (cfg["evaluate"]["inputs"] or [])
@@ -280,3 +280,39 @@ def test_stopper_ignores_tiny_gains_but_keeps_the_best_model():
     loss = Stopper("min", patience=2, min_delta=0.1)
     loss.update(0, 1.0); loss.update(1, 0.95)
     assert loss.best == 0.95 and loss.wait == 1
+
+
+# ---------------------------------------------------------------- coarse grid
+
+def test_block_mean_and_upsampled_argmax():
+    from deepvoid.resample import block_mean, upsampled_argmax
+    x = rng.normal(size=(8, 8, 8))
+    c = block_mean(x, 2)
+    assert c.shape == (4, 4, 4) and np.isclose(c.mean(), x.mean())
+    assert np.isclose(c[1, 2, 3], x[2:4, 4:6, 6:8].mean())
+    # A coarse cell's class fills all of its fine cells, even a lone one.
+    probs = np.full((4, 4, 4, 4), 0.1)
+    probs[..., 0] = 0.7
+    probs[1, 1, 1] = [0.1, 0.1, 0.7, 0.1]
+    fine = upsampled_argmax(probs, 2)
+    assert fine.shape == (8, 8, 8)
+    assert (fine[2:4, 2:4, 2:4] == 2).all() and fine[0, 0, 0] == 0 and fine[6, 6, 6] == 0
+
+
+def test_coarse_split_matches_full_resolution_split():
+    a = slab_split(512, buffer=16)
+    b = slab_split(256, buffer=8)
+    for k in a:
+        assert (b[k].start * 2, b[k].stop * 2) == (a[k].start, a[k].stop)
+
+
+def test_coarse_config_and_catalog_entries():
+    from pathlib import Path
+    from deepvoid.config import load_config
+    cfg = load_config(Path(__file__).parents[1] / "configs" / "subhalo" / "A256_scratch_L10.yaml")
+    catalog = Catalog()
+    for name in cfg["data"]["inputs"] + cfg["evaluate"]["inputs"] + [cfg["data"]["labels"]]:
+        assert "n256" in str(catalog.path(name))
+    regions = slab_split(256, **cfg["data"]["split"])
+    regions["train"].crop_origins(cfg["training"]["crop"], 256)
+    regions["val"].crop_origins(cfg["training"]["val_crop"], 256)

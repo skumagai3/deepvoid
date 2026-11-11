@@ -15,11 +15,12 @@ repo while it is private.
 | `04_subhalo_smoke_test.ipynb` | Tiny run checking FiLM, curriculum and `init_from` before the subhalo runs |
 | `05_subhalo_train.ipynb` | Trains one config from `configs/subhalo/` per session |
 | `06_subhalo_compare.ipynb` | Test MCC by run and spacing, and the FiLM spacing sweep |
+| `07_coarse_grid.ipynb` | 256³ inputs and mask for coarse-grid runs, and the score ceiling of a 256³ grid |
 
 Planned:
 
 | Notebook | Purpose |
 |---|---|
-| `07_redshift_space.ipynb` | Redshift-space inputs with real-space labels |
-| `08_survey.ipynb` | Survey masks and radial selection |
-| `09_confidence.ipynb` | Temperature scaling and reliability diagrams |
+| `08_redshift_space.ipynb` | Redshift-space inputs with real-space labels |
+| `09_survey.ipynb` | Survey masks and radial selection |
+| `10_confidence.ipynb` | Temperature scaling and reliability diagrams |

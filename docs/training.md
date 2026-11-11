@@ -52,6 +52,7 @@ as `config.yaml` in the run folder.
 | `evaluate.crop`, `evaluate.margin` | 128, 16 | Crop size and discarded edge for full-box prediction |
 | `evaluate.tta` | `none` | Test-time augmentation: `none`, `flips` (8x) or `full` (48x) |
 | `evaluate.inputs` | null | Inputs to score on the test slab; null means the training inputs |
+| `evaluate.labels` | null | Mask on a finer grid to score against; predictions are upsampled to it (see below) |
 
 ## What happens in a run
 
@@ -132,6 +133,17 @@ from `start` to `end` over `epochs` epochs and stay at `end` after that.
 All weights must be positive, so every input is seen from the first epoch
 on; only the mix changes. Training on one input at a time tends to forget
 the earlier ones, which this avoids.
+
+## Training on a coarser grid
+
+A model can train on a coarser grid, so a crop of the same cell count
+covers more of the box, and still be scored at full resolution.
+`scripts/make_coarse.py` (notebook 07) writes 256^3 inputs and a 256^3
+mask recomputed from the dark matter with the same sigma_eff. A config
+then sets `evaluate.labels` to the 512^3 mask: each 256^3 prediction fills
+its 2x2x2 fine cells and is scored on the same test slab at 512^3.
+Halving `data.split.buffer` (8 instead of 16) makes the 256^3 slabs exactly
+half the 512^3 ones. See `configs/subhalo/A256_scratch_L10.yaml`.
 
 ## Watching a run
 

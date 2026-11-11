@@ -41,6 +41,7 @@ from .losses import build_loss
 from .models import copy_weights, is_conditioned, load_model, unet3d
 from .pipeline import CropSampler
 from .predict import predict_volume
+from .resample import upsampled_argmax
 from .preprocess import Normalizer, auto_class_weights
 from .split import Region, slab_split
 
@@ -148,7 +149,9 @@ def evaluate_run(out: str | Path, catalog: Catalog | None = None) -> dict:
     Scores the inputs in ``evaluate.inputs`` (default: the training inputs).
     An input the model was not trained on gets its own normalization, fit
     on the training slab like the others. A model conditioned on spacing is
-    given each input's spacing from the catalog.
+    given each input's spacing from the catalog. If ``evaluate.labels`` names
+    a mask on a finer grid than the training data, predictions are
+    upsampled to it and scored on the same test slab at that resolution.
 
     Writes ``test_scores.json`` (scores and confusion matrix per input) and
     returns the same dict.
@@ -158,13 +161,13 @@ def evaluate_run(out: str | Path, catalog: Catalog | None = None) -> dict:
     names = cfg["evaluate"]["inputs"] or cfg["data"]["inputs"]
     catalog = catalog or Catalog()
     model = load_model(out / "best.keras")
-    labels, mask, norms = _test_setup(out, cfg, catalog, names)
+    labels, mask, norms, factor = _test_setup(out, cfg, catalog, names)
 
     results = {}
     for name in names:
         x = norms[name](catalog.load(name).data)
         spacing = _spacing(catalog, name) if is_conditioned(model) else None
-        results[name] = _score(model, x, labels, mask, cfg["evaluate"], spacing)
+        results[name] = _score(model, x, labels, mask, cfg["evaluate"], spacing, factor)
         _print_scores(name, results[name])
     (out / "test_scores.json").write_text(json.dumps(results, indent=2))
     return results
@@ -185,29 +188,38 @@ def spacing_sweep(out: str | Path, name: str, spacings: list[float],
     model = load_model(out / "best.keras")
     if not is_conditioned(model):
         raise ValueError(f"{out.name} is not conditioned on spacing")
-    labels, mask, norms = _test_setup(out, cfg, catalog, [name])
+    labels, mask, norms, factor = _test_setup(out, cfg, catalog, [name])
     x = norms[name](catalog.load(name).data)
     results = {}
     for s in spacings:
-        results[str(s)] = _score(model, x, labels, mask, cfg["evaluate"], s)
+        results[str(s)] = _score(model, x, labels, mask, cfg["evaluate"], s, factor)
         _print_scores(f"{name} told {s}", results[str(s)])
     (out / f"spacing_sweep_{_label(name)}.json").write_text(json.dumps(results, indent=2))
     return results
 
 
 def _test_setup(out, cfg, catalog, names):
-    """Labels, test mask and a normalizer for each input name."""
+    """Scoring labels and test mask, a normalizer per input, and the upsampling factor."""
     saved = json.loads((out / "normalization.json").read_text())
+    regions = {k: Region(**v) for k, v in json.loads((out / "split.json").read_text()).items()}
     labels = catalog.load(cfg["data"]["labels"]).data
-    regions = json.loads((out / "split.json").read_text())
-    mask = Region(**regions["test"]).mask(labels.shape[0])
-    train_mask = Region(**regions["train"]).mask(labels.shape[0])
-    norms = {n: Normalizer(**saved[n]) if n in saved
-             else Normalizer.fit(catalog.load(n).data, train_mask) for n in names}
-    return labels, mask, norms
+    n = labels.shape[0]
+    train_mask = regions["train"].mask(n)
+    norms = {name: Normalizer(**saved[name]) if name in saved
+             else Normalizer.fit(catalog.load(name).data, train_mask) for name in names}
+    factor = 1
+    if cfg["evaluate"]["labels"]:
+        labels = catalog.load(cfg["evaluate"]["labels"]).data
+        factor, rest = divmod(labels.shape[0], n)
+        if rest or factor < 1:
+            raise ValueError(f"evaluate.labels grid ({labels.shape[0]}) is not a multiple "
+                             f"of the training grid ({n})")
+    test = regions["test"]
+    test = Region(test.name, test.axis, test.start * factor, test.stop * factor)
+    return labels, test.mask(labels.shape[0]), norms, factor
 
 
-def _score(model, x, labels, mask, ev, spacing=None):
+def _score(model, x, labels, mask, ev, spacing=None, factor=1):
     if spacing is None:
         fn = model.predict_on_batch
     else:
@@ -216,7 +228,8 @@ def _score(model, x, labels, mask, ev, spacing=None):
             return model.predict_on_batch({"density": b, "spacing": s})
     probs = predict_volume(fn, x, crop=ev["crop"], margin=ev["margin"],
                            batch_size=ev["batch_size"], tta=ev["tta"])
-    cm = confusion_matrix(labels, probs.argmax(-1), mask=mask)
+    pred = probs.argmax(-1) if factor == 1 else upsampled_argmax(probs, factor)
+    cm = confusion_matrix(labels, pred, mask=mask)
     return {**scores(cm), "confusion_matrix": cm.tolist()}
 
 

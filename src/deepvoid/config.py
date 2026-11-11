@@ -51,7 +51,8 @@ DEFAULTS: dict[str, Any] = {
         "xla": True,
         "resume": True,
     },
-    "evaluate": {"crop": 128, "margin": 16, "batch_size": 4, "tta": "none", "inputs": None},
+    "evaluate": {"crop": 128, "margin": 16, "batch_size": 4, "tta": "none", "inputs": None,
+                 "labels": None},
 }
 
 

@@ -1,0 +1,30 @@
+# A at 256^3: identical to A_scratch_L10 except the grid. Cells are 0.8
+# h^-1 Mpc, so a 96^3 crop covers 77 h^-1 Mpc instead of 38 and the network
+# sees about twice as many tracers along each side. Predictions are
+# upsampled to 512^3 and scored against the same 512^3 mask and test slab
+# as A, so the scores are directly comparable.
+#
+# Needs the 256^3 data from scripts/make_coarse.py (notebook 07).
+
+name: subhalo_A256_scratch_L10
+output: /content/drive/MyDrive/deepvoid_runs
+seed: 12
+
+data:
+  inputs: [tng300-3/n256/subhalos/L10]
+  labels: tng300-3/n256/mask
+  split:
+    fractions: [0.7, 0.15, 0.15]
+    buffer: 8                            # 6.4 h^-1 Mpc, as in A; slabs match A's exactly
+    axis: 0
+
+training:
+  epochs: 150                            # as A
+  val_crop: 32                           # the validation slab is 35 cells thick at 256^3
+  loss: {name: scce, class_weights: auto}
+  early_stopping: {monitor: val_mcc, patience: 15, min_delta: 0.0}   # as A
+
+evaluate:
+  labels: tng300-3/mask                  # score at 512^3
+  inputs: [tng300-3/n256/subhalos/L3, tng300-3/n256/subhalos/L5, tng300-3/n256/subhalos/L7,
+           tng300-3/n256/subhalos/L10]

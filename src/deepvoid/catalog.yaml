@@ -55,6 +55,44 @@ datasets:
     field: density
     tracer: subhalos
     spacing: 10.0
+  # ---- TNG300-3-Dark at 256^3 (0.80 h^-1 Mpc cells), from scripts/make_coarse.py ----
+  # Inputs are 2x2x2 block means of the 512^3 fields; the mask is recomputed
+  # from the 256^3 dark matter with sigma_eff = 1 h^-1 Mpc.
+  tng300-3/n256/dm:
+    file: TNG/n256/dm_n256.npz
+    sim: tng300-3
+    field: density
+    tracer: dm
+    spacing: 0.33
+  tng300-3/n256/mask:
+    file: TNG/n256/mask_n256_th0.65_seff1.npz
+    sim: tng300-3
+    field: mask
+    threshold: 0.65
+  tng300-3/n256/subhalos/L3:
+    file: TNG/n256/subhalos_L3_n256.npz
+    sim: tng300-3
+    field: density
+    tracer: subhalos
+    spacing: 3.0
+  tng300-3/n256/subhalos/L5:
+    file: TNG/n256/subhalos_L5_n256.npz
+    sim: tng300-3
+    field: density
+    tracer: subhalos
+    spacing: 5.0
+  tng300-3/n256/subhalos/L7:
+    file: TNG/n256/subhalos_L7_n256.npz
+    sim: tng300-3
+    field: density
+    tracer: subhalos
+    spacing: 7.0
+  tng300-3/n256/subhalos/L10:
+    file: TNG/n256/subhalos_L10_n256.npz
+    sim: tng300-3
+    field: density
+    tracer: subhalos
+    spacing: 10.0
   tng300-3/subhalos/L3/rsd:
     file: TNG/subs1_mass_Nm512_L3_RSD.fvol
     sim: tng300-3
