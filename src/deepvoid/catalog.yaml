@@ -1,0 +1,123 @@
+# Named datasets. Paths are relative to `root`, which DEEPVOID_DATA overrides.
+#
+# Simulation-level facts live under `simulations`; each dataset adds what is
+# specific to its file. Inputs in redshift space (rsd: true) are paired with
+# real-space masks: the labels describe the true structure.
+
+root: /content/drive/MyDrive/data
+
+simulations:
+  tng300-3:
+    sim: TNG300-3-Dark
+    box_size: 205.0          # h^-1 Mpc
+    snapshot: 99
+    redshift: 0.0
+  bolshoi:
+    sim: Bolshoi
+    box_size: 250.0          # h^-1 Mpc
+    redshift: 0.0
+
+datasets:
+  # ---- TNG300-3-Dark, 512^3 (0.40 h^-1 Mpc cells) ----
+  tng300-3/dm:
+    file: TNG/DM_DEN_snap99_Nm=512.fvol
+    sim: tng300-3
+    field: density
+    tracer: dm
+    spacing: 0.33
+  tng300-3/mask:
+    file: TNG/TNG300-3-Dark-mask-Nm=512-th=0.65-sig=2.4.fvol
+    sim: tng300-3
+    field: mask
+    threshold: 0.65
+    sigma_cells: 2.4         # Gaussian sigma in cells; sigma_eff ~ 1.04 h^-1 Mpc
+  tng300-3/subhalos/L3:
+    file: TNG/subs1_mass_Nm512_L3_d_None_smooth.fvol
+    sim: tng300-3
+    field: density
+    tracer: subhalos
+    spacing: 3.0
+  tng300-3/subhalos/L5:
+    file: TNG/subs1_mass_Nm512_L5_d_None_smooth.fvol
+    sim: tng300-3
+    field: density
+    tracer: subhalos
+    spacing: 5.0
+  tng300-3/subhalos/L7:
+    file: TNG/subs1_mass_Nm512_L7_d_None_smooth.fvol
+    sim: tng300-3
+    field: density
+    tracer: subhalos
+    spacing: 7.0
+  tng300-3/subhalos/L10:
+    file: TNG/subs1_mass_Nm512_L10_d_None_smooth.fvol
+    sim: tng300-3
+    field: density
+    tracer: subhalos
+    spacing: 10.0
+  tng300-3/subhalos/L3/rsd:
+    file: TNG/subs1_mass_Nm512_L3_RSD.fvol
+    sim: tng300-3
+    field: density
+    tracer: subhalos
+    spacing: 3.0
+    rsd: true
+  tng300-3/subhalos/L5/rsd:
+    file: TNG/subs1_mass_Nm512_L5_RSD.fvol
+    sim: tng300-3
+    field: density
+    tracer: subhalos
+    spacing: 5.0
+    rsd: true
+  tng300-3/subhalos/L7/rsd:
+    file: TNG/subs1_mass_Nm512_L7_RSD.fvol
+    sim: tng300-3
+    field: density
+    tracer: subhalos
+    spacing: 7.0
+    rsd: true
+  tng300-3/subhalos/L10/rsd:
+    file: TNG/subs1_mass_Nm512_L10_RSD.fvol
+    sim: tng300-3
+    field: density
+    tracer: subhalos
+    spacing: 10.0
+    rsd: true
+
+  # ---- Bolshoi, 640^3 (0.39 h^-1 Mpc cells) ----
+  bolshoi/dm:
+    file: Bolshoi/Bolshoi_halo_CIC_640_L=0.122.fvol
+    sim: bolshoi
+    field: density
+    tracer: dm
+    spacing: 0.122
+  bolshoi/mask:
+    file: Bolshoi/Bolshoi_bolshoi.delta416_mask_Nm=640_sig=0.916_thresh=0.65.fvol
+    sim: bolshoi
+    field: mask
+    threshold: 0.65
+    sigma_mpc: 0.916         # Gaussian sigma in h^-1 Mpc; sigma_eff ~ 1 h^-1 Mpc
+  bolshoi/halos/L3:
+    file: Bolshoi/Bolshoi_halo_CIC_640_L=3.0.fvol
+    sim: bolshoi
+    field: density
+    tracer: halos
+    spacing: 3.0
+  bolshoi/halos/L5:
+    file: Bolshoi/Bolshoi_halo_CIC_640_L=5.0.fvol
+    sim: bolshoi
+    field: density
+    tracer: halos
+    spacing: 5.0
+  bolshoi/halos/L7:
+    file: Bolshoi/Bolshoi_halo_CIC_640_L=7.0.fvol
+    sim: bolshoi
+    field: density
+    tracer: halos
+    spacing: 7.0
+  bolshoi/halos/L10:
+    file: Bolshoi/Bolshoi_halo_CIC_640_L=10.0.fvol
+    sim: bolshoi
+    field: density
+    tracer: halos
+    spacing: 10.0

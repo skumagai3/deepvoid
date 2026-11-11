@@ -1,0 +1,28 @@
+# Baseline: TNG300-3-Dark dark-matter density -> T-web classes.
+
+name: tng_dm_baseline
+output: /content/drive/MyDrive/deepvoid_runs
+
+data:
+  inputs: [tng300-3/dm]        # names from catalog.yaml
+  labels: tng300-3/mask
+  split:
+    fractions: [0.7, 0.15, 0.15]   # train, val, test slabs
+    buffer: 16                     # cells between slabs
+    axis: 0
+
+model:
+  depth: 4
+  base_filters: 16
+  batch_norm: true
+
+training:
+  crop: 64
+  batch_size: 8
+  steps_per_epoch: 200
+  val_steps: 50
+  epochs: 200
+  learning_rate: 1.0e-3
+  class_weights: null          # e.g. [1, 1, 2, 4] to up-weight rare classes
+  mixed_precision: true
+  seed: 12
