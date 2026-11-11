@@ -5,10 +5,17 @@ region (the held-out slab) so that training voxels never count.
 
 Voids are the science product, so besides the four-class scores every
 result has two-class void scores (void against everything else):
-``void_mcc`` and ``void_iou``. Because the models are well calibrated, the
-void decision can also be made with a threshold on p(void) instead of the
-most likely class; :func:`void_threshold_curve` and :func:`best_void_threshold`
-choose it on the validation slab.
+``void_mcc`` and ``void_iou``.
+
+The network's output for a voxel is the softmax of its last layer: four
+non-negative numbers that sum to 1, here called class scores (the first is
+the void score). They are not probabilities of anything by construction.
+The void call can be made with a threshold on the void score instead of
+taking the highest score; :func:`void_threshold_curve` and
+:func:`best_void_threshold` choose the threshold on the validation slab.
+That needs only that a higher void score means "more void-like", not that
+the score is a probability. Whether a score can be read as a relative
+frequency is a separate, empirical question: see :func:`void_reliability`.
 
 Catalog-level validation (void sizes, centers, profiles) will live here too.
 """
@@ -76,10 +83,10 @@ THRESHOLDS = np.round(np.arange(0.05, 0.951, 0.01), 2)
 
 def void_threshold_curve(p_void: np.ndarray, truth: np.ndarray, mask: np.ndarray | None = None,
                          thresholds: np.ndarray = THRESHOLDS) -> dict:
-    """Two-class void scores when a voxel is called void if p(void) >= t, for each t.
+    """Two-class void scores when a voxel is called void if its void score >= t, for each t.
 
-    Uses histograms of p(void) for true-void and other voxels, so it costs one
-    pass over the data however many thresholds are tried.
+    Uses histograms of the void score for true-void and other voxels, so it
+    costs one pass over the data however many thresholds are tried.
     """
     p = p_void if mask is None else p_void[mask]
     is_void = (truth if mask is None else truth[mask]) == 0
@@ -99,12 +106,41 @@ def best_void_threshold(curve: dict, objective: str = "mcc") -> float:
 
 
 def decide(probs: np.ndarray, void_threshold: float | None = None) -> np.ndarray:
-    """Class labels from probabilities (..., 4).
+    """Class labels from class scores (..., 4).
 
-    Without a threshold, the most likely class. With one, void wherever
-    p(void) >= threshold, and otherwise the most likely non-void class.
+    Without a threshold, the class with the highest score. With one, void
+    wherever the void score >= threshold, and otherwise the non-void class
+    with the highest score.
     """
     if void_threshold is None:
         return probs.argmax(-1).astype(np.uint8)
     rest = probs[..., 1:].argmax(-1).astype(np.uint8) + 1
     return np.where(probs[..., 0] >= void_threshold, 0, rest).astype(np.uint8)
+
+
+def void_reliability(s_void: np.ndarray, truth: np.ndarray, mask: np.ndarray | None = None,
+                     n_bins: int = 10) -> dict:
+    """Is the void score a calibrated estimate of the void fraction?
+
+    Voxels are grouped into ``n_bins`` equal-width bins of void score. For
+    each bin: the number of voxels, their mean void score, and the fraction
+    of them labelled void in the T-web mask. If the two agree in every bin,
+    the void score can be read as the frequency with which voxels given that
+    score are void, for this set of voxels (one simulation, one tracer
+    sample); it says nothing about other data. The expected calibration
+    error is ECE = sum_b (n_b / N) |fraction_void_b - mean_score_b|.
+    """
+    s = s_void if mask is None else s_void[mask]
+    is_void = (truth if mask is None else truth[mask]) == 0
+    edges = np.linspace(0.0, 1.0, n_bins + 1)
+    counts = np.histogram(s, edges)[0].astype(np.float64)
+    score_sum = np.histogram(s, edges, weights=s.astype(np.float64))[0]
+    void_count = np.histogram(s[is_void], edges)[0].astype(np.float64)
+    with np.errstate(invalid="ignore", divide="ignore"):
+        mean_score = np.where(counts > 0, score_sum / counts, np.nan)
+        frac_void = np.where(counts > 0, void_count / counts, np.nan)
+    filled = counts > 0
+    ece = float(np.sum(counts[filled] / counts.sum()
+                       * np.abs(frac_void[filled] - mean_score[filled])))
+    return {"bin_edges": edges, "counts": counts, "mean_score": mean_score,
+            "fraction_void": frac_void, "ece": ece}

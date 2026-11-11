@@ -54,7 +54,7 @@ as `config.yaml` in the run folder.
 | `evaluate.tta` | `none` | Test-time augmentation: `none`, `flips` (8x) or `full` (48x) |
 | `evaluate.inputs` | null | Inputs to score on the test slab; null means the training inputs |
 | `evaluate.labels` | null | Mask on a finer grid to score against; predictions are upsampled to it (see below) |
-| `evaluate.void_threshold` | `tune` | Call a voxel void when p(void) is at least a threshold chosen on the validation slab; a number fixes the threshold; null uses the most likely class only |
+| `evaluate.void_threshold` | `tune` | Call a voxel void when its void score is at least a threshold chosen on the validation slab; a number fixes the threshold; null uses the highest-scoring class only |
 | `evaluate.void_objective` | `mcc` | What the tuned threshold maximizes on the validation slab: `mcc`, `f1` or `iou` (void against everything else) |
 
 ## What happens in a run
@@ -144,16 +144,23 @@ Voids are the science product, so void-vs-rest scores come first:
 score file, `val_void_mcc` is logged each epoch (and per input with
 several inputs), and it is the default early-stopping score.
 
-The four-class prediction takes the most likely class. Because the models
-are well calibrated, the void call can instead use a threshold on p(void),
-which trades void purity against completeness. By default evaluation
-chooses the threshold that maximizes void MCC on the validation slab and
-applies it to the test slab: `test_scores.json` keeps the most-likely-class
-scores at the top level and the thresholded ones under `tuned` (with the
-threshold), plus the void precision, recall and MCC against the threshold
-on both slabs (`void_curve`). The test curve is for the figure only; the
-threshold never sees test labels. The test figure shows the thresholded
-prediction and the test-slab curve.
+The network's outputs are class scores, not probabilities (see
+`docs/conventions.md`). The four-class prediction takes the class with the
+highest score. The void call can instead use a threshold on the void score,
+which trades void purity (precision) against completeness (recall); this
+needs only that a higher score means "more void-like". By default
+evaluation chooses the threshold that maximizes void MCC on the validation
+slab and applies it to the test slab: `test_scores.json` keeps the
+highest-score results at the top level and the thresholded ones under
+`tuned` (with the threshold), plus void precision, recall and MCC against
+the threshold on both slabs (`void_curve`). The test curve is for the
+figure only; the threshold never sees test labels.
+
+`void_reliability` in the same file says whether the void score is
+calibrated on the test slab: voxels binned by void score, with each bin's
+mean score, the fraction labelled void, and the expected calibration error.
+The test figure shows the thresholded prediction, the test-slab void curve
+and this reliability curve.
 
 ## Training on a coarser grid
 

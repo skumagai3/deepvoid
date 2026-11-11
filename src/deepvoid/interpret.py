@@ -117,7 +117,12 @@ def binned_scores(dist: np.ndarray, pred: np.ndarray, labels: np.ndarray,
 
 
 def entropy(probs: np.ndarray) -> np.ndarray:
-    """Shannon entropy (bits) of the class probabilities along the last axis."""
+    """Entropy in bits, -sum_c s_c log2 s_c, of the class scores along the last axis.
+
+    0 when one class has score 1; 2 when all four are 0.25. It measures how
+    evenly the scores are spread, not an uncertainty in any probabilistic
+    sense unless the scores have been shown to be calibrated.
+    """
     p = np.clip(probs, 1e-12, 1.0)
     return -(p * np.log2(p)).sum(-1)
 

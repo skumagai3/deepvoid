@@ -1,9 +1,16 @@
-"""Confidence: making predicted probabilities mean what they say.
+"""Calibration of the class scores.
+
+The network outputs, per voxel, the softmax of its last layer: four
+non-negative class scores summing to 1. They are not probabilities by
+construction. A model is called calibrated on a given set of voxels if, for
+voxels whose top score is about c, the fraction whose top class matches
+the T-web label is also about c (:func:`reliability`; the void-only version
+is ``evaluate.void_reliability``). Calibration is measured, not assumed,
+and holds only for the data it was measured on.
 
 Temperature scaling (Guo et al. 2017) fits one number T on held-out voxels
-so that softmax(logits / T) is calibrated; a voxel predicted void with
-probability 0.8 should then be void about 80% of the time. It changes
-confidences, never the predicted class.
+and rescales the scores as softmax(log(s) / T) to reduce the calibration
+error. It never changes which class has the highest score.
 """
 
 from __future__ import annotations
@@ -13,7 +20,7 @@ from scipy.optimize import minimize_scalar
 
 
 def apply_temperature(probs: np.ndarray, temperature: float) -> np.ndarray:
-    """Rescale probabilities as softmax(log(p) / T) along the last axis."""
+    """Rescale class scores as softmax(log(s) / T) along the last axis."""
     z = np.log(np.clip(probs, 1e-7, 1.0)) / temperature
     z -= z.max(axis=-1, keepdims=True)
     e = np.exp(z)
@@ -41,9 +48,11 @@ def fit_temperature(probs: np.ndarray, labels: np.ndarray, max_voxels: int = 2_0
 
 
 def reliability(probs: np.ndarray, labels: np.ndarray, n_bins: int = 15) -> dict:
-    """Reliability diagram data and expected calibration error (ECE).
+    """Reliability diagram data and expected calibration error (ECE), top class.
 
-    Uses the top-class confidence of each voxel.
+    Voxels are binned by their highest class score. Per bin: the voxel
+    count, the mean top score, and the fraction whose top class matches the
+    label ("accuracy"). ECE = sum_b (n_b / N) |accuracy_b - mean_top_score_b|.
     """
     p = probs.reshape(-1, probs.shape[-1])
     conf = p.max(axis=1)
@@ -56,5 +65,5 @@ def reliability(probs: np.ndarray, labels: np.ndarray, n_bins: int = 15) -> dict
         mean_conf = np.bincount(which, weights=conf, minlength=n_bins) / counts
     filled = counts > 0
     ece = np.sum(counts[filled] / counts.sum() * np.abs(acc[filled] - mean_conf[filled]))
-    return {"bin_edges": edges, "accuracy": acc, "confidence": mean_conf,
+    return {"bin_edges": edges, "accuracy": acc, "mean_top_score": mean_conf,
             "counts": counts, "ece": float(ece)}

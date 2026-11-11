@@ -33,7 +33,7 @@ def upsampled_argmax(probs: np.ndarray, factor: int) -> np.ndarray:
 
     Each coarse cell's predicted class fills its factor^3 fine cells. This is
     exactly what the coarse model predicted, with no smoothing. Linear
-    interpolation of the probabilities was tried and rejected: it shrinks
+    interpolation of the class scores was tried and rejected: it shrinks
     structures one coarse cell across, such as small halo regions, which
     would penalize the coarse model for the upsampling rather than for its
     predictions.

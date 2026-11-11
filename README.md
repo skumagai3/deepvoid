@@ -37,7 +37,7 @@ src/deepvoid/
   train.py            training, resuming and test scoring from a config
   predict.py          full-box prediction, optional test-time augmentation
   evaluate.py         confusion matrices, F1, MCC
-  calibrate.py        temperature scaling, reliability
+  calibrate.py        reliability (calibration) of the class scores, temperature scaling
 scripts/              one-off utilities
 notebooks/            Colab front-ends
 docs/conventions.md   units, classes, smoothing, splits

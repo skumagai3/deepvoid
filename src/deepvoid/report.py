@@ -18,14 +18,14 @@ from pathlib import Path
 import numpy as np
 
 
-def _plain(value):
+def plain(value):
     """Convert NumPy types and containers to JSON-friendly Python values."""
     if isinstance(value, dict):
-        return {str(k): _plain(v) for k, v in value.items()}
+        return {str(k): plain(v) for k, v in value.items()}
     if isinstance(value, (list, tuple)):
-        return [_plain(v) for v in value]
+        return [plain(v) for v in value]
     if isinstance(value, np.ndarray):
-        return _plain(value.tolist())
+        return plain(value.tolist())
     if isinstance(value, np.generic):
         return value.item()
     if isinstance(value, float) and not np.isfinite(value):
@@ -50,5 +50,5 @@ class Report:
 
     def record(self, **values) -> None:
         """Add or replace entries in ``results.json``."""
-        self.results.update(_plain(values))
+        self.results.update(plain(values))
         self.path.write_text(json.dumps(self.results, indent=2))

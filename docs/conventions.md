@@ -48,8 +48,38 @@ Cloud-in-cell, grid points at integer multiples of the cell size
 - Input normalization (log10(rho/rho_bar + 1e-3), then standardized) is fit on
   the training slab and saved with each run.
 - Training crops (96^3 by default) are drawn inside the training slab, and the
-  model is chosen by validation MCC on fixed 64^3 crops from the validation slab.
-  Reported scores come from full-box prediction scored on the test slab only.
+  model is chosen by validation void MCC (void against the other three
+  classes) on fixed 64^3 crops from the validation slab. Reported scores come
+  from full-box prediction scored on the test slab only.
+
+## Model outputs: class scores, not probabilities
+
+- For each voxel the network outputs the softmax of its last layer: four
+  non-negative numbers summing to 1. These are **class scores**; the first
+  is the **void score**. Training makes them small for wrong classes, but
+  nothing makes them probabilities, and the code and docs do not call them
+  that.
+- **Predicted class**: the class with the highest score, or, with a void
+  threshold t, void wherever the void score is at least t and otherwise the
+  non-void class with the highest score. A threshold needs only that a
+  higher void score means "more void-like"; it does not need the scores to
+  be probabilities. It is chosen on the validation slab, never the test slab.
+- **Calibration** is an empirical property of a model on a given set of
+  voxels. Bin the voxels by void score; in each bin compare the mean void
+  score with the fraction of those voxels labelled void in the T-web mask.
+  If these agree, the void score can be read as the frequency with which
+  voxels given that score are void, for that data only (one simulation, one
+  tracer sample, one test slab). The expected calibration error is
+  ECE = sum_b (n_b / N) |fraction_b - mean score_b|. The same holds for
+  the top-class version, which compares the highest score with the fraction
+  of voxels whose predicted class is correct.
+- **Entropy** of the class scores, -sum_c s_c log2 s_c (0 to 2 bits),
+  describes how evenly the scores are spread. It is not a probabilistic
+  uncertainty unless the scores have been shown to be calibrated.
+- **IoU** for a class: |predicted ∩ true| / |predicted ∪ true| =
+  TP / (TP + FP + FN). **F1** (Dice) = 2TP / (2TP + FP + FN);
+  IoU = F1 / (2 - F1). **MCC** for one class against the rest uses the
+  same TP, FP, FN, TN; the four-class MCC is Gorodkin's (2004) generalization.
 
 ## Files
 

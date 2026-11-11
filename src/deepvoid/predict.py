@@ -53,12 +53,12 @@ def with_tta(predict_fn: Callable[[np.ndarray], np.ndarray], kind: str = "flips"
 def predict_volume(predict_fn: Callable[[np.ndarray], np.ndarray], x: np.ndarray,
                    n_classes: int = 4, crop: int = 128, margin: int = 16,
                    batch_size: int = 4, tta: str = "none") -> np.ndarray:
-    """Class probabilities for every voxel of a periodic box.
+    """Class scores (softmax outputs) for every voxel of a periodic box.
 
     Parameters
     ----------
     predict_fn:
-        Maps a batch of shape (B, crop, crop, crop, channels) to probabilities of
+        Maps a batch of shape (B, crop, crop, crop, channels) to class scores of
         shape (B, crop, crop, crop, n_classes); for a Keras model use
         ``lambda b: model.predict_on_batch(b)``.
     x:
@@ -66,7 +66,8 @@ def predict_volume(predict_fn: Callable[[np.ndarray], np.ndarray], x: np.ndarray
     tta:
         ``"none"``, ``"flips"`` or ``"full"``; see the module docstring.
 
-    Returns float32 probabilities of shape (n, n, n, n_classes).
+    Returns float32 class scores of shape (n, n, n, n_classes), summing to 1
+    over the last axis.
     """
     if tta != "none":
         predict_fn = with_tta(predict_fn, tta)

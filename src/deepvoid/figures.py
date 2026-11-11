@@ -3,9 +3,9 @@
 :func:`evaluation_figure` is drawn by ``train.evaluate_run`` for every
 scored run: for each input, a slice through the middle of the test slab
 (input, truth, prediction, wrong voxels), the confusion matrix as fractions
-of each true class, and, when a void threshold was used, the void scores
-on the test slab against that threshold. The prediction and confusion
-matrix use the void threshold when there is one.
+of each true class, void precision, recall and MCC on the test slab against
+the void-score threshold, and the reliability of the void score. The
+prediction and confusion matrix use the void threshold when there is one.
 """
 
 from __future__ import annotations
@@ -30,7 +30,8 @@ def evaluation_figure(rows: list[dict], title: str, box_size: float | None = Non
 
     cmap = ListedColormap(MASK_COLORS)
     curves = any("void_curve" in row["result"] for row in rows)
-    ncol = 6 if curves else 5
+    rels = any("void_reliability" in row["result"] for row in rows)
+    ncol = 5 + curves + rels
     fig, axes = plt.subplots(len(rows), ncol, figsize=(4.4 * ncol, 4.4 * len(rows)), squeeze=False)
     for r, row in enumerate(rows):
         res = row["result"].get("tuned", row["result"])
@@ -44,7 +45,7 @@ def evaluation_figure(rows: list[dict], title: str, box_size: float | None = Non
             hi = img.max() if img.max() > lo else lo + 1
         axes[r, 0].imshow(img.T, origin="lower", extent=ext, cmap="magma", vmin=lo, vmax=hi)
         axes[r, 0].set_title(f"{label}: input (last channel)")
-        pred_title = "prediction" if threshold is None else f"prediction (void if p ≥ {threshold:.2f})"
+        pred_title = "prediction" if threshold is None else f"prediction (void if score ≥ {threshold:.2f})"
         for c, (key, name) in enumerate((("truth", "truth"), ("pred", pred_title)), start=1):
             axes[r, c].imshow(row[key].T, origin="lower", extent=ext, cmap=cmap,
                               vmin=-0.5, vmax=3.5, interpolation="nearest")
@@ -80,9 +81,21 @@ def evaluation_figure(rows: list[dict], title: str, box_size: float | None = Non
             if threshold is not None:
                 ax.axvline(threshold, color="grey", ls="--", lw=1, label=f"chosen {threshold:.2f}")
             ax.set_xlim(0, 1); ax.set_ylim(0, 1); ax.grid(alpha=0.3)
-            ax.set_xlabel("threshold on p(void)")
+            ax.set_xlabel("threshold on void score")
             ax.set_title("void vs rest on the test slab")
             ax.legend(fontsize=8, loc="lower left")
+
+        rel = row["result"].get("void_reliability")
+        if rels and rel:
+            ax = axes[r, 5 + curves]
+            mean = np.array(rel["mean_score"], dtype=float)
+            frac = np.array(rel["fraction_void"], dtype=float)
+            ax.plot([0, 1], [0, 1], "k:", lw=1)
+            ax.plot(mean, frac, "-o", ms=4, color="#2b6cb0")
+            ax.set_xlim(0, 1); ax.set_ylim(0, 1); ax.grid(alpha=0.3)
+            ax.set_xlabel("mean void score in bin")
+            ax.set_ylabel("fraction labelled void")
+            ax.set_title(f"void score reliability (ECE {rel['ece']:.3f})")
     for ax in axes[:, :4].ravel():
         ax.set_xticks([]); ax.set_yticks([])
     fig.suptitle(title, y=1.0)

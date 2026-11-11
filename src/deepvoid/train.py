@@ -39,13 +39,14 @@ from .callbacks import EMA, RunState, Validation, read_log
 from .catalog import Catalog
 from .config import load_config, save_config
 from .evaluate import (best_void_threshold, confusion_matrix, decide, scores,
-                       void_threshold_curve)
+                       void_reliability, void_threshold_curve)
 from .inputs import build as build_input
 from .inputs import n_channels
 from .losses import build_loss
 from .models import copy_weights, is_conditioned, load_model, unet3d
 from .pipeline import CropSampler
 from .predict import predict_volume
+from .report import plain
 from .resample import upsample
 from .preprocess import auto_class_weights
 from .split import Region, slab_split
@@ -263,12 +264,14 @@ def _figure(out, rows, suffix, box_size):
 def _score(model, x, labels, masks, ev, spacing=None, factor=1, keep=None):
     """Test-slab scores, and the predicted slice ``keep = (axis, index)`` if given.
 
-    The four-class scores use the most likely class. If ``evaluate.void_threshold``
-    is "tune", a threshold on p(void) is also chosen on the validation slab
-    (maximizing ``evaluate.void_objective``) and applied to the test slab; the
-    result is under ``"tuned"``, with the void curves on both slabs. A number
-    uses that threshold directly. The returned slice uses the threshold when
-    there is one.
+    The model's output per voxel is four class scores (softmax, summing to
+    1). The four-class scores use the class with the highest score. If
+    ``evaluate.void_threshold`` is "tune", a threshold on the void score is
+    also chosen on the validation slab (maximizing ``evaluate.void_objective``)
+    and applied to the test slab; that result is under ``"tuned"``, with the
+    void curves on both slabs. A number uses that threshold directly. The
+    void-score reliability on the test slab is under ``"void_reliability"``.
+    The returned slice uses the threshold when there is one.
     """
     if spacing is None:
         fn = model.predict_on_batch
@@ -276,33 +279,33 @@ def _score(model, x, labels, masks, ev, spacing=None, factor=1, keep=None):
         def fn(b):
             s = np.full((len(b), 1, 1, 1, 1), spacing, np.float32)
             return model.predict_on_batch({"density": b, "spacing": s})
-    probs = predict_volume(fn, x, crop=ev["crop"], margin=ev["margin"],
+    class_scores = predict_volume(fn, x, crop=ev["crop"], margin=ev["margin"],
                            batch_size=ev["batch_size"], tta=ev["tta"])
-    pred = upsample(decide(probs), factor)
+    pred = upsample(decide(class_scores), factor)
     cm = confusion_matrix(labels, pred, mask=masks["test"])
     result = {**scores(cm), "confusion_matrix": cm.tolist()}
 
+    void_score = upsample(class_scores[..., 0], factor)
+    rel = void_reliability(void_score, labels, masks["test"])
+    result["void_reliability"] = plain(rel)
     setting = ev["void_threshold"]
     if setting is not None:
-        p_void = upsample(probs[..., 0], factor)
         curves = {}
         if setting == "tune":
-            curves["val"] = void_threshold_curve(p_void, labels, masks["val"])
+            curves["val"] = void_threshold_curve(void_score, labels, masks["val"])
             threshold = best_void_threshold(curves["val"], ev["void_objective"])
         else:
             threshold = float(setting)
         # The test curve is for the figure only; the threshold never sees test labels.
-        curves["test"] = void_threshold_curve(p_void, labels, masks["test"])
-        del p_void
-        pred = upsample(decide(probs, threshold), factor)
+        curves["test"] = void_threshold_curve(void_score, labels, masks["test"])
+        pred = upsample(decide(class_scores, threshold), factor)
         cm_t = confusion_matrix(labels, pred, mask=masks["test"])
         result["tuned"] = {**scores(cm_t), "confusion_matrix": cm_t.tolist(),
                            "void_threshold": threshold,
                            "chosen_by": f"validation {ev['void_objective']}" if setting == "tune"
                            else "fixed"}
-        result["void_curve"] = {k: {m: np.asarray(v).tolist() for m, v in c.items()}
-                                for k, c in curves.items()}
-    del probs
+        result["void_curve"] = plain(curves)
+    del class_scores, void_score
     kept = np.take(pred, keep[1], axis=keep[0]) if keep else None
     return result, kept
 

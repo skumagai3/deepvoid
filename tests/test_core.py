@@ -459,3 +459,15 @@ def test_void_threshold_curve_matches_brute_force_and_decide():
     nonvoid = pred != 0
     assert (pred[nonvoid] == probs[nonvoid, 1:].argmax(1) + 1).all()
     assert (decide(probs) == probs.argmax(1)).all()
+
+
+def test_void_reliability_bins_scores_against_void_fraction():
+    from deepvoid.evaluate import void_reliability
+    s = rng.random(200_000)
+    truth = np.where(rng.random(200_000) < s, 0, 1)          # void with frequency equal to the score
+    rel = void_reliability(s, truth)
+    assert rel["ece"] < 0.01
+    np.testing.assert_allclose(rel["fraction_void"], rel["mean_score"], atol=0.02)
+    over = void_reliability(np.clip(s * 1.5, 0, 1), truth)   # scores larger than the void fraction
+    assert over["ece"] > 0.05
+    assert rel["counts"].sum() == 200_000
