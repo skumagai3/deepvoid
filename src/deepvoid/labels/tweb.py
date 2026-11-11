@@ -40,8 +40,8 @@ def smoothing_sigma(box_size: float, n: int, sigma_eff: float = 1.0) -> float:
 def tweb_eigenvalues(density: np.ndarray, sigma_cells: float, slab: int = 32) -> np.ndarray:
     """Eigenvalues of the tidal tensor, ascending, shape (n, n, n, 3), float32.
 
-    Memory peaks at about 13 times the size of the float32 grid
-    (roughly 7 GB for 512^3).
+    Memory peaks at about 12 times the size of the float32 grid
+    (roughly 6 GB for 512^3, 13 GB for 640^3).
     """
     d = (density / density.mean()).astype(np.float32)
     if sigma_cells > 0:
@@ -56,17 +56,21 @@ def tweb_eigenvalues(density: np.ndarray, sigma_cells: float, slab: int = 32) ->
     k2 = kx ** 2 + ky ** 2 + kz ** 2
     k2[0, 0, 0] = 1.0  # the mean drops out: delta_k(0) * 0 / 1
 
-    tensor = np.zeros((n, n, n, 3, 3), dtype=np.float32)
+    # Six independent components of the symmetric tensor, each (n, n, n).
     pairs = {(0, 0): (kx, kx), (1, 0): (kx, ky), (1, 1): (ky, ky),
              (2, 0): (kx, kz), (2, 1): (ky, kz), (2, 2): (kz, kz)}
-    for (i, j), (a, b) in pairs.items():
-        tensor[..., i, j] = sfft.irfftn(d_k * (a * b / k2), s=(n, n, n), workers=-1)
+    comps = {ij: sfft.irfftn(d_k * (a * b / k2), s=(n, n, n), workers=-1).astype(np.float32, copy=False)
+             for ij, (a, b) in pairs.items()}
     del d_k
 
-    # eigvalsh reads only the lower triangle filled above.
+    # Assemble the 3x3 tensor one slab at a time to keep memory low;
+    # eigvalsh reads only the lower triangle.
     eig = np.empty((n, n, n, 3), dtype=np.float32)
     for s in range(0, n, slab):
-        eig[s:s + slab] = np.linalg.eigvalsh(tensor[s:s + slab])
+        t = np.zeros((min(slab, n - s), n, n, 3, 3), dtype=np.float32)
+        for (i, j), c in comps.items():
+            t[..., i, j] = c[s:s + slab]
+        eig[s:s + slab] = np.linalg.eigvalsh(t)
     return eig
 
 
