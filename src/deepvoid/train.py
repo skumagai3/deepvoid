@@ -145,7 +145,7 @@ def run(config, seed: int | None = None, catalog: Catalog | None = None) -> Path
     return out
 
 
-def evaluate_run(out: str | Path, catalog: Catalog | None = None) -> dict:
+def evaluate_run(out: str | Path, catalog: Catalog | None = None, **overrides) -> dict:
     """Predict each input's full box with ``best.keras`` and score the test slab.
 
     Scores the inputs in ``evaluate.inputs`` (default: the training inputs).
@@ -156,10 +156,17 @@ def evaluate_run(out: str | Path, catalog: Catalog | None = None) -> dict:
     upsampled to it and scored on the same test slab at that resolution.
 
     Writes ``test_scores.json`` (scores and confusion matrix per input) and
-    returns the same dict.
+    returns the same dict. Keyword arguments override the run's
+    ``evaluate`` settings, e.g. ``evaluate_run(out, margin=32)`` to re-score
+    a finished run; the results then go to ``test_scores_margin32.json`` so
+    the original scores are kept.
     """
     out = Path(out)
     cfg = load_config(out / "config.yaml")
+    unknown = set(overrides) - set(cfg["evaluate"])
+    if unknown:
+        raise KeyError(f"unknown evaluate settings {sorted(unknown)}")
+    cfg["evaluate"].update(overrides)
     names = cfg["evaluate"]["inputs"] or cfg["data"]["inputs"]
     catalog = catalog or Catalog()
     model = load_model(out / "best.keras")
@@ -171,7 +178,8 @@ def evaluate_run(out: str | Path, catalog: Catalog | None = None) -> dict:
         spacing = _spacing(catalog, name) if is_conditioned(model) else None
         results[name] = _score(model, x, labels, mask, cfg["evaluate"], spacing, factor)
         _print_scores(name, results[name])
-    (out / "test_scores.json").write_text(json.dumps(results, indent=2))
+    suffix = "".join(f"_{k}{v}" for k, v in sorted(overrides.items()) if not isinstance(v, (list, dict)))
+    (out / f"test_scores{suffix}.json").write_text(json.dumps(results, indent=2))
     return results
 
 

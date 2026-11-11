@@ -50,7 +50,7 @@ as `config.yaml` in the run folder.
 | `training.mixed_precision` | true | float16 compute, float32 weights |
 | `training.xla` | true | Compile the training step with XLA |
 | `training.resume` | true | Continue an interrupted run in the same folder |
-| `evaluate.crop`, `evaluate.margin` | 128, 16 | Crop size and discarded edge for full-box prediction |
+| `evaluate.crop`, `evaluate.margin` | 128, 32 | Crop size and discarded edge for full-box prediction. The margin should cover the model's effective receptive field: with 16 cells, tile seams showed in the λ = 10 predictions (notebook 08). Re-score an older run with `evaluate_run(out, margin=32)` |
 | `evaluate.tta` | `none` | Test-time augmentation: `none`, `flips` (8x) or `full` (48x) |
 | `evaluate.inputs` | null | Inputs to score on the test slab; null means the training inputs |
 | `evaluate.labels` | null | Mask on a finer grid to score against; predictions are upsampled to it (see below) |
