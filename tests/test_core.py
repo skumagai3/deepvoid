@@ -13,7 +13,7 @@ from deepvoid.observe import select_by_spacing, to_redshift_space
 from deepvoid.predict import predict_volume
 from deepvoid.preprocess import Normalizer
 from deepvoid.sources import Cosmology, Tracers
-from deepvoid.split import slab_split
+from deepvoid.split import Region, slab_split
 
 rng = np.random.default_rng(0)
 
@@ -359,3 +359,43 @@ def test_predict_volume_passes_all_channels():
     probs = predict_volume(fn, x, crop=16, margin=4, batch_size=2)
     assert set(seen) == {2}
     np.testing.assert_array_equal(probs.argmax(-1), x[..., 1])
+
+
+# ---------------------------------------------------------------- interpretability helpers
+
+def test_cka_is_one_for_rotated_copies_and_low_for_noise():
+    from deepvoid.interpret import linear_cka
+    x = rng.normal(size=(500, 8))
+    q, _ = np.linalg.qr(rng.normal(size=(8, 8)))
+    assert linear_cka(x, 3 * x @ q) == pytest.approx(1.0)
+    assert linear_cka(x, rng.normal(size=(500, 8))) < 0.1
+
+
+def test_probe_reads_out_a_linear_target_and_not_noise():
+    from deepvoid.interpret import probe_r2
+    f = rng.normal(size=(200, 5))
+    assert probe_r2(f, f @ np.arange(5.0)) > 0.99
+    assert probe_r2(f, rng.normal(size=200)) < 0.2
+
+
+def test_radial_profile_and_distance_to_tracer():
+    from deepvoid.interpret import distance_to_tracer, radial_profile
+    cube = np.zeros((9, 9, 9)); cube[4, 4, 4] = 1.0
+    r, prof = radial_profile(cube)
+    assert r[0] == 0 and prof[0] == 1.0 and prof[1:].sum() == 0
+    raw = np.zeros((32, 32, 32)); raw[0, 0, 0] = 1.0           # one tracer at the corner
+    region = Region("test", 0, 28, 32)
+    d = distance_to_tracer(raw, region, pad=8)
+    assert d.shape == (4, 32, 32)
+    assert d[3, 0, 0] == pytest.approx(1.0)                     # x=31 wraps to the tracer at x=0
+    assert d[0, 0, 0] == pytest.approx(4.0)
+
+
+def test_binned_scores_counts_and_recall():
+    from deepvoid.interpret import binned_scores
+    dist = np.array([0.5, 0.5, 1.5, 1.5])
+    labels = np.array([0, 1, 0, 1]); pred = np.array([0, 1, 1, 1])
+    s = binned_scores(dist, pred, labels, np.array([0, 1, 2]), n_classes=2)
+    np.testing.assert_array_equal(s["counts"], [2, 2])
+    np.testing.assert_allclose(s["accuracy"], [1.0, 0.5])
+    np.testing.assert_allclose(s["recall_0"], [1.0, 0.0])

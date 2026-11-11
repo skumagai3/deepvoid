@@ -16,6 +16,7 @@ repo while it is private.
 | `05_subhalo_train.ipynb` | Trains one config from `configs/subhalo/` per session |
 | `06_subhalo_compare.ipynb` | Test MCC by run and spacing, and the FiLM spacing sweep |
 | `07_coarse_grid.ipynb` | 256³ inputs and mask for coarse-grid runs, and the score ceiling of a 256³ grid |
+| `08_interpretability.ipynb` | Activation maps, CKA across spacings, a probe for λ, effective receptive field, error and uncertainty maps, accuracy vs distance to the nearest tracer, calibration |
 
 Planned:
 
