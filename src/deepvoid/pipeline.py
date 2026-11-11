@@ -1,16 +1,19 @@
 """Training batches drawn straight from whole volumes held on the GPU.
 
-Nothing is pre-cut into patches. Each batch comes from one randomly chosen
-volume: crop origins are drawn so every crop lies inside the training slab,
-the crops are gathered in a single GPU call, and the whole batch gets one of
-the 48 symmetries of a cube. A 512^3 volume in float16 is about 0.27 GB, so
-the data never has to leave the GPU.
+Nothing is pre-cut into patches. Crop origins are drawn so every crop lies
+inside the training slab, the crops are gathered in a single GPU call, and
+the whole batch gets one of the 48 symmetries of a cube. A 512^3 volume in
+float16 is about 0.27 GB, so the data never has to leave the GPU.
 
-With several inputs, the input for each batch is drawn with the
-probabilities set by ``curriculum.py`` (equal by default). When
-``spacings`` are given, each batch is a dict with the density crops and the
-tracer spacing of the input they came from, for a model conditioned on
-spacing.
+With several inputs, each crop in a batch comes from its own randomly chosen
+input, with the probabilities set by ``curriculum.py`` (equal by default).
+Mixing inputs within a batch matters for batch normalization: if every batch
+came from a single input, the batch statistics used in training would
+differ from the running averages used at inference, which mix all inputs.
+(The first mixed-spacing subhalo run trained well and validated badly for
+exactly this reason.) When ``spacings`` are given, each batch is a dict with
+the density crops and the tracer spacing of each crop's input, for a model
+conditioned on spacing.
 
 Randomness is stateless: batch ``i`` of epoch ``e`` always uses the same
 crops for a given seed, which makes resumed runs see the same data they
@@ -69,14 +72,19 @@ class CropSampler(keras.utils.PyDataset):
         self.spacings, self.curriculum = spacings, curriculum
         self.n_inputs = len(inputs)
         self.device = "/GPU:0" if tf.config.list_physical_devices("GPU") else "/CPU:0"
+        # All inputs stacked into one (inputs, n, n, n) tensor so a batch can mix
+        # them. Inputs often share one label array, so labels are stacked once
+        # per distinct array and each input points at its labels.
+        label_ids = list(dict.fromkeys(id(a) for a in labels))
+        by_id = {id(a): a for a in labels}
         with tf.device(self.device):
-            self.x = [tf.identity(tf.constant(a, dtype=tf.float16)) for a in inputs]
-            # Inputs often share one label array; keep a single copy of each on the GPU.
-            unique = {}
-            for a in labels:
-                if id(a) not in unique:
-                    unique[id(a)] = tf.identity(tf.constant(a, dtype=tf.uint8))
-            self.y = [unique[id(a)] for a in labels]
+            self.x = tf.identity(tf.constant(np.stack([np.asarray(a, np.float16)
+                                                       for a in inputs])))
+            self.y = tf.identity(tf.constant(np.stack([np.asarray(by_id[i], np.uint8)
+                                                       for i in label_ids])))
+        self.label_of = tf.constant([label_ids.index(id(a)) for a in labels], tf.int32)
+        self.spacing_of = tf.constant(spacings if spacings is not None else [0.0] * len(inputs),
+                                      tf.float32)
         n = inputs[0].shape[0]
         ranges = region.crop_origins(crop, n)
         self.low = tf.constant([r.start for r in ranges], tf.int32)
@@ -102,11 +110,12 @@ class CropSampler(keras.utils.PyDataset):
     def batch(self, key):
         """One batch for a stateless random key of shape (2,)."""
         keys = tf.random.experimental.stateless_split(key, num=4)
-        v = int(tf.random.stateless_categorical(self.log_p, 1, keys[0])[0, 0])
+        v = tf.random.stateless_categorical(self.log_p, self.batch_size, keys[0],
+                                            dtype=tf.int32)[0]
         u = tf.random.stateless_uniform([self.batch_size, 3], keys[1])
         origins = self.low + tf.cast(u * tf.cast(self.count, tf.float32), tf.int32)
-        x = _gather_crops(self.x[v], origins, self.offsets)
-        y = _gather_crops(self.y[v], origins, self.offsets)
+        x = _gather_crops(self.x, v, origins, self.offsets)
+        y = _gather_crops(self.y, tf.gather(self.label_of, v), origins, self.offsets)
         if self.rotate:
             p = tf.random.stateless_uniform([], keys[2], 0, 6, dtype=tf.int32)
             flips = tf.random.stateless_uniform([3], keys[3], 0, 2, dtype=tf.int32)
@@ -114,23 +123,25 @@ class CropSampler(keras.utils.PyDataset):
         x, y = tf.cast(x[..., None], tf.float32), tf.cast(y, tf.int32)
         if self.spacings is None:
             return x, y
-        s = tf.fill([self.batch_size, 1, 1, 1, 1], float(self.spacings[v]))
+        s = tf.reshape(tf.gather(self.spacing_of, v), [-1, 1, 1, 1, 1])
         return {"density": x, "spacing": s}, y
 
 
 @tf.function(reduce_retracing=True)
-def _gather_crops(volume, origins, offsets):
-    """Crops of side len(offsets) at each origin, shape (batch, c, c, c)."""
+def _gather_crops(volumes, which, origins, offsets):
+    """Crop i of side len(offsets) from volumes[which[i]] at origins[i]; (batch, c, c, c)."""
+    b, c = tf.shape(origins)[0], tf.shape(offsets)[0]
+    shape = [b, c, c, c]
     ix = origins[:, 0, None] + offsets
     iy = origins[:, 1, None] + offsets
     iz = origins[:, 2, None] + offsets
-    c = tf.shape(offsets)[0]
     idx = tf.stack([
-        tf.broadcast_to(ix[:, :, None, None], [tf.shape(origins)[0], c, c, c]),
-        tf.broadcast_to(iy[:, None, :, None], [tf.shape(origins)[0], c, c, c]),
-        tf.broadcast_to(iz[:, None, None, :], [tf.shape(origins)[0], c, c, c]),
+        tf.broadcast_to(which[:, None, None, None], shape),
+        tf.broadcast_to(ix[:, :, None, None], shape),
+        tf.broadcast_to(iy[:, None, :, None], shape),
+        tf.broadcast_to(iz[:, None, None, :], shape),
     ], axis=-1)
-    return tf.gather_nd(volume, idx)
+    return tf.gather_nd(volumes, idx)
 
 
 @tf.function(reduce_retracing=True)

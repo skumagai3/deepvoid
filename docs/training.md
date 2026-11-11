@@ -89,8 +89,12 @@ resuming changes when training ends but not the schedule.
 
 `data.inputs` can list several fields that share one label set, such as
 subhalo fields at tracer spacings 3, 5, 7 and 10 h^-1 Mpc
-(`configs/subhalo/`). Each training batch comes from one input, chosen
-with equal probability unless a curriculum says otherwise. Each input gets
+(`configs/subhalo/`). Each crop in a training batch comes from its own
+randomly chosen input, with equal probability unless a curriculum says
+otherwise. Mixing within the batch matters with batch normalization:
+when every batch came from a single input, training looked fine but the
+running averages used at inference matched none of the inputs, and
+validation fell apart (the first `C_mixed` run). Each input gets
 its own normalization, fit on the training slab. Validation crops are drawn
 from every input, and with more than one input the log also has
 `val_mcc_<label>` for each (`val_mcc_L3`, ...). `val_mcc` itself is pooled
