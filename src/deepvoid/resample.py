@@ -42,3 +42,10 @@ def upsampled_argmax(probs: np.ndarray, factor: int) -> np.ndarray:
     for axis in range(3):
         arg = np.repeat(arg, factor, axis=axis)
     return arg
+
+
+def upsample(a: np.ndarray, factor: int) -> np.ndarray:
+    """Repeat each cell of a (n, n, n, ...) array into a factor^3 block."""
+    for axis in range(3):
+        a = np.repeat(a, factor, axis=axis) if factor > 1 else a
+    return a

@@ -38,14 +38,15 @@ import numpy as np
 from .callbacks import EMA, RunState, Validation, read_log
 from .catalog import Catalog
 from .config import load_config, save_config
-from .evaluate import confusion_matrix, scores
+from .evaluate import (best_void_threshold, confusion_matrix, decide, scores,
+                       void_threshold_curve)
 from .inputs import build as build_input
 from .inputs import n_channels
 from .losses import build_loss
 from .models import copy_weights, is_conditioned, load_model, unet3d
 from .pipeline import CropSampler
 from .predict import predict_volume
-from .resample import upsampled_argmax
+from .resample import upsample
 from .preprocess import auto_class_weights
 from .split import Region, slab_split
 
@@ -173,7 +174,7 @@ def evaluate_run(out: str | Path, catalog: Catalog | None = None, **overrides) -
     names = cfg["evaluate"]["inputs"] or cfg["data"]["inputs"]
     catalog = catalog or Catalog()
     model = load_model(out / "best.keras")
-    labels, mask, make_x, factor = _test_setup(out, cfg, catalog)
+    labels, masks, make_x, factor = _test_setup(out, cfg, catalog)
     # Slice for the figure: the middle of the test slab, on the scoring grid.
     test = Region(**json.loads((out / "split.json").read_text())["test"])
     mid = (test.start + test.size // 2) * factor
@@ -183,7 +184,7 @@ def evaluate_run(out: str | Path, catalog: Catalog | None = None, **overrides) -
     for name in names:
         x = make_x(name)
         spacing = _spacing(catalog, name) if is_conditioned(model) else None
-        results[name], pred = _score(model, x, labels, mask, cfg["evaluate"], spacing, factor,
+        results[name], pred = _score(model, x, labels, masks, cfg["evaluate"], spacing, factor,
                                      keep=(axis, mid))
         rows.append(dict(name=name, result=results[name], pred=pred,
                          truth=np.take(labels, mid, axis=axis),
@@ -210,18 +211,18 @@ def spacing_sweep(out: str | Path, name: str, spacings: list[float],
     model = load_model(out / "best.keras")
     if not is_conditioned(model):
         raise ValueError(f"{out.name} is not conditioned on spacing")
-    labels, mask, make_x, factor = _test_setup(out, cfg, catalog)
+    labels, masks, make_x, factor = _test_setup(out, cfg, catalog)
     x = make_x(name)
     results = {}
     for s in spacings:
-        results[str(s)], _ = _score(model, x, labels, mask, cfg["evaluate"], s, factor)
+        results[str(s)], _ = _score(model, x, labels, masks, cfg["evaluate"], s, factor)
         _print_scores(f"{name} told {s}", results[str(s)])
     (out / f"spacing_sweep_{_label(name)}.json").write_text(json.dumps(results, indent=2))
     return results
 
 
 def _test_setup(out, cfg, catalog):
-    """Scoring labels and test mask, an input builder, and the upsampling factor.
+    """Scoring labels, validation and test masks, an input builder, and the upsampling factor.
 
     The builder uses the run's saved normalization; an input the run never
     saw is normalized from its own training slab.
@@ -242,9 +243,11 @@ def _test_setup(out, cfg, catalog):
         if rest or factor < 1:
             raise ValueError(f"evaluate.labels grid ({labels.shape[0]}) is not a multiple "
                              f"of the training grid ({n})")
-    test = regions["test"]
-    test = Region(test.name, test.axis, test.start * factor, test.stop * factor)
-    return labels, test.mask(labels.shape[0]), make_x, factor
+    masks = {}
+    for key in ("val", "test"):
+        r = regions[key]
+        masks[key] = Region(r.name, r.axis, r.start * factor, r.stop * factor).mask(labels.shape[0])
+    return labels, masks, make_x, factor
 
 
 def _figure(out, rows, suffix, box_size):
@@ -257,8 +260,16 @@ def _figure(out, rows, suffix, box_size):
         print(f"could not draw the test figure: {err}")
 
 
-def _score(model, x, labels, mask, ev, spacing=None, factor=1, keep=None):
-    """Scores on the test mask, and the predicted slice ``keep = (axis, index)`` if given."""
+def _score(model, x, labels, masks, ev, spacing=None, factor=1, keep=None):
+    """Test-slab scores, and the predicted slice ``keep = (axis, index)`` if given.
+
+    The four-class scores use the most likely class. If ``evaluate.void_threshold``
+    is "tune", a threshold on p(void) is also chosen on the validation slab
+    (maximizing ``evaluate.void_objective``) and applied to the test slab; the
+    result is under ``"tuned"``, with the void curves on both slabs. A number
+    uses that threshold directly. The returned slice uses the threshold when
+    there is one.
+    """
     if spacing is None:
         fn = model.predict_on_batch
     else:
@@ -267,15 +278,43 @@ def _score(model, x, labels, mask, ev, spacing=None, factor=1, keep=None):
             return model.predict_on_batch({"density": b, "spacing": s})
     probs = predict_volume(fn, x, crop=ev["crop"], margin=ev["margin"],
                            batch_size=ev["batch_size"], tta=ev["tta"])
-    pred = probs.argmax(-1) if factor == 1 else upsampled_argmax(probs, factor)
-    cm = confusion_matrix(labels, pred, mask=mask)
+    pred = upsample(decide(probs), factor)
+    cm = confusion_matrix(labels, pred, mask=masks["test"])
+    result = {**scores(cm), "confusion_matrix": cm.tolist()}
+
+    setting = ev["void_threshold"]
+    if setting is not None:
+        p_void = upsample(probs[..., 0], factor)
+        curves = {}
+        if setting == "tune":
+            curves["val"] = void_threshold_curve(p_void, labels, masks["val"])
+            threshold = best_void_threshold(curves["val"], ev["void_objective"])
+        else:
+            threshold = float(setting)
+        # The test curve is for the figure only; the threshold never sees test labels.
+        curves["test"] = void_threshold_curve(p_void, labels, masks["test"])
+        del p_void
+        pred = upsample(decide(probs, threshold), factor)
+        cm_t = confusion_matrix(labels, pred, mask=masks["test"])
+        result["tuned"] = {**scores(cm_t), "confusion_matrix": cm_t.tolist(),
+                           "void_threshold": threshold,
+                           "chosen_by": f"validation {ev['void_objective']}" if setting == "tune"
+                           else "fixed"}
+        result["void_curve"] = {k: {m: np.asarray(v).tolist() for m, v in c.items()}
+                                for k, c in curves.items()}
+    del probs
     kept = np.take(pred, keep[1], axis=keep[0]) if keep else None
-    return {**scores(cm), "confusion_matrix": cm.tolist()}, kept
+    return result, kept
 
 
 def _print_scores(name, result):
-    print(name, {k: round(v, 3) for k, v in result.items()
-                 if k in ("mcc", "void_f1", "halo_f1", "balanced_accuracy")})
+    keys = ("mcc", "void_mcc", "void_f1", "void_precision", "void_recall")
+    line = {k: round(result[k], 3) for k in keys}
+    if "tuned" in result:
+        t = result["tuned"]
+        line["tuned"] = {"threshold": t["void_threshold"],
+                         **{k: round(t[k], 3) for k in keys}}
+    print(name, line)
 
 
 def run_seeds(config, seeds: list[int], catalog: Catalog | None = None) -> dict:

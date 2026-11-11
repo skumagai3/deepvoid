@@ -20,4 +20,4 @@ training:
   optimizer: {name: adamw, learning_rate: 1.0e-3, weight_decay: 1.0e-3, clipnorm: 1.0}
   curriculum: {start: [4, 3, 2, 1], end: [1, 1, 1, 1], epochs: 20}
   loss: {name: scce, class_weights: auto}
-  early_stopping: {monitor: val_mcc, patience: 15, min_delta: 0.002}
+  early_stopping: {monitor: val_void_mcc, patience: 15, min_delta: 0.002}

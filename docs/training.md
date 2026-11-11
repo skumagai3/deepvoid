@@ -46,7 +46,7 @@ as `config.yaml` in the run folder.
 | `training.loss.name` | `scce` | `scce` or `dice_scce` (cross-entropy plus Dice) |
 | `training.loss.class_weights` | null | `null`, `auto`, or a list of 4 weights |
 | `training.loss.dice_weight` | 1.0 | Weight of the Dice term in `dice_scce` |
-| `training.early_stopping` | `val_mcc`, patience 15, min_delta 0.002 | Score to track, and epochs to wait without a gain of at least `min_delta` |
+| `training.early_stopping` | `val_void_mcc`, patience 15, min_delta 0.002 | Score to track (`val_void_mcc`: void against everything else; `val_mcc`: all four classes), and epochs to wait without a gain of at least `min_delta` |
 | `training.mixed_precision` | true | float16 compute, float32 weights |
 | `training.xla` | true | Compile the training step with XLA |
 | `training.resume` | true | Continue an interrupted run in the same folder |
@@ -54,6 +54,8 @@ as `config.yaml` in the run folder.
 | `evaluate.tta` | `none` | Test-time augmentation: `none`, `flips` (8x) or `full` (48x) |
 | `evaluate.inputs` | null | Inputs to score on the test slab; null means the training inputs |
 | `evaluate.labels` | null | Mask on a finer grid to score against; predictions are upsampled to it (see below) |
+| `evaluate.void_threshold` | `tune` | Call a voxel void when p(void) is at least a threshold chosen on the validation slab; a number fixes the threshold; null uses the most likely class only |
+| `evaluate.void_objective` | `mcc` | What the tuned threshold maximizes on the validation slab: `mcc`, `f1` or `iou` (void against everything else) |
 
 ## What happens in a run
 
@@ -134,6 +136,24 @@ from `start` to `end` over `epochs` epochs and stay at `end` after that.
 All weights must be positive, so every input is seen from the first epoch
 on; only the mix changes. Training on one input at a time tends to forget
 the earlier ones, which this avoids.
+
+## Void scores and the void threshold
+
+Voids are the science product, so void-vs-rest scores come first:
+`void_mcc` and `void_iou` (void against all other classes) are in every
+score file, `val_void_mcc` is logged each epoch (and per input with
+several inputs), and it is the default early-stopping score.
+
+The four-class prediction takes the most likely class. Because the models
+are well calibrated, the void call can instead use a threshold on p(void),
+which trades void purity against completeness. By default evaluation
+chooses the threshold that maximizes void MCC on the validation slab and
+applies it to the test slab: `test_scores.json` keeps the most-likely-class
+scores at the top level and the thresholded ones under `tuned` (with the
+threshold), plus the void precision, recall and MCC against the threshold
+on both slabs (`void_curve`). The test curve is for the figure only; the
+threshold never sees test labels. The test figure shows the thresholded
+prediction and the test-slab curve.
 
 ## Training on a coarser grid
 

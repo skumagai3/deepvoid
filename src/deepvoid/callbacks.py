@@ -91,10 +91,11 @@ class Validation(keras.callbacks.Callback):
 
     ``batches`` maps a label (one per input, e.g. ``"L10"``) to that input's
     list of (x, y) batches. Adds ``val_loss`` (unweighted cross-entropy),
-    ``val_accuracy``, ``val_mcc``, ``val_void_f1`` and ``val_halo_f1``,
-    pooled over all inputs, to the epoch logs, and with more than one input
-    also ``val_mcc_<label>`` for each. Writes a validation slice (truth
-    above, prediction below) to TensorBoard. Uses the averaged weights when
+    ``val_accuracy``, ``val_mcc`` (four classes), ``val_void_mcc`` (void
+    against the rest), ``val_void_f1`` and ``val_halo_f1``, pooled over all
+    inputs, to the epoch logs, and with more than one input also
+    ``val_mcc_<label>`` and ``val_void_mcc_<label>`` for each. Writes a
+    validation slice (truth above, prediction below) to TensorBoard. Uses the averaged weights when
     an :class:`EMA` is given.
     """
 
@@ -118,14 +119,16 @@ class Validation(keras.callbacks.Callback):
                     count += y.size
                     if first is None:
                         first = (y[0], pred[0])
-                per_input[label] = scores(cm)["mcc"]
+                per_input[label] = scores(cm)
                 total = total + cm
         s = scores(total)
         if logs is not None:
             logs.update(val_loss=nll / count, val_accuracy=s["accuracy"], val_mcc=s["mcc"],
-                        val_void_f1=s["void_f1"], val_halo_f1=s["halo_f1"])
+                        val_void_mcc=s["void_mcc"], val_void_f1=s["void_f1"],
+                        val_halo_f1=s["halo_f1"])
             if len(per_input) > 1:
-                logs.update({f"val_mcc_{k}": v for k, v in per_input.items()})
+                logs.update({f"val_mcc_{k}": v["mcc"] for k, v in per_input.items()})
+                logs.update({f"val_void_mcc_{k}": v["void_mcc"] for k, v in per_input.items()})
         k = first[0].shape[0] // 2
         image = np.concatenate([PALETTE[first[0][k]], PALETTE[first[1][k]]], axis=0)
         with self.writer.as_default():

@@ -19,7 +19,7 @@ training:
   optimizer: {name: adamw, learning_rate: 2.0e-4, weight_decay: 1.0e-4, clipnorm: 1.0}
   schedule: {name: cosine, warmup_epochs: 1, min_lr_ratio: 0.01}
   loss: {name: scce, class_weights: auto}
-  early_stopping: {monitor: val_mcc, patience: 15, min_delta: 0.002}
+  early_stopping: {monitor: val_mcc, patience: 15, min_delta: 0.002}   # as run; the default is now val_void_mcc
 
 evaluate:
   inputs: [tng300-3/subhalos/L3, tng300-3/subhalos/L5, tng300-3/subhalos/L7,

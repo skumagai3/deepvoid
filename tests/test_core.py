@@ -424,3 +424,38 @@ def test_evaluation_figure_draws_and_saves(tmp_path):
                  result=res) for L in (3, 10)]
     path = save_and_display(evaluation_figure(rows, "toy", box_size=205.0), tmp_path / "f.png")
     assert path.exists() and path.stat().st_size > 10_000
+
+
+# ---------------------------------------------------------------- void scores and threshold
+
+def test_void_scores_from_confusion_matrix():
+    from deepvoid.evaluate import scores
+    cm = np.array([[80, 15, 5, 0], [10, 30, 0, 0], [0, 0, 20, 0], [0, 0, 0, 5]])
+    s = scores(cm)
+    tp, fp, fn = 80, 10, 20
+    tn = cm.sum() - tp - fp - fn
+    mcc = (tp * tn - fp * fn) / np.sqrt((tp + fp) * (tp + fn) * (tn + fp) * (tn + fn))
+    assert s["void_mcc"] == pytest.approx(mcc)
+    assert s["void_iou"] == pytest.approx(tp / (tp + fp + fn))
+
+
+def test_void_threshold_curve_matches_brute_force_and_decide():
+    from deepvoid.evaluate import (THRESHOLDS, best_void_threshold, binary_scores, decide,
+                                   void_threshold_curve)
+    truth = rng.integers(0, 4, 5000)
+    probs = rng.dirichlet(np.ones(4), 5000)
+    probs[truth == 0, 0] += 0.3
+    probs /= probs.sum(1, keepdims=True)
+    curve = void_threshold_curve(probs[:, 0], truth)
+    for i in (0, 30, 60, 90):
+        t = THRESHOLDS[i]
+        called = probs[:, 0] >= t
+        ref = binary_scores(np.sum(called & (truth == 0)), np.sum(called & (truth != 0)),
+                            np.sum(~called & (truth == 0)), np.sum(~called & (truth != 0)))
+        assert curve["mcc"][i] == pytest.approx(float(ref["mcc"]))
+    t = best_void_threshold(curve)
+    pred = decide(probs, t)
+    assert ((pred == 0) == (probs[:, 0] >= t)).all()
+    nonvoid = pred != 0
+    assert (pred[nonvoid] == probs[nonvoid, 1:].argmax(1) + 1).all()
+    assert (decide(probs) == probs.argmax(1)).all()

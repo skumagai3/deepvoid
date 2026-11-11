@@ -15,7 +15,7 @@ data:
 training:
   epochs: 150                            # as A_smooth2ch
   loss: {name: scce, class_weights: auto}
-  early_stopping: {monitor: val_mcc, patience: 15, min_delta: 0.0}
+  early_stopping: {monitor: val_mcc, patience: 15, min_delta: 0.0}   # as A_smooth2ch
 
 evaluate:
   inputs: [tng300-3/subhalos/L3, tng300-3/subhalos/L5, tng300-3/subhalos/L7,

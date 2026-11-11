@@ -2,8 +2,10 @@
 
 :func:`evaluation_figure` is drawn by ``train.evaluate_run`` for every
 scored run: for each input, a slice through the middle of the test slab
-(input, truth, prediction, wrong voxels) and the confusion matrix as
-fractions of each true class.
+(input, truth, prediction, wrong voxels), the confusion matrix as fractions
+of each true class, and, when a void threshold was used, the void scores
+on the test slab against that threshold. The prediction and confusion
+matrix use the void threshold when there is one.
 """
 
 from __future__ import annotations
@@ -27,9 +29,12 @@ def evaluation_figure(rows: list[dict], title: str, box_size: float | None = Non
     from matplotlib.colors import ListedColormap
 
     cmap = ListedColormap(MASK_COLORS)
-    fig, axes = plt.subplots(len(rows), 5, figsize=(22, 4.4 * len(rows)), squeeze=False)
+    curves = any("void_curve" in row["result"] for row in rows)
+    ncol = 6 if curves else 5
+    fig, axes = plt.subplots(len(rows), ncol, figsize=(4.4 * ncol, 4.4 * len(rows)), squeeze=False)
     for r, row in enumerate(rows):
-        res = row["result"]
+        res = row["result"].get("tuned", row["result"])
+        threshold = res.get("void_threshold")
         n = row["truth"].shape[0]
         ext = [0, box_size, 0, box_size] if box_size else [0, n, 0, n]
         label = row["name"].rsplit("/", 1)[-1]
@@ -39,7 +44,8 @@ def evaluation_figure(rows: list[dict], title: str, box_size: float | None = Non
             hi = img.max() if img.max() > lo else lo + 1
         axes[r, 0].imshow(img.T, origin="lower", extent=ext, cmap="magma", vmin=lo, vmax=hi)
         axes[r, 0].set_title(f"{label}: input (last channel)")
-        for c, (key, name) in enumerate((("truth", "truth"), ("pred", "prediction")), start=1):
+        pred_title = "prediction" if threshold is None else f"prediction (void if p ≥ {threshold:.2f})"
+        for c, (key, name) in enumerate((("truth", "truth"), ("pred", pred_title)), start=1):
             axes[r, c].imshow(row[key].T, origin="lower", extent=ext, cmap=cmap,
                               vmin=-0.5, vmax=3.5, interpolation="nearest")
             axes[r, c].set_title(name)
@@ -49,7 +55,8 @@ def evaluation_figure(rows: list[dict], title: str, box_size: float | None = Non
         axes[r, 3].set_facecolor("#eeeeee")
         axes[r, 3].set_title("wrong voxels (true class)")
         f1 = "  ".join(f"{k[0]} {res[f'{k}_f1']:.2f}" for k in CLASS_NAMES)
-        axes[r, 2].set_xlabel(f"MCC {res['mcc']:.3f}   F1: {f1}", fontsize=10)
+        axes[r, 2].set_xlabel(f"void MCC {res['void_mcc']:.3f}   MCC {res['mcc']:.3f}\n"
+                              f"F1: {f1}", fontsize=10)
 
         cm = np.asarray(res["confusion_matrix"], float)
         frac = cm / np.maximum(cm.sum(1, keepdims=True), 1)
@@ -63,6 +70,19 @@ def evaluation_figure(rows: list[dict], title: str, box_size: float | None = Non
         ax.set_yticks(range(4), CLASS_NAMES, fontsize=8)
         ax.set_xlabel("predicted"); ax.set_ylabel("true")
         ax.set_title("confusion (fraction of true class)")
+
+        curve = row["result"].get("void_curve", {}).get("test")
+        if curves and curve:
+            ax = axes[r, 5]
+            t = np.asarray(curve["thresholds"])
+            for key, color in (("precision", "#2b6cb0"), ("recall", "#dd6b20"), ("mcc", "k")):
+                ax.plot(t, curve[key], color=color, label=f"void {key}")
+            if threshold is not None:
+                ax.axvline(threshold, color="grey", ls="--", lw=1, label=f"chosen {threshold:.2f}")
+            ax.set_xlim(0, 1); ax.set_ylim(0, 1); ax.grid(alpha=0.3)
+            ax.set_xlabel("threshold on p(void)")
+            ax.set_title("void vs rest on the test slab")
+            ax.legend(fontsize=8, loc="lower left")
     for ax in axes[:, :4].ravel():
         ax.set_xticks([]); ax.set_yticks([])
     fig.suptitle(title, y=1.0)
