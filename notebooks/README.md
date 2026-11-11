@@ -11,13 +11,12 @@ repo while it is private.
 | `00_data_check.ipynb` | Load TNG and Bolshoi, check alignment and class fractions, recompute the masks |
 | `01_smoke_test.ipynb` | Tiny train, resume and score run to check the training code |
 | `02_tng_baseline.ipynb` | Dark-matter baseline on TNG300-3 |
+| `03_bolshoi_transfer.ipynb` | The TNG baseline applied to Bolshoi without retraining |
 
 Planned:
 
 | Notebook | Purpose |
 |---|---|
-| `03_evaluate.ipynb` | Full-box prediction, held-out scores, confusion matrices, slices |
-| `04_cross_sim.ipynb` | Train on one simulation, test on another |
 | `05_redshift_space.ipynb` | Redshift-space inputs with real-space labels |
 | `06_survey.ipynb` | Survey masks and radial selection |
 | `07_confidence.ipynb` | Temperature scaling and reliability diagrams |
