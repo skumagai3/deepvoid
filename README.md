@@ -30,14 +30,22 @@ src/deepvoid/
   labels/             T-web classification
   split.py            spatial train / val / test slabs
   preprocess.py       input normalization, class weights
+  inputs.py           network inputs from catalog fields (optional smoothed channel)
+  resample.py         moving between grid resolutions
   pipeline.py         random crops drawn on the GPU
-  models/, losses.py  3D U-Net and losses
+  curriculum.py       how often each input is sampled, epoch by epoch
+  models/, losses.py  3D U-Net (optionally conditioned on tracer spacing) and losses
   config.py           run settings and their defaults
   callbacks.py        weight averaging, validation scores, checkpoints, resume
+  stopping.py         early-stopping bookkeeping
   train.py            training, resuming and test scoring from a config
+  runs.py             Run: a finished run's config, log, scores, model and predictions
   predict.py          full-box prediction, optional test-time augmentation
-  evaluate.py         confusion matrices, F1, MCC
+  evaluate.py         confusion matrices, F1, MCC, void scores and the void threshold
   calibrate.py        reliability (calibration) of the class scores, temperature scaling
+  figures.py          standard figures: fields, training curves, predictions, summary
+  interpret.py        looking inside a model: CKA, probes, receptive field
+  report.py           saving a notebook's figures and numbers
 scripts/              one-off utilities
 notebooks/            Colab front-ends
 docs/conventions.md   units, classes, smoothing, splits
@@ -74,6 +82,20 @@ out = run("configs/tng_dm_baseline.yaml")
 
 The notebooks in `notebooks/` do this on Colab, starting with a data check
 (`00`), a short smoke test (`01`) and the TNG baseline (`02`).
+
+To look at a finished run:
+
+```python
+from deepvoid.runs import Run
+from deepvoid import figures
+
+run = Run("/content/drive/MyDrive/deepvoid_runs/subhalo_A_smooth2ch_L10")
+run.scores()["tng300-3/subhalos/L10"]["void_f1"]
+scores = run.predict("tng300-3/subhalos/L10")     # class scores, (n, n, n, 4)
+fig = figures.training_curves([run])
+```
+
+`notebooks/09_figures.ipynb` makes the standard figures this way.
 
 ## Conventions
 

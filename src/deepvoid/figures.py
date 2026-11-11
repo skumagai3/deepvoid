@@ -1,5 +1,15 @@
 """Standard figures.
 
+All functions take NumPy arrays (or :class:`deepvoid.runs.Run` objects
+where noted) and return a Matplotlib figure; nothing is saved unless you
+call :func:`save_and_display` or ``fig.savefig``.
+
+- :func:`fields_figure`: slices of density fields and a T-web mask
+- :func:`training_curves`: validation scores and loss by epoch, for runs
+- :func:`prediction_figure`: input, truth, prediction, void score and errors
+- :func:`summary_figure`: the one-figure overview of what DeepVoid does
+- :func:`evaluation_figure`, :func:`void_pr_figure`: used by evaluation
+
 :func:`evaluation_figure` is drawn by ``train.evaluate_run`` for every
 scored run: for each input, a slice through the middle of the test slab
 (input, truth, prediction, wrong voxels), the confusion matrix as fractions
@@ -16,7 +26,210 @@ import numpy as np
 
 from .labels import CLASS_NAMES
 
-MASK_COLORS = ["#2b6cb0", "#9ae6b4", "#f6ad55", "#c53030"]
+MASK_COLORS = ["#2b6cb0", "#9ae6b4", "#f6ad55", "#c53030"]   # void, wall, filament, halo
+
+
+# ---------------------------------------------------------------- building blocks
+
+def take_slice(volume: np.ndarray, index: int, axis: int = 0, thickness: int = 1) -> np.ndarray:
+    """A 2D slice; with ``thickness`` > 1, the mean over that many cells (periodic)."""
+    n = volume.shape[axis]
+    idx = np.arange(index - thickness // 2, index - thickness // 2 + thickness) % n
+    return np.take(volume, idx, axis=axis).mean(axis=axis)
+
+
+def log_density(slice2d: np.ndarray, floor: float = 1e-2) -> np.ndarray:
+    """log10(rho / rho_mean + floor) of a density slice, for display."""
+    mean = slice2d.mean()
+    return np.log10(slice2d / (mean if mean > 0 else 1.0) + floor)
+
+
+def show_density(ax, slice2d, box_size=None, title=None, vmin=None, vmax=None):
+    """Plot log10(rho / rho_mean + 0.01); colour range from the non-empty cells."""
+    img = log_density(slice2d)
+    filled = img[img > np.log10(1e-2) + 1e-6]
+    lo = np.log10(1e-2) if vmin is None else vmin
+    hi = (np.percentile(filled, 99.5) if filled.size else 1.0) if vmax is None else vmax
+    ext = [0, box_size, 0, box_size] if box_size else None
+    im = ax.imshow(img.T, origin="lower", extent=ext, cmap="magma", vmin=lo, vmax=hi)
+    if title:
+        ax.set_title(title)
+    return im
+
+
+def show_mask(ax, slice2d, box_size=None, title=None):
+    """Plot T-web classes (or predicted classes) with the standard colours."""
+    from matplotlib.colors import ListedColormap
+    ext = [0, box_size, 0, box_size] if box_size else None
+    im = ax.imshow(slice2d.T, origin="lower", extent=ext, cmap=ListedColormap(MASK_COLORS),
+                   vmin=-0.5, vmax=3.5, interpolation="nearest")
+    if title:
+        ax.set_title(title)
+    return im
+
+
+def mask_legend(fig_or_ax, **kwargs):
+    """A legend naming the four classes by colour."""
+    from matplotlib.patches import Patch
+    handles = [Patch(color=c, label=n) for c, n in zip(MASK_COLORS, CLASS_NAMES)]
+    return fig_or_ax.legend(handles=handles, **kwargs)
+
+
+def _label_axes(ax, box_size):
+    if box_size:
+        ax.set_xlabel("[h⁻¹ Mpc]")
+    else:
+        ax.set_xticks([]); ax.set_yticks([])
+
+
+# ---------------------------------------------------------------- figures
+
+def fields_figure(fields: dict[str, np.ndarray], mask: np.ndarray | None, index: int,
+                  axis: int = 0, box_size: float | None = None, thickness: int = 1,
+                  title: str | None = None):
+    """One panel per density field (log scale), then the mask, all at the same slice.
+
+    ``fields`` maps a panel title to an (n, n, n) density array; fields on a
+    coarser grid are sliced at the matching position.
+    """
+    import matplotlib.pyplot as plt
+    n_panels = len(fields) + (mask is not None)
+    fig, axes = plt.subplots(1, n_panels, figsize=(4.6 * n_panels, 4.8), squeeze=False)
+    n_ref = mask.shape[0] if mask is not None else next(iter(fields.values())).shape[0]
+    for ax, (label, field) in zip(axes[0], fields.items()):
+        f = field.shape[0] / n_ref
+        show_density(ax, take_slice(field, int(index * f), axis, max(1, int(thickness * f))),
+                     box_size, label)
+        _label_axes(ax, box_size)
+    if mask is not None:
+        show_mask(axes[0, -1], take_slice(mask, index, axis), box_size, "T-web classes")
+        _label_axes(axes[0, -1], box_size)
+        mask_legend(axes[0, -1], loc="upper right", fontsize=8, framealpha=0.9)
+    where = f"slice {'xyz'[axis]} = {index}" + (f", {thickness} cells thick" if thickness > 1 else "")
+    fig.suptitle(title or f"Density fields and T-web classes ({where}; colour: log10(ρ/ρ̄ + 0.01))",
+                 y=0.99)
+    fig.tight_layout(rect=(0, 0, 1, 0.93))
+    return fig
+
+
+def training_curves(runs, keys=("val_void_mcc", "val_mcc", "val_loss"), title=None):
+    """Validation scores (and loss) by epoch, one line per run.
+
+    ``runs`` is a list of :class:`deepvoid.runs.Run`. Runs logged before
+    ``val_void_mcc`` existed are skipped in that panel.
+    """
+    import matplotlib.pyplot as plt
+    names = {"val_void_mcc": "void MCC (void vs rest)", "val_mcc": "MCC (four classes)",
+             "val_loss": "loss (cross-entropy)", "loss": "training loss"}
+    fig, axes = plt.subplots(1, len(keys), figsize=(5.5 * len(keys), 4.2), squeeze=False)
+    for ax, key in zip(axes[0], keys):
+        for run in runs:
+            log = run.log
+            if key in log:
+                ax.plot(log["epoch"], log[key], label=run.name, lw=1.4)
+        ax.set_title(f"validation {names.get(key, key)}" if key.startswith("val_") else names.get(key, key))
+        ax.set_xlabel("epoch"); ax.grid(alpha=0.3)
+    axes[0, 0].legend(fontsize=8)
+    fig.suptitle(title or "Training progress (validation slab, fixed crops)", y=0.99)
+    fig.tight_layout(rect=(0, 0, 1, 0.93))
+    return fig
+
+
+def prediction_figure(inp: np.ndarray, truth: np.ndarray, scores: np.ndarray, index: int,
+                      axis: int = 0, threshold: float | None = None,
+                      box_size: float | None = None, title: str | None = None,
+                      input_label: str = "input"):
+    """Input, truth, predicted classes, void score and misclassified voxels at one slice.
+
+    ``inp`` is the normalized input (n, n, n) or (n, n, n, channels; the last
+    channel is shown), ``scores`` the class scores (n, n, n, 4) on the same
+    grid as ``truth``. With ``threshold``, voxels with void score >= threshold
+    are called void.
+    """
+    import matplotlib.pyplot as plt
+    from .evaluate import decide
+    pred = decide(take_slice_scores(scores, index, axis), threshold)
+    tru = take_slice(truth, index, axis).astype(int)
+    x = inp[..., -1] if inp.ndim == 4 else inp
+    fig, axes = plt.subplots(1, 5, figsize=(24, 5))
+    ext = [0, box_size, 0, box_size] if box_size else None
+    img = take_slice(x, index, axis)
+    lo, hi = np.percentile(img, [1, 99.7])
+    axes[0].imshow(img.T, origin="lower", extent=ext, cmap="magma", vmin=lo,
+                   vmax=hi if hi > lo else img.max())
+    axes[0].set_title(input_label)
+    show_mask(axes[1], tru, box_size, "T-web classes (truth)")
+    show_mask(axes[2], pred, box_size,
+              "predicted classes" + (f" (void if score ≥ {threshold:.2f})" if threshold else ""))
+    im = axes[3].imshow(take_slice_scores(scores, index, axis)[..., 0].T, origin="lower",
+                        extent=ext, cmap="Blues", vmin=0, vmax=1)
+    axes[3].set_title("void score")
+    fig.colorbar(im, ax=axes[3], fraction=0.046)
+    show_mask(axes[4], np.where(pred != tru, tru, np.nan), box_size,
+              "misclassified voxels, coloured by true class")
+    axes[4].set_facecolor("#eeeeee")
+    for ax in axes:
+        _label_axes(ax, box_size)
+    fig.suptitle(title or f"Prediction at slice {'xyz'[axis]} = {index}", y=0.99)
+    fig.tight_layout(rect=(0, 0, 1, 0.94))
+    mask_legend(fig, loc="upper center", ncol=4, fontsize=9, bbox_to_anchor=(0.5, -0.04))
+    return fig
+
+
+def take_slice_scores(scores: np.ndarray, index: int, axis: int = 0) -> np.ndarray:
+    """A 2D slice of class scores (n, n, n, 4) -> (n, n, 4)."""
+    return np.take(scores, index, axis=axis)
+
+
+def summary_figure(dm: np.ndarray, truth: np.ndarray, tracers: np.ndarray,
+                   pred: np.ndarray, index: int, axis: int = 0,
+                   box_size: float | None = None, spacing: float | None = None,
+                   tracer_depth: int = 25, note: str | None = None):
+    """The DeepVoid idea in one figure.
+
+    Top row, the simulation: dark-matter density and the T-web classes
+    computed from it (the target). Bottom row, the observation-like side:
+    the sparse tracers (projected through a slab ``tracer_depth`` cells
+    thick, centred on the slice) and the classes DeepVoid predicts from them.
+    ``tracers`` is the gridded tracer field (non-zero where there are
+    tracers); ``pred`` the predicted classes (n, n, n).
+    """
+    import matplotlib.pyplot as plt
+    from matplotlib.patches import FancyArrowPatch
+
+    fig, axes = plt.subplots(2, 2, figsize=(11, 11.6))
+    ext_box = box_size or truth.shape[0]
+    show_density(axes[0, 0], take_slice(dm, index, axis, thickness=2), box_size)
+    axes[0, 0].set_title("Dark matter (simulation)")
+    show_mask(axes[0, 1], take_slice(truth, index, axis), box_size)
+    axes[0, 1].set_title("T-web classes (target)")
+
+    proj = take_slice(tracers > 0, index, axis, thickness=tracer_depth) > 0
+    ii, jj = np.nonzero(proj)
+    scale = ext_box / truth.shape[0]
+    ax = axes[1, 0]
+    ax.set_facecolor("black")
+    ax.scatter((ii + 0.5) * scale, (jj + 0.5) * scale, s=5, c="#fbd38d", lw=0)
+    ax.set_xlim(0, ext_box); ax.set_ylim(0, ext_box); ax.set_aspect("equal")
+    depth = tracer_depth * scale
+    sp = f", spacing {spacing:g} h⁻¹ Mpc" if spacing else ""
+    ax.set_title(f"Sparse tracers (input{sp})\nprojected through a {depth:.0f} h⁻¹ Mpc thick slab")
+    show_mask(axes[1, 1], take_slice(pred, index, axis), box_size)
+    axes[1, 1].set_title("DeepVoid prediction from the tracers")
+    for a in axes.ravel():
+        _label_axes(a, box_size)
+
+    arrow = dict(arrowstyle="-|>", mutation_scale=22, lw=2, color="#4a5568")
+    fig.patches.append(FancyArrowPatch((0.475, 0.74), (0.525, 0.74), transform=fig.transFigure, **arrow))
+    fig.patches.append(FancyArrowPatch((0.475, 0.27), (0.525, 0.27), transform=fig.transFigure, **arrow))
+    fig.text(0.5, 0.765, "T-web", ha="center", fontsize=10, color="#4a5568")
+    fig.text(0.5, 0.295, "DeepVoid\n(3D U-Net)", ha="center", fontsize=10, color="#4a5568")
+    mask_legend(fig, loc="lower center", ncol=4, fontsize=11, bbox_to_anchor=(0.5, -0.01))
+    fig.suptitle("DeepVoid: cosmic-web classes from sparse tracers", fontsize=15, y=0.995)
+    if note:
+        fig.text(0.5, 0.05, note, ha="center", fontsize=10)
+    fig.tight_layout(rect=(0, 0.07, 1, 0.97))
+    return fig
 
 
 def evaluation_figure(rows: list[dict], title: str, box_size: float | None = None):

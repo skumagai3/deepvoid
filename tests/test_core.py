@@ -498,3 +498,50 @@ def test_average_precision_limits():
     assert average_precision(perfect) == pytest.approx(1.0, abs=1e-6)
     blind = void_threshold_curve(rng.random(20000), truth)
     assert average_precision(blind) == pytest.approx((truth == 0).mean(), abs=0.02)
+
+
+# ---------------------------------------------------------------- runs and figures
+
+def _toy_run(tmp_path):
+    from deepvoid.config import load_config, save_config
+    out = tmp_path / "toy_run"
+    out.mkdir()
+    save_config(load_config({"name": "toy_run", "data": {"inputs": ["tng300-3/subhalos/L10"],
+                                                          "labels": "tng300-3/mask"}}),
+                out / "config.yaml")
+    (out / "log.csv").write_text("epoch,loss,val_mcc,val_void_mcc\n0,1.0,0.3,0.5\n1,0.8,0.4,nan\n")
+    (out / "test_scores.json").write_text('{"x/L10": {"mcc": 0.6}}')
+    (out / "test_scores_margin32.json").write_text('{"x/L10": {"mcc": 0.61}}')
+    return out
+
+
+def test_run_reads_log_and_scores(tmp_path):
+    from deepvoid.runs import Run, find_runs
+    run = Run(_toy_run(tmp_path))
+    assert run.name == "toy_run" and run.finished
+    np.testing.assert_array_equal(run.log["epoch"], [0, 1])
+    assert np.isnan(run.log["val_void_mcc"][1])
+    assert run.scores()["x/L10"]["mcc"] == 0.61
+    assert run.scores(prefer="none")["x/L10"]["mcc"] == 0.6
+    assert [r.name for r in find_runs(tmp_path)] == ["toy_run"]
+    with pytest.raises(FileNotFoundError):
+        Run(tmp_path)
+
+
+def test_figures_draw(tmp_path):
+    import matplotlib
+    matplotlib.use("Agg")
+    from deepvoid.figures import (fields_figure, prediction_figure, save_and_display,
+                                  summary_figure, training_curves)
+    from deepvoid.runs import Run
+    n = 32
+    dm = rng.lognormal(size=(n, n, n))
+    truth = rng.integers(0, 4, (n, n, n))
+    tracers = (rng.random((n, n, n)) > 0.995).astype(float)
+    scores = rng.dirichlet(np.ones(4), (n, n, n))
+    figs = [fields_figure({"dm": dm, "coarse": dm[::2, ::2, ::2]}, truth, 5, box_size=64.0),
+            training_curves([Run(_toy_run(tmp_path))]),
+            prediction_figure(dm, truth, scores, 5, threshold=0.4, box_size=64.0),
+            summary_figure(dm, truth, tracers, truth, 5, box_size=64.0, spacing=10, note="toy")]
+    for i, fig in enumerate(figs):
+        assert save_and_display(fig, tmp_path / f"f{i}.png").exists()
