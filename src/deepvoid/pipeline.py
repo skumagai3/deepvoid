@@ -71,7 +71,12 @@ class CropSampler(keras.utils.PyDataset):
         self.device = "/GPU:0" if tf.config.list_physical_devices("GPU") else "/CPU:0"
         with tf.device(self.device):
             self.x = [tf.identity(tf.constant(a, dtype=tf.float16)) for a in inputs]
-            self.y = [tf.identity(tf.constant(a, dtype=tf.uint8)) for a in labels]
+            # Inputs often share one label array; keep a single copy of each on the GPU.
+            unique = {}
+            for a in labels:
+                if id(a) not in unique:
+                    unique[id(a)] = tf.identity(tf.constant(a, dtype=tf.uint8))
+            self.y = [unique[id(a)] for a in labels]
         n = inputs[0].shape[0]
         ranges = region.crop_origins(crop, n)
         self.low = tf.constant([r.start for r in ranges], tf.int32)

@@ -35,7 +35,7 @@ as `config.yaml` in the run folder.
 | `training.steps_per_epoch` | 200 | Steps between validation passes |
 | `training.val_crop` | 64 | Validation crop side; must fit inside the validation slab (70 cells for a 512^3 box with the default split) |
 | `training.val_batches` | 32 | Fixed validation crops per input, in batches |
-| `training.epochs` | 150 | Upper limit; early stopping usually ends sooner |
+| `training.epochs` | 80 | Length of the learning-rate schedule and upper limit on training |
 | `training.rotate` | true | Random cube symmetry per batch (48 rotations and reflections) |
 | `training.init_from` | null | Start from a trained model: a `.keras` file or a run folder (its `best.keras`), relative to `output` |
 | `training.curriculum` | null | Sampling weights over inputs that change with the epoch; see below |
@@ -73,7 +73,13 @@ as `config.yaml` in the run folder.
 6. At the end, `best.keras` predicts the full box and is scored on the test
    slab, written to `test_scores.json`.
 
-The learning rate follows its schedule whether or not training stops early.
+The learning rate follows its schedule whether or not training stops early,
+so `training.epochs` should be close to how long a run actually needs: if
+early stopping ends a run well before `epochs`, the learning rate never got
+low. The first subhalo run (spacing 10, from scratch) peaked at epoch 11
+and stopped at 26 with the learning rate still at 94% of its maximum,
+because `epochs` was 150. The dark-matter baseline ran 106 epochs of 150.
+The default is now 80, and the mixed subhalo runs use 60.
 The schedule is set when a run starts, so changing `training.epochs` when
 resuming changes when training ends but not the schedule.
 

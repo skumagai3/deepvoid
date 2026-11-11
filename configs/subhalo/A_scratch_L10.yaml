@@ -10,6 +10,7 @@ data:
   labels: tng300-3/mask
 
 training:
+  epochs: 150                            # as run; kept so A and B match
   loss: {name: scce, class_weights: auto}
 
 evaluate:

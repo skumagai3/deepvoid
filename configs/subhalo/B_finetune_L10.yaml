@@ -11,6 +11,7 @@ data:
   labels: tng300-3/mask
 
 training:
+  epochs: 150                            # as run; kept so A and B match
   init_from: tng_dm_baseline_v2          # run folder under `output`; uses its best.keras
   optimizer: {name: adamw, learning_rate: 2.0e-4, weight_decay: 1.0e-4, clipnorm: 1.0}
   schedule: {name: cosine, warmup_epochs: 1, min_lr_ratio: 0.01}

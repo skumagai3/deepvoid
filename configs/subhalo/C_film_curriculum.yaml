@@ -1,6 +1,6 @@
 # C + FiLM + curriculum: as C + FiLM, but early batches favour the denser
 # fields. Sampling weights go from 4:3:2:1 (spacing 3:5:7:10) to equal over
-# the first 30 epochs. Every spacing is seen throughout; only the mix changes.
+# the first 20 epochs. Every spacing is seen throughout; only the mix changes.
 
 name: subhalo_C_film_curriculum
 output: /content/drive/MyDrive/deepvoid_runs
@@ -15,7 +15,9 @@ model:
   conditioning: {units: 32, noise: 0.1}
 
 training:
+  epochs: 60                             # cosine decays over these; see docs/training.md
   val_batches: 16                        # per spacing
-  curriculum: {start: [4, 3, 2, 1], end: [1, 1, 1, 1], epochs: 30}
+  optimizer: {name: adamw, learning_rate: 1.0e-3, weight_decay: 1.0e-3, clipnorm: 1.0}
+  curriculum: {start: [4, 3, 2, 1], end: [1, 1, 1, 1], epochs: 20}
   loss: {name: scce, class_weights: auto}
-  early_stopping: {monitor: val_mcc, patience: 20}
+  early_stopping: {monitor: val_mcc, patience: 15}

@@ -37,7 +37,7 @@ DEFAULTS: dict[str, Any] = {
         "steps_per_epoch": 200,
         "val_crop": 64,
         "val_batches": 32,
-        "epochs": 150,
+        "epochs": 80,
         "rotate": True,
         "init_from": None,
         "curriculum": None,
