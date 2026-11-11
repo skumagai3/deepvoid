@@ -92,11 +92,20 @@ datasets:
     tracer: dm
     spacing: 0.122
   bolshoi/mask:
+    file: Bolshoi/bolshoi_mask_tweb_th0.65_seff1.npz
+    sim: bolshoi
+    field: mask
+    threshold: 0.65
+    sigma_eff: 1.0           # recomputed from bolshoi/dm with deepvoid.labels (Nov 2026)
+  bolshoi/mask-legacy:
+    # Mask used in the dissertation. Agrees with a recomputation from
+    # bolshoi/dm on only 88% of voxels (MCC 0.77), so it was likely built
+    # from a different density estimate (the name mentions a 416^3 grid).
     file: Bolshoi/Bolshoi_bolshoi.delta416_mask_Nm=640_sig=0.916_thresh=0.65.fvol
     sim: bolshoi
     field: mask
     threshold: 0.65
-    sigma_mpc: 0.916         # Gaussian sigma in h^-1 Mpc; sigma_eff ~ 1 h^-1 Mpc
+    sigma_mpc: 0.916
   bolshoi/halos/L3:
     file: Bolshoi/Bolshoi_halo_CIC_640_L=3.0.fvol
     sim: bolshoi

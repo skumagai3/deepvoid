@@ -28,7 +28,10 @@ Following the dissertation (Sec. 5.3):
   input (sparse tracers, redshift space, survey cuts).
 
 Legacy masks: TNG300-3 at 512^3 used sigma = 2.4 cells (sigma_eff about
-1.04 h^-1 Mpc); Bolshoi at 640^3 used sigma = 0.916 h^-1 Mpc.
+1.04 h^-1 Mpc); `deepvoid.labels` reproduces it on 100% of voxels. The
+dissertation's Bolshoi mask agrees with a recomputation from the Bolshoi
+density on only 88% of voxels, so `bolshoi/mask` now points to a mask
+recomputed with the convention above; the old one is `bolshoi/mask-legacy`.
 
 ## Gridding
 
