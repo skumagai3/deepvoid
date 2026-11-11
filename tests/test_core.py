@@ -399,3 +399,13 @@ def test_binned_scores_counts_and_recall():
     np.testing.assert_array_equal(s["counts"], [2, 2])
     np.testing.assert_allclose(s["accuracy"], [1.0, 0.5])
     np.testing.assert_allclose(s["recall_0"], [1.0, 0.0])
+
+
+def test_report_saves_numbers_as_plain_json(tmp_path):
+    import json
+    from deepvoid.report import Report
+    rep = Report(tmp_path / "r")
+    rep.record(a=np.float32(0.5), b=np.arange(3), c={3: (np.float64(1.0), np.nan)})
+    Report(tmp_path / "r").record(d=1)                       # reopening keeps earlier entries
+    saved = json.loads((tmp_path / "r" / "results.json").read_text())
+    assert saved == {"a": 0.5, "b": [0, 1, 2], "c": {"3": [1.0, None]}, "d": 1}
