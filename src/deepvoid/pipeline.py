@@ -39,8 +39,11 @@ class CropSampler(keras.utils.PyDataset):
         super().__init__(**kwargs)
         if len(inputs) != len(labels):
             raise ValueError("need one label array per input array")
-        self.x = [tf.constant(a, dtype=tf.float16) for a in inputs]
-        self.y = [tf.constant(a, dtype=tf.uint8) for a in labels]
+        device = "/GPU:0" if tf.config.list_physical_devices("GPU") else "/CPU:0"
+        with tf.device(device):  # keep the volumes resident on the GPU
+            self.x = [tf.identity(tf.constant(a, dtype=tf.float16)) for a in inputs]
+            self.y = [tf.identity(tf.constant(a, dtype=tf.uint8)) for a in labels]
+        self.device = device
         n = inputs[0].shape[0]
         self.origins = [tf.constant([r.start, r.stop - r.start], tf.int32)
                         for r in region.crop_origins(crop, n)]
@@ -53,6 +56,10 @@ class CropSampler(keras.utils.PyDataset):
         return self.steps
 
     def __getitem__(self, index):
+        with tf.device(self.device):
+            return self._batch()
+
+    def _batch(self):
         xs, ys = [], []
         for _ in range(self.batch_size):
             v = int(self.rng.uniform([], 0, len(self.x), dtype=tf.int32))

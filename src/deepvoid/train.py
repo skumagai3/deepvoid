@@ -68,8 +68,8 @@ def run(config_path: str, catalog: Catalog | None = None) -> Path:
                   loss=WeightedSCCE(tr.get("class_weights")),
                   metrics=["sparse_categorical_accuracy"])
     callbacks = [
-        keras.callbacks.ModelCheckpoint(out / "best.keras", save_best_only=True),
-        keras.callbacks.CSVLogger(out / "log.csv"),
+        keras.callbacks.ModelCheckpoint(str(out / "best.keras"), save_best_only=True),
+        keras.callbacks.CSVLogger(str(out / "log.csv")),
         keras.callbacks.ReduceLROnPlateau(factor=0.25, patience=10),
         keras.callbacks.EarlyStopping(patience=25, restore_best_weights=True),
     ]
