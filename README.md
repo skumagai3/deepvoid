@@ -97,6 +97,26 @@ fig = figures.training_curves([run])
 
 `notebooks/09_figures.ipynb` makes the standard figures this way.
 
+## How this differs from the first DeepVoid paper
+
+The code released with the first paper is in
+[deepvoid_misc](https://github.com/skumagai3/deepvoid_misc). This package is
+a rewrite with the same scientific target (T-web classes, eigenvalue
+threshold 0.65, effective smoothing 1 h^-1 Mpc) but a different data
+pipeline and evaluation, so scores from the two are not directly
+comparable.
+
+| | First paper (`deepvoid_misc`) | This package |
+|---|---|---|
+| Training data | 128³ subcubes cut from the box in advance, stored with rotated copies | No pre-cut subcubes: random 96³ crops drawn from the training region on every step |
+| Train / validation / test | Subcubes divided into training and validation sets | The box is divided first into training, validation and test slabs (70/15/15%) separated by buffer slabs; crops never leave their slab |
+| Final scores | Validation subcubes | A separate test slab that is never used for choosing models, early stopping or thresholds |
+| Augmentation | Rotated copies stored with the data | The 48 rotations and reflections of a cube, applied on the fly to each training batch |
+| Normalization | Min–max, refit on each volume | log10(ρ/ρ̄ + 10⁻³), standardized with statistics from the training slab and saved with the model |
+| Sparse tracers | Curriculum from dense to sparse inputs, freezing encoder blocks | One model trained on several tracer spacings at once, optionally with a smoothed copy of the input as a second channel; curricula and spacing conditioning (FiLM) remain options |
+| Full-box prediction | Overlapping patches, keeping their central regions | The same, with the kept region and overlap set in the config |
+| Scores | Per-class F1, MCC | The same, plus void-vs-rest scores, a void-score threshold chosen on the validation slab, and calibration of the class scores |
+
 ## Conventions
 
 See [docs/conventions.md](docs/conventions.md). In short: T-web labels with
