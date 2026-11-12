@@ -59,18 +59,23 @@ class CropSampler(keras.utils.PyDataset):
         ``({"density": x, "spacing": s}, y)`` with s of shape (batch, 1, 1, 1, 1).
     curriculum:
         Sampling weights over epochs, see :func:`input_probabilities`.
+    label_copies:
+        For a model with several outputs (deep supervision), the labels are
+        returned this many times as a tuple, one per output; each output's
+        loss coarsens them as needed.
     """
 
     def __init__(self, inputs: list[np.ndarray], labels: list[np.ndarray], region: Region,
                  crop: int = 96, batch_size: int = 8, steps_per_epoch: int = 200,
                  rotate: bool = True, seed: int = 0, spacings: list[float] | None = None,
-                 curriculum: dict | None = None, **kwargs):
+                 curriculum: dict | None = None, label_copies: int = 1, **kwargs):
         super().__init__(**kwargs)
         if len(inputs) != len(labels):
             raise ValueError("need one label array per input array")
         if spacings is not None and len(spacings) != len(inputs):
             raise ValueError("need one spacing per input array")
         self.spacings, self.curriculum = spacings, curriculum
+        self.label_copies = label_copies
         self.n_inputs = len(inputs)
         self.device = "/GPU:0" if tf.config.list_physical_devices("GPU") else "/CPU:0"
         # All inputs stacked into one (inputs, n, n, n) tensor so a batch can mix
@@ -122,6 +127,8 @@ class CropSampler(keras.utils.PyDataset):
             flips = tf.random.stateless_uniform([3], keys[3], 0, 2, dtype=tf.int32)
             x, y = _symmetry(x, p, flips), _symmetry(y, p, flips)
         x, y = tf.cast(x, tf.float32), tf.cast(y, tf.int32)
+        if self.label_copies > 1:
+            y = (y,) * self.label_copies
         if self.spacings is None:
             return x, y
         s = tf.reshape(tf.gather(self.spacing_of, v), [-1, 1, 1, 1, 1])

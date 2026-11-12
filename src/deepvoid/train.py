@@ -42,8 +42,8 @@ from .evaluate import (best_void_threshold, confusion_matrix, decide, scores,
                        void_reliability, void_threshold_curve)
 from .inputs import build as build_input
 from .inputs import n_channels
-from .losses import build_loss
-from .models import copy_weights, is_conditioned, load_model, unet3d
+from .losses import DeepSupervisionLoss, build_loss, deep_supervision_weights
+from .models import copy_weights, is_conditioned, load_model, main_output, unet3d
 from .pipeline import CropSampler
 from .predict import predict_volume
 from .report import plain
@@ -91,10 +91,11 @@ def run(config, seed: int | None = None, catalog: Catalog | None = None) -> Path
     conditioned = cfg["model"]["conditioning"] is not None
     spacings = [_spacing(catalog, n) for n in names] if conditioned else None
     y = [labels.data] * len(inputs)
+    n_outputs = cfg["model"]["depth"] if cfg["model"]["deep_supervision"] else 1
     train_data = CropSampler(inputs, y, regions["train"], crop=tr["crop"],
                              batch_size=tr["batch_size"], steps_per_epoch=tr["steps_per_epoch"],
                              rotate=tr["rotate"], seed=cfg["seed"], spacings=spacings,
-                             curriculum=tr["curriculum"])
+                             curriculum=tr["curriculum"], label_copies=n_outputs)
     # Fixed validation crops, the same number for each input, scored per input.
     # They can be smaller than training crops: the validation slab is thinner
     # than the training slab, and the network takes any size.
@@ -118,8 +119,19 @@ def run(config, seed: int | None = None, catalog: Catalog | None = None) -> Path
         if tr["init_from"]:
             _init_from(model, tr["init_from"], cfg["output"])
         optimizer = _optimizer(tr)
-    model.compile(optimizer=optimizer, loss=loss, metrics=["sparse_categorical_accuracy"],
-                  jit_compile=tr["xla"])
+    if n_outputs == 1:
+        model.compile(optimizer=optimizer, loss=loss, metrics=["sparse_categorical_accuracy"],
+                      jit_compile=tr["xla"])
+    else:
+        # Deep supervision: the full-resolution loss plus one coarse loss per
+        # extra output, weighted 1, 1/2, 1/4, ... (normalized to sum to 1).
+        losses = [loss] + [DeepSupervisionLoss(2 ** level, class_weights)
+                           for level in range(1, n_outputs)]
+        model.compile(optimizer=optimizer, loss=losses,
+                      loss_weights=deep_supervision_weights(n_outputs),
+                      metrics=[["sparse_categorical_accuracy"]] + [[]] * (n_outputs - 1),
+                      jit_compile=tr["xla"])
+    predictor = main_output(model)            # what validation scores and best.keras holds
 
     state = json.loads((out / "state.json").read_text()) if resuming else {}
     first_epoch = state.get("epoch", -1) + 1
@@ -133,11 +145,12 @@ def run(config, seed: int | None = None, catalog: Catalog | None = None) -> Path
         ema.load(out / "ema.npz")
 
     callbacks = ([ema] if ema else []) + [
-        Validation(val_batches, tb_local, ema),
+        Validation(val_batches, tb_local, ema, predictor=predictor),
         keras.callbacks.TensorBoard(str(tb_local), write_graph=False),
         RunState(out, train_data, monitor=tr["early_stopping"]["monitor"], patience=patience,
                  min_delta=tr["early_stopping"]["min_delta"],
-                 ema=ema, tb_local=tb_local, state=state, rows=read_log(out / "log.csv")),
+                 ema=ema, tb_local=tb_local, state=state, rows=read_log(out / "log.csv"),
+                 best_model=predictor),
     ]
     if first_epoch < tr["epochs"] and state.get("wait", 0) < patience:
         model.fit(train_data, epochs=tr["epochs"], initial_epoch=first_epoch,

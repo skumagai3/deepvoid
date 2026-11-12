@@ -31,6 +31,7 @@ as `config.yaml` in the run folder.
 | `model.batch_norm`, `model.bn_momentum` | true, 0.99 | Batch normalization |
 | `model.dropout` | 0 | Dropout at the bottom of the U-Net |
 | `model.conditioning` | null | Condition on tracer spacing (FiLM), e.g. `{units: 32, noise: 0.1}`; see below |
+| `model.deep_supervision` | false | Extra training outputs at each coarser level; see below |
 | `training.crop` | 96 | Training crop side in cells |
 | `training.batch_size` | 8 | Crops per step |
 | `training.steps_per_epoch` | 200 | Steps between validation passes |
@@ -46,6 +47,7 @@ as `config.yaml` in the run folder.
 | `training.loss.name` | `scce` | `scce` or `dice_scce` (cross-entropy plus Dice) |
 | `training.loss.class_weights` | null | `null`, `auto`, or a list of 4 weights |
 | `training.loss.dice_weight` | 1.0 | Weight of the Dice term in `dice_scce` |
+| `training.loss.void_weight` | 0 | Weight of an added void-vs-rest term; see below |
 | `training.early_stopping` | `val_void_mcc`, patience 15, min_delta 0.002 | Score to track (`val_void_mcc`: void against everything else; `val_mcc`: all four classes), and epochs to wait without a gain of at least `min_delta` |
 | `training.mixed_precision` | true | float16 compute, float32 weights |
 | `training.xla` | true | Compile the training step with XLA |
@@ -161,6 +163,30 @@ calibrated on the test slab: voxels binned by void score, with each bin's
 mean score, the fraction labelled void, and the expected calibration error.
 The test figure shows the thresholded prediction, the test-slab void curve
 and this reliability curve.
+
+## Void-vs-rest loss and deep supervision
+
+**Void-vs-rest loss.** With `training.loss.void_weight: w`, every voxel's
+loss gains w times the binary cross-entropy of its void score s_v against
+its void label: -[1(void) log s_v + (1 - 1(void)) log(1 - s_v)]. The
+four-class loss is unchanged; the added term trains the void score directly
+for the two-class decision voids are judged on.
+
+**Deep supervision.** With `model.deep_supervision: true`, the U-Net gets
+one extra output per level below full resolution: after each decoder block
+at 1/2, 1/4, ... resolution and after the bottleneck, so depth d gives d - 1
+extra outputs (a depth-4 model has them at 1/2, 1/4 and 1/8; depth 5 adds
+1/16). Each is trained against the class fractions in the blocks of the
+full-resolution labels it covers (the one-hot labels averaged over 2^3,
+4^3, ... voxels), so blocks that straddle a boundary keep both classes. The
+losses are weighted 1, 1/2, 1/4, ... from full resolution down, normalized
+to sum to 1. The coarse outputs exist only during training: validation,
+`best.keras` and everything downstream use the full-resolution output
+alone. The training crop and validation crop must be divisible by
+2^(depth - 1), as for any U-Net of that depth.
+
+Planned, not yet implemented: weighting the loss by distance to the
+void boundary.
 
 ## Training on a coarser grid
 

@@ -31,6 +31,7 @@ DEFAULTS: dict[str, Any] = {
         "bn_momentum": 0.99,
         "dropout": 0.0,
         "conditioning": None,
+        "deep_supervision": False,
     },
     "training": {
         "crop": 96,
@@ -46,7 +47,7 @@ DEFAULTS: dict[str, Any] = {
                       "weight_decay": 1.0e-4, "clipnorm": 1.0},
         "schedule": {"name": "cosine", "warmup_epochs": 3, "min_lr_ratio": 0.01},
         "ema": 0.999,
-        "loss": {"name": "scce", "class_weights": None, "dice_weight": 1.0},
+        "loss": {"name": "scce", "class_weights": None, "dice_weight": 1.0, "void_weight": 0.0},
         "early_stopping": {"monitor": "val_void_mcc", "patience": 15, "min_delta": 0.002},
         "mixed_precision": True,
         "xla": True,

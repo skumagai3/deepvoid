@@ -24,7 +24,7 @@ def _conv_block(x, filters: int, batch_norm: bool, bn_momentum: float, name: str
 def unet3d(depth: int = 4, base_filters: int = 16, n_classes: int = 4,
            in_channels: int = 1, batch_norm: bool = True, bn_momentum: float = 0.99,
            dropout: float = 0.0, conditioning: dict | None = None,
-           name: str = "unet3d") -> keras.Model:
+           deep_supervision: bool = False, name: str = "unet3d") -> keras.Model:
     """Build a 3D U-Net.
 
     The input side length is left open, so a model trained on 64^3 crops can
@@ -39,6 +39,15 @@ def unet3d(depth: int = 4, base_filters: int = 16, n_classes: int = 4,
     h^-1 Mpc, and every convolution is followed by a FiLM layer (see
     ``film.py``). Inputs are then passed as a dict with keys ``density``
     and ``spacing``.
+
+    With ``deep_supervision``, the model has one extra output per level
+    below full resolution: after each decoder block at 1/2, 1/4, ... and
+    after the bottleneck, a 1x1x1 convolution and softmax give class scores
+    at that resolution (outputs ``ds1`` ... ``ds{depth-1}``, at 2^level times
+    coarser). The outputs are then a list, full resolution first; these
+    extra outputs are only for training (see ``losses.DeepSupervisionLoss``),
+    and :func:`main_output` gives the model with the full-resolution output
+    alone, which is what gets saved for prediction.
     """
     inputs = keras.Input(shape=(None, None, None, in_channels), name="density")
     emb = None
@@ -57,16 +66,32 @@ def unet3d(depth: int = 4, base_filters: int = 16, n_classes: int = 4,
     x = _conv_block(x, base_filters * 2 ** (depth - 1), name="bottom", **block)
     if dropout:
         x = layers.Dropout(dropout, name="bottom_dropout")(x)
+    coarse = {depth - 1: x}
 
     for level in reversed(range(depth - 1)):
         x = layers.Conv3DTranspose(base_filters * 2 ** level, 2, strides=2,
                                    name=f"dec{level}_up")(x)
         x = layers.Concatenate(name=f"dec{level}_concat")([x, skips[level]])
         x = _conv_block(x, base_filters * 2 ** level, name=f"dec{level}", **block)
+        if level > 0:
+            coarse[level] = x
 
     logits = layers.Conv3D(n_classes, 1, name="logits")(x)
     probs = layers.Activation("softmax", dtype="float32", name="probs")(logits)
-    return keras.Model(model_inputs, probs, name=name)
+    if not deep_supervision:
+        return keras.Model(model_inputs, probs, name=name)
+    heads = []
+    for level in range(1, depth):
+        h = layers.Conv3D(n_classes, 1, name=f"ds{level}_logits")(coarse[level])
+        heads.append(layers.Activation("softmax", dtype="float32", name=f"ds{level}")(h))
+    return keras.Model(model_inputs, [probs] + heads, name=name)
+
+
+def main_output(model: keras.Model) -> keras.Model:
+    """The model with only its full-resolution output (shares all weights)."""
+    if len(model.outputs) == 1:
+        return model
+    return keras.Model(model.input, model.outputs[0], name=model.name)
 
 
 def is_conditioned(model: keras.Model) -> bool:

@@ -1,0 +1,21 @@
+# C_mixed_smooth2ch plus a void-vs-rest loss term: the binary cross-entropy
+# of the void score against the void label, added to the four-class loss with
+# weight 1. Trains the void score directly for the decision voids are judged
+# on. Everything else matches C_mixed_smooth2ch.
+
+name: subhalo_C_mixed_smooth2ch_voidloss
+output: /content/drive/MyDrive/deepvoid_runs
+seed: 12
+
+data:
+  inputs: [tng300-3/subhalos/L3, tng300-3/subhalos/L5, tng300-3/subhalos/L7,
+           tng300-3/subhalos/L10]
+  labels: tng300-3/mask
+  smoothing: {sigma_spacing: 0.5, keep_raw: true}
+
+training:
+  epochs: 60
+  val_batches: 16                        # per spacing
+  optimizer: {name: adamw, learning_rate: 1.0e-3, weight_decay: 1.0e-3, clipnorm: 1.0}
+  loss: {name: scce, class_weights: auto, void_weight: 1.0}
+  early_stopping: {monitor: val_mcc, patience: 15, min_delta: 0.002}   # as C_mixed_smooth2ch

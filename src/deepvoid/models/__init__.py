@@ -1,7 +1,7 @@
 """Network architectures. Requires TensorFlow / Keras 3."""
 
 from .film import FiLM, SpacingEmbedding
-from .unet import copy_weights, is_conditioned, unet3d
+from .unet import copy_weights, is_conditioned, main_output, unet3d
 
 
 def load_model(path, compile: bool = False):
@@ -18,5 +18,5 @@ def load_model(path, compile: bool = False):
     return keras.models.load_model(path, compile=compile)
 
 
-__all__ = ["unet3d", "load_model", "copy_weights", "is_conditioned", "FiLM",
+__all__ = ["unet3d", "load_model", "copy_weights", "is_conditioned", "main_output", "FiLM",
            "SpacingEmbedding"]

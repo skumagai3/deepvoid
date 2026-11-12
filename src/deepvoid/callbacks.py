@@ -99,9 +99,10 @@ class Validation(keras.callbacks.Callback):
     an :class:`EMA` is given.
     """
 
-    def __init__(self, batches: dict[str, list], log_dir: Path, ema: EMA | None = None):
+    def __init__(self, batches: dict[str, list], log_dir: Path, ema: EMA | None = None,
+                 predictor=None):
         super().__init__()
-        self.batches, self.ema = batches, ema
+        self.batches, self.ema, self.predictor = batches, ema, predictor
         self.writer = tf.summary.create_file_writer(str(log_dir / "validation"))
 
     def on_epoch_end(self, epoch, logs=None):
@@ -111,7 +112,8 @@ class Validation(keras.callbacks.Callback):
                 cm = 0
                 for x, y in batches:
                     y = np.asarray(y)
-                    p = np.asarray(self.model.predict_on_batch(x), dtype=np.float32)
+                    p = np.asarray((self.predictor or self.model).predict_on_batch(x),
+                                   dtype=np.float32)
                     pred = p.argmax(-1)
                     cm = cm + confusion_matrix(y, pred)
                     nll += -np.log(np.clip(np.take_along_axis(p, y[..., None], -1),
@@ -156,9 +158,10 @@ class RunState(keras.callbacks.Callback):
     def __init__(self, out: Path, sampler, monitor: str = "val_mcc", patience: int = 15,
                  min_delta: float = 0.0, ema: EMA | None = None,
                  tb_local: Path | None = None, state: dict | None = None,
-                 rows: list[dict] | None = None):
+                 rows: list[dict] | None = None, best_model=None):
         super().__init__()
         self.out, self.sampler, self.ema = out, sampler, ema
+        self.best_model = best_model
         self.monitor, self.tb_local = monitor, tb_local
         self.stopper = Stopper("min" if "loss" in monitor else "max", patience, min_delta, state)
         self.rows = rows or []
@@ -176,7 +179,7 @@ class RunState(keras.callbacks.Callback):
         value = logs[self.monitor]
         if self.stopper.update(epoch, value):
             with self.ema.swapped() if self.ema else contextlib.nullcontext():
-                _atomic_save(self.model, self.out / "best.keras")
+                _atomic_save(self.best_model or self.model, self.out / "best.keras")
 
         _atomic_save(self.model, self.out / "last.keras")
         if self.ema:
