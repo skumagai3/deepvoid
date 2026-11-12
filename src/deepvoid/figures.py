@@ -360,7 +360,7 @@ def void_pr_figure(curves: dict[str, dict[str, dict]], points: dict | None = Non
             if points and L in points.get(run, {}):
                 rec, prec = points[run][L]
                 ax.plot(rec, prec, "o", color=color, ms=6)
-        ax.set_xlim(0.5, 1.0); ax.set_ylim(0.5, 1.0); ax.grid(alpha=0.3)
+        ax.set_xlim(0.48, 1.01); ax.set_ylim(0.48, 1.01); ax.grid(alpha=0.3)
         ax.set_xlabel("void recall (completeness)")
         ax.set_ylabel("void precision (purity)")
         ax.set_title(f"tracer spacing {L.lstrip('L')} h⁻¹ Mpc")

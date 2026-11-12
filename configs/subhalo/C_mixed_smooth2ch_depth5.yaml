@@ -1,0 +1,25 @@
+# C_mixed_smooth2ch with one more U-Net level (depth 5: 16 to 256 channels).
+# Each level halves the resolution again, so the network can relate tracers
+# about twice as far apart; aimed at walls far from any tracer, the main
+# remaining void error at spacing 10. Everything else, including the
+# early-stopping score, matches C_mixed_smooth2ch so the two compare directly.
+
+name: subhalo_C_mixed_smooth2ch_depth5
+output: /content/drive/MyDrive/deepvoid_runs
+seed: 12
+
+data:
+  inputs: [tng300-3/subhalos/L3, tng300-3/subhalos/L5, tng300-3/subhalos/L7,
+           tng300-3/subhalos/L10]
+  labels: tng300-3/mask
+  smoothing: {sigma_spacing: 0.5, keep_raw: true}
+
+model:
+  depth: 5
+
+training:
+  epochs: 60
+  val_batches: 16                        # per spacing
+  optimizer: {name: adamw, learning_rate: 1.0e-3, weight_decay: 1.0e-3, clipnorm: 1.0}
+  loss: {name: scce, class_weights: auto}
+  early_stopping: {monitor: val_mcc, patience: 15, min_delta: 0.002}   # as C_mixed_smooth2ch
