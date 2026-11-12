@@ -206,7 +206,11 @@ def evaluate_run(out: str | Path, catalog: Catalog | None = None, **overrides) -
                          truth=np.take(labels, mid, axis=axis),
                          input=np.take(x[..., -1], mid // factor, axis=axis)))
         _print_scores(name, results[name])
-    suffix = "".join(f"_{k}{v}" for k, v in sorted(overrides.items()) if not isinstance(v, (list, dict)))
+    # Settings that change the argmax scores get their own file; the optional void
+    # threshold only adds results, so it does not.
+    suffix = "".join(f"_{k}{v}" for k, v in sorted(overrides.items())
+                     if k not in ("void_threshold", "void_objective")
+                     and not isinstance(v, (list, dict)))
     (out / f"test_scores{suffix}.json").write_text(json.dumps(results, indent=2))
     _figure(out, rows, suffix, catalog.info(names[0]).get("box_size"), (axis, mid))
     return results
