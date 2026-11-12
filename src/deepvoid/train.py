@@ -283,13 +283,15 @@ def _score(model, x, labels, masks, ev, spacing=None, factor=1, keep=None):
     """Test-slab scores, and the predicted slice ``keep = (axis, index)`` if given.
 
     The model's output per voxel is four class scores (softmax, summing to
-    1). The four-class scores use the class with the highest score. If
-    ``evaluate.void_threshold`` is "tune", a threshold on the void score is
-    also chosen on the validation slab (maximizing ``evaluate.void_objective``)
-    and applied to the test slab; that result is under ``"tuned"``, with the
-    void curves on both slabs. A number uses that threshold directly. The
-    void-score reliability on the test slab is under ``"void_reliability"``.
-    The returned slice uses the threshold when there is one.
+    1); the predicted class is the one with the highest score (argmax), as is
+    standard for multi-class segmentation. Also recorded: void precision,
+    recall and MCC against a void-score threshold on the validation and test
+    slabs (``"void_curve"``), and the void-score reliability on the test slab
+    (``"void_reliability"``); neither changes the prediction. Optionally, if
+    ``evaluate.void_threshold`` is set ("tune": chosen on the validation slab
+    to maximize ``evaluate.void_objective``; or a number), the test slab is
+    also scored with that void threshold, under ``"tuned"``. The returned
+    slice is always the argmax prediction.
     """
     if spacing is None:
         fn = model.predict_on_batch
@@ -306,25 +308,27 @@ def _score(model, x, labels, masks, ev, spacing=None, factor=1, keep=None):
     void_score = upsample(class_scores[..., 0], factor)
     rel = void_reliability(void_score, labels, masks["test"])
     result["void_reliability"] = plain(rel)
+    # Void precision, recall and MCC at every threshold on both slabs. These
+    # describe the scores; they do not change the predicted classes.
+    curves = {k: void_threshold_curve(void_score, labels, masks[k]) for k in ("val", "test")}
+    result["void_curve"] = plain(curves)
+    kept = np.take(pred, keep[1], axis=keep[0]) if keep else None   # argmax prediction
+
+    # Optional: also score a void-threshold decision (evaluate.void_threshold).
     setting = ev["void_threshold"]
     if setting is not None:
-        curves = {}
-        if setting == "tune":
-            curves["val"] = void_threshold_curve(void_score, labels, masks["val"])
+        if setting == "tune":       # chosen on the validation slab, never the test slab
             threshold = best_void_threshold(curves["val"], ev["void_objective"])
         else:
             threshold = float(setting)
-        # The test curve is for the figure only; the threshold never sees test labels.
-        curves["test"] = void_threshold_curve(void_score, labels, masks["test"])
-        pred = upsample(decide(class_scores, threshold), factor)
-        cm_t = confusion_matrix(labels, pred, mask=masks["test"])
+        pred_t = upsample(decide(class_scores, threshold), factor)
+        cm_t = confusion_matrix(labels, pred_t, mask=masks["test"])
         result["tuned"] = {**scores(cm_t), "confusion_matrix": cm_t.tolist(),
                            "void_threshold": threshold,
                            "chosen_by": f"validation {ev['void_objective']}" if setting == "tune"
                            else "fixed"}
-        result["void_curve"] = plain(curves)
+        del pred_t
     del class_scores, void_score
-    kept = np.take(pred, keep[1], axis=keep[0]) if keep else None
     return result, kept
 
 

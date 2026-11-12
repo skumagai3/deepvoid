@@ -59,7 +59,8 @@ Cloud-in-cell, grid points at integer multiples of the cell size
   is the **void score**. Training makes them small for wrong classes, but
   nothing makes them probabilities, and the code and docs do not call them
   that.
-- **Predicted class**: the class with the highest score, or, with a void
+- **Predicted class**: the class with the highest score (the default and
+  the standard for multi-class segmentation), or, optionally, with a void
   threshold t, void wherever the void score is at least t and otherwise the
   non-void class with the highest score. A threshold needs only that a
   higher void score means "more void-like"; it does not need the scores to

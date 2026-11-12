@@ -15,7 +15,7 @@ scored run: for each input, a slice through the middle of the test slab
 (input, truth, prediction, wrong voxels), the confusion matrix as fractions
 of each true class, void precision, recall and MCC on the test slab against
 the void-score threshold, and the reliability of the void score. The
-prediction and confusion matrix use the void threshold when there is one.
+prediction and confusion matrix use the highest-score class (argmax).
 """
 
 from __future__ import annotations
@@ -247,8 +247,8 @@ def evaluation_figure(rows: list[dict], title: str, box_size: float | None = Non
     ncol = 5 + curves + rels
     fig, axes = plt.subplots(len(rows), ncol, figsize=(4.4 * ncol, 4.4 * len(rows)), squeeze=False)
     for r, row in enumerate(rows):
-        res = row["result"].get("tuned", row["result"])
-        threshold = res.get("void_threshold")
+        res = row["result"]                     # argmax scores
+        tuned = res.get("tuned", {}).get("void_threshold")
         n = row["truth"].shape[0]
         ext = [0, box_size, 0, box_size] if box_size else [0, n, 0, n]
         label = row["name"].rsplit("/", 1)[-1]
@@ -258,7 +258,7 @@ def evaluation_figure(rows: list[dict], title: str, box_size: float | None = Non
             hi = img.max() if img.max() > lo else lo + 1
         axes[r, 0].imshow(img.T, origin="lower", extent=ext, cmap="magma", vmin=lo, vmax=hi)
         axes[r, 0].set_title(f"{label} input: {row.get('input_label', 'input')}")
-        pred_title = "prediction" if threshold is None else f"prediction (void if score ≥ {threshold:.2f})"
+        pred_title = "predicted classes (highest score)"
         for c, (key, name) in enumerate((("truth", "truth"), ("pred", pred_title)), start=1):
             axes[r, c].imshow(row[key].T, origin="lower", extent=ext, cmap=cmap,
                               vmin=-0.5, vmax=3.5, interpolation="nearest")
@@ -291,8 +291,9 @@ def evaluation_figure(rows: list[dict], title: str, box_size: float | None = Non
             t = np.asarray(curve["thresholds"])
             for key, color in (("precision", "#2b6cb0"), ("recall", "#dd6b20"), ("mcc", "k")):
                 ax.plot(t, curve[key], color=color, label=f"void {key}")
-            if threshold is not None:
-                ax.axvline(threshold, color="grey", ls="--", lw=1, label=f"chosen {threshold:.2f}")
+            if tuned is not None:
+                ax.axvline(tuned, color="grey", ls="--", lw=1,
+                           label=f"tuned threshold {tuned:.2f} (optional)")
             ax.set_xlim(0, 1); ax.set_ylim(0, 1); ax.grid(alpha=0.3)
             ax.set_xlabel("threshold on void score")
             ax.set_title("void vs rest: scores against threshold")
@@ -338,8 +339,8 @@ def void_pr_figure(curves: dict[str, dict[str, dict]], points: dict | None = Non
 
     ``curves`` maps run name -> spacing label -> curve (``precision`` and
     ``recall`` at each threshold). ``points`` optionally maps run name ->
-    spacing label -> (recall, precision) of the operating point actually
-    used, marked on the curve. The legend gives each curve's average
+    spacing label -> (recall, precision) of an operating point to mark,
+    e.g. the argmax prediction's. The legend gives each curve's average
     precision (area under precision against recall).
     """
     import matplotlib.pyplot as plt
@@ -366,7 +367,7 @@ def void_pr_figure(curves: dict[str, dict[str, dict]], points: dict | None = Non
         ax.set_title(f"tracer spacing {L.lstrip('L')} h⁻¹ Mpc")
     for ax in axes[0]:
         ax.legend(fontsize=8, loc="lower left")
-    fig.suptitle(f"{title}\n(dots: the tuned threshold each run uses)", y=1.03)
+    fig.suptitle(f"{title}\n(dots: each run's predictions, highest-score class)", y=1.03)
     fig.tight_layout()
     return fig
 

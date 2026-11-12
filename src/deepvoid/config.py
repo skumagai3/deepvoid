@@ -54,7 +54,7 @@ DEFAULTS: dict[str, Any] = {
         "resume": True,
     },
     "evaluate": {"crop": 128, "margin": 32, "batch_size": 4, "tta": "none", "inputs": None,
-                 "labels": None, "void_threshold": "tune", "void_objective": "mcc"},
+                 "labels": None, "void_threshold": None, "void_objective": "mcc"},
 }
 
 
