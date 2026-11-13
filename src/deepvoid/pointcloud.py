@@ -229,6 +229,27 @@ def write_viewer(template_page: str | os.PathLike, out: str | os.PathLike,
     return out
 
 
+SERVE_SCRIPT = '''"""Serve this folder for the Potree pages: python3 serve.py [port]
+
+Potree requests many parts of a point cloud at once; Python's default
+server queues only five connections and refuses the rest, which leaves
+parts of a cloud unloaded. This one queues up to 256.
+"""
+import http.server
+import sys
+
+
+class Server(http.server.ThreadingHTTPServer):
+    request_queue_size = 256
+    daemon_threads = True
+
+
+port = int(sys.argv[1]) if len(sys.argv) > 1 else 8000
+print(f"open http://localhost:{port}/index.html  (Ctrl-C to stop)")
+Server(("localhost", port), http.server.SimpleHTTPRequestHandler).serve_forever()
+'''
+
+
 def build_page(converter: str | os.PathLike, page_dir: str | os.PathLike,
                clouds: list[dict], title: str, page_name: str = "index") -> Path:
     """Convert LAS files with PotreeConverter and write a viewer page for them.
@@ -236,7 +257,8 @@ def build_page(converter: str | os.PathLike, page_dir: str | os.PathLike,
     ``clouds`` is as in :func:`write_viewer`, with ``las`` (the LAS file)
     in place of ``metadata``. Converted clouds go to
     ``page_dir/pointclouds/<LAS file name>``; the Potree libraries are
-    copied into ``page_dir`` from a page PotreeConverter generates. Several
+    copied into ``page_dir`` from a page PotreeConverter generates, along
+    with ``serve.py``, a local web server for viewing the pages. Several
     pages can share one ``page_dir``.
     """
     import shutil
@@ -251,6 +273,7 @@ def build_page(converter: str | os.PathLike, page_dir: str | os.PathLike,
         template = next(p for p in Path(tmp).rglob("*.html") if "Potree.Viewer" in p.read_text())
         shutil.copytree(template.parent / "libs", page_dir / "libs", dirs_exist_ok=True)
         shutil.copy(template, page_dir / "template.html")
+    (page_dir / "serve.py").write_text(SERVE_SCRIPT)
 
     entries = []
     for c in clouds:
