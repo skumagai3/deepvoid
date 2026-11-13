@@ -1,0 +1,26 @@
+# C_mixed_smooth2ch_depth5 with deep supervision: extra outputs at 1/2, 1/4,
+# 1/8 and 1/16 resolution, each trained against the class fractions in its
+# blocks, with loss weights 1, 1/2, 1/4, 1/8, 1/16 (normalized). Only the
+# full-resolution output is saved for prediction. Everything else matches
+# C_mixed_smooth2ch_depth5 so the two compare directly.
+
+name: subhalo_C_mixed_smooth2ch_depth5_deepsup
+output: /content/drive/MyDrive/deepvoid_runs
+seed: 12
+
+data:
+  inputs: [tng300-3/subhalos/L3, tng300-3/subhalos/L5, tng300-3/subhalos/L7,
+           tng300-3/subhalos/L10]
+  labels: tng300-3/mask
+  smoothing: {sigma_spacing: 0.5, keep_raw: true}
+
+model:
+  depth: 5
+  deep_supervision: true
+
+training:
+  epochs: 60
+  val_batches: 16                        # per spacing
+  optimizer: {name: adamw, learning_rate: 1.0e-3, weight_decay: 1.0e-3, clipnorm: 1.0}
+  loss: {name: scce, class_weights: auto}
+  early_stopping: {monitor: val_mcc, patience: 15, min_delta: 0.002}   # as C_mixed_smooth2ch_depth5
