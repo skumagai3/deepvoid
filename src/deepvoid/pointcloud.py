@@ -4,7 +4,9 @@ Each tracer becomes a point carrying the class of the grid voxel it sits in,
 written to a LAS 1.4 file that PotreeConverter turns into an octree for the
 browser. The LAS ``classification`` field holds DeepVoid class ids
 (0 void, 1 wall, 2 filament, 3 halo); other per-point values go into extra
-attributes. Note that LAS reserves meanings for some classification codes
+attributes. Voxel clouds (model errors, void surfaces, density) use further
+codes, listed in ``POINT_CODES``, so one color scheme serves a whole page.
+Note that LAS reserves meanings for some classification codes
 (2 is "ground" in lidar data); Potree only uses them for its default colors
 and names, which :func:`write_viewer` replaces.
 
@@ -34,6 +36,18 @@ from .sources import Tracers
 CLASS_COLORS = {0: (0.34, 0.71, 0.91), 1: (0.0, 0.62, 0.45),
                 2: (0.90, 0.62, 0.0), 3: (0.80, 0.47, 0.65)}
 
+# Point codes beyond the four classes, for voxel clouds. One scheme covers
+# every cloud on a page, so each kind of point gets its own code.
+WALL_AS_VOID, VOID_AS_WALL, SURFACE_TRUE, SURFACE_PRED, DENSITY = 4, 5, 6, 7, 8
+POINT_CODES = {
+    **{c: (name, CLASS_COLORS[c]) for c, name in enumerate(CLASS_NAMES)},
+    WALL_AS_VOID: ("true wall, predicted void", (0.84, 0.37, 0.0)),
+    VOID_AS_WALL: ("true void, predicted wall", (0.94, 0.89, 0.26)),
+    SURFACE_TRUE: ("void surface, T-web", (0.34, 0.71, 0.91)),
+    SURFACE_PRED: ("void surface, predicted", (0.0, 0.45, 0.70)),
+    DENSITY: ("dark matter above density cut", (0.6, 0.6, 0.6)),
+}
+
 
 def voxel_index(pos: np.ndarray, n: int, box_size: float, centered: bool = False) -> np.ndarray:
     """Index (N, 3) of the voxel each position falls in, on a periodic n^3 grid."""
@@ -47,6 +61,32 @@ def values_at(data: np.ndarray, pos: np.ndarray, box_size: float,
     """Values of a gridded field (n, n, n, ...) at the voxels holding ``pos``."""
     i, j, k = voxel_index(pos, data.shape[0], box_size, centered).T
     return data[i, j, k]
+
+
+def voxel_positions(selected: np.ndarray, box_size: float) -> np.ndarray:
+    """Positions (N, 3) in h^-1 Mpc of the grid points where ``selected`` is True."""
+    n = selected.shape[0]
+    return np.argwhere(selected).astype(np.float64) * (box_size / n)
+
+
+def void_surface(classes: np.ndarray) -> np.ndarray:
+    """Void voxels with at least one non-void face neighbor, on a periodic grid.
+
+    These form a shell one voxel thick around each void, a small fraction
+    of the void volume, which shows void shapes when drawn as points.
+    """
+    void = classes == 0
+    edge = np.zeros_like(void)
+    for axis in range(3):
+        for step in (1, -1):
+            edge |= ~np.roll(void, step, axis=axis)
+    return void & edge
+
+
+def slab(n: int, axis: int, start: int, stop: int) -> np.ndarray:
+    """Boolean (n, n, n) array, True for cells start <= i < stop along ``axis``."""
+    from .split import Region
+    return Region("slab", axis, start, stop).mask(n)
 
 
 def compare_with_field(tracers: Tracers, field: np.ndarray) -> dict:
@@ -108,28 +148,42 @@ def write_las(path: str | os.PathLike, pos: np.ndarray, classification: np.ndarr
     return path
 
 
-def classification_scheme(names=CLASS_NAMES, colors=CLASS_COLORS) -> dict:
-    """Potree classification scheme: name and RGBA color per class id."""
-    return {str(c): {"visible": True, "name": name, "color": [*colors[c], 1.0]}
-            for c, name in enumerate(names)}
+def classification_scheme(codes: dict = POINT_CODES) -> dict:
+    """Potree classification scheme: name and RGBA color per point code."""
+    return {str(c): {"visible": True, "name": name, "color": [*color, 1.0]}
+            for c, (name, color) in codes.items()}
 
 
 def write_viewer(template_page: str | os.PathLike, out: str | os.PathLike,
-                 clouds: dict[str, str | os.PathLike], title: str,
-                 point_size: float = 3.0, point_budget: int = 5_000_000) -> Path:
-    """Write a Potree page showing several point clouds, colored by class.
+                 clouds: list[dict], title: str, point_budget: int = 5_000_000) -> Path:
+    """Write a Potree page showing several point clouds.
 
     ``template_page`` is a page made by ``PotreeConverter --generate-page``;
     its library includes are kept and its viewer script is replaced. ``out``
-    goes in the same folder, so the library paths stay valid. ``clouds`` maps
-    a display name to the ``metadata.json`` of each converted cloud. Only the
-    first cloud is visible at the start; the others are switched on in the
-    sidebar's scene list.
+    goes in the same folder, so the library paths stay valid.
+
+    Each entry of ``clouds`` describes one cloud:
+
+    - ``name``: shown in the sidebar's scene list
+    - ``metadata``: path of the converted cloud's ``metadata.json``
+    - ``attribute``: what colors the points, ``"classification"`` (default)
+      or an extra attribute such as ``"log_density"``
+    - ``gradient``: Potree color scale for a numeric attribute (default
+      ``"INFERNO"``), and ``range``: its [min, max]
+    - ``size``: point size in pixels (default 3)
+    - ``visible``: shown at start-up (default True for the first cloud only)
     """
     template_page, out = Path(template_page), Path(out)
     html = template_page.read_text()
-    entries = [{"name": name, "url": os.path.relpath(path, out.parent)}
-               for name, path in clouds.items()]
+    entries = []
+    for i, c in enumerate(clouds):
+        entries.append({"name": c["name"],
+                        "url": os.path.relpath(c["metadata"], out.parent),
+                        "attribute": c.get("attribute", "classification"),
+                        "gradient": c.get("gradient", "INFERNO"),
+                        "range": c.get("range"),
+                        "size": c.get("size", 3),
+                        "visible": c.get("visible", i == 0)})
     script = f"""<script>
     const viewer = new Potree.Viewer(document.getElementById("potree_render_area"));
     window.viewer = viewer;
@@ -147,15 +201,20 @@ def write_viewer(template_page: str | os.PathLike, out: str | os.PathLike,
       viewer.toggleSidebar();
     }});
     const clouds = {json.dumps(entries)};
-    clouds.forEach((c, i) => {{
+    let fitted = false;
+    clouds.forEach(c => {{
       Potree.loadPointCloud(c.url, c.name, e => {{
         const pc = e.pointcloud;
         viewer.scene.addPointCloud(pc);
-        pc.material.activeAttributeName = "classification";
+        pc.material.activeAttributeName = c.attribute;
+        if (c.attribute !== "classification") {{
+          pc.material.gradient = Potree.Gradients[c.gradient];
+          if (c.range) pc.material.setRange(c.attribute, c.range);
+        }}
         pc.material.pointSizeType = Potree.PointSizeType.FIXED;
-        pc.material.size = {point_size};
-        pc.visible = (i === 0);
-        if (i === 0) viewer.fitToScreen();
+        pc.material.size = c.size;
+        pc.visible = c.visible;
+        if (c.visible && !fitted) {{ viewer.fitToScreen(); fitted = true; }}
       }});
     }});
   </script>"""
@@ -167,4 +226,40 @@ def write_viewer(template_page: str | os.PathLike, out: str | os.PathLike,
     html = html[:b.start()] + script + html[b.end():]
     html = re.sub(r"<title>.*?</title>", f"<title>{title}</title>", html, flags=re.S)
     out.write_text(html)
+    return out
+
+
+def build_page(converter: str | os.PathLike, page_dir: str | os.PathLike,
+               clouds: list[dict], title: str, page_name: str = "index") -> Path:
+    """Convert LAS files with PotreeConverter and write a viewer page for them.
+
+    ``clouds`` is as in :func:`write_viewer`, with ``las`` (the LAS file)
+    in place of ``metadata``. Converted clouds go to
+    ``page_dir/pointclouds/<LAS file name>``; the Potree libraries are
+    copied into ``page_dir`` from a page PotreeConverter generates. Several
+    pages can share one ``page_dir``.
+    """
+    import shutil
+    import subprocess
+    import tempfile
+
+    page_dir = Path(page_dir)
+    page_dir.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory() as tmp:
+        subprocess.run([str(converter), str(clouds[0]["las"]), "-o", tmp,
+                        "--generate-page", "template"], check=True, capture_output=True)
+        template = next(p for p in Path(tmp).rglob("*.html") if "Potree.Viewer" in p.read_text())
+        shutil.copytree(template.parent / "libs", page_dir / "libs", dirs_exist_ok=True)
+        shutil.copy(template, page_dir / "template.html")
+
+    entries = []
+    for c in clouds:
+        target = page_dir / "pointclouds" / Path(c["las"]).stem
+        shutil.rmtree(target, ignore_errors=True)
+        subprocess.run([str(converter), str(c["las"]), "-o", str(target)],
+                       check=True, capture_output=True)
+        entries.append({**{k: v for k, v in c.items() if k != "las"},
+                        "metadata": target / "metadata.json"})
+    out = write_viewer(page_dir / "template.html", page_dir / f"{page_name}.html", entries, title)
+    (page_dir / "template.html").unlink()
     return out

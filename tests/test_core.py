@@ -572,10 +572,22 @@ def test_write_viewer_replaces_viewer_script(tmp_path):
                     '</head><body><script type="module">window.viewer = new Potree.Viewer(a);'
                     '</script></body></html>')
     meta = tmp_path / "pointclouds" / "L3" / "metadata.json"
-    out = write_viewer(page, tmp_path / "index.html", {"L3": meta}, title="test")
+    out = write_viewer(page, tmp_path / "index.html",
+                       [{"name": "L3", "metadata": meta},
+                        {"name": "rho", "metadata": meta, "attribute": "log_density"}], title="test")
     html = out.read_text()
     assert "libs/potree/potree.js" in html and "<title>test</title>" in html
     assert '"url": "pointclouds/L3/metadata.json"' in html and "new Potree.Viewer(a)" not in html
+    assert '"attribute": "log_density"' in html and '"true wall, predicted void"' in html
+
+
+def test_void_surface_is_a_shell():
+    from deepvoid.pointcloud import void_surface, voxel_positions
+    classes = np.ones((10, 10, 10), np.uint8)
+    classes[2:7, 2:7, 2:7] = 0                       # a 5^3 void
+    surf = void_surface(classes)
+    assert surf.sum() == 5 ** 3 - 3 ** 3 and not surf[4, 4, 4] and surf[2, 4, 4]
+    np.testing.assert_allclose(voxel_positions(surf, 20.0).min(0), [4.0, 4.0, 4.0])
 
 
 def test_write_las_roundtrip(tmp_path):
