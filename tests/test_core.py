@@ -545,3 +545,46 @@ def test_figures_draw(tmp_path):
             summary_figure(dm, truth, tracers, truth, 5, box_size=64.0, spacing=10, note="toy")]
     for i, fig in enumerate(figs):
         assert save_and_display(fig, tmp_path / f"f{i}.png").exists()
+
+
+# ---------------------------------------------------------------- point clouds
+
+def test_voxel_index_nearest_grid_point_and_periodic():
+    from deepvoid.pointcloud import voxel_index
+    pos = np.array([[0.0, 0.49, 0.51], [9.9, 5.0, 0.0]])  # box 10, n 10: cell 1
+    np.testing.assert_array_equal(voxel_index(pos, 10, 10.0), [[0, 0, 1], [0, 5, 0]])
+    np.testing.assert_array_equal(voxel_index(pos, 10, 10.0, centered=True), [[0, 0, 0], [9, 5, 0]])
+
+
+def test_compare_with_field_recognizes_its_own_sample():
+    from deepvoid.pointcloud import compare_with_field
+    t = Tracers(pos=rng.uniform(0, 20, (500, 3)), box_size=20.0, mass=rng.uniform(1, 2, 500))
+    same = compare_with_field(t, cic(t, 16).data)
+    assert same["correlation_integer"] > 0.999 > same["correlation_centered"]
+    other = Tracers(pos=rng.uniform(0, 20, (500, 3)), box_size=20.0, mass=t.mass)
+    assert compare_with_field(other, cic(t, 16).data)["correlation_integer"] < 0.5
+
+
+def test_write_viewer_replaces_viewer_script(tmp_path):
+    from deepvoid.pointcloud import write_viewer
+    page = tmp_path / "template.html"
+    page.write_text('<html><head><title>x</title><script src="libs/potree/potree.js"></script>'
+                    '</head><body><script type="module">window.viewer = new Potree.Viewer(a);'
+                    '</script></body></html>')
+    meta = tmp_path / "pointclouds" / "L3" / "metadata.json"
+    out = write_viewer(page, tmp_path / "index.html", {"L3": meta}, title="test")
+    html = out.read_text()
+    assert "libs/potree/potree.js" in html and "<title>test</title>" in html
+    assert '"url": "pointclouds/L3/metadata.json"' in html and "new Potree.Viewer(a)" not in html
+
+
+def test_write_las_roundtrip(tmp_path):
+    laspy = pytest.importorskip("laspy")
+    from deepvoid.pointcloud import write_las
+    pos = rng.uniform(0, 205, (100, 3))
+    cls = rng.integers(0, 4, 100)
+    write_las(tmp_path / "a.las", pos, cls, extra={"log_mass": rng.normal(size=100).astype(np.float32)})
+    las = laspy.read(tmp_path / "a.las")
+    np.testing.assert_allclose(np.stack([las.x, las.y, las.z], 1), pos, atol=1e-3)
+    np.testing.assert_array_equal(las.classification, cls)
+    assert "log_mass" in las.point_format.extra_dimension_names

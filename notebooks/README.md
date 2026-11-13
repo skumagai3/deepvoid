@@ -18,11 +18,12 @@ repo while it is private.
 | `07_coarse_grid.ipynb` | 256³ inputs and mask for coarse-grid runs, and the score ceiling of a 256³ grid |
 | `08_interpretability.ipynb` | Activation maps, CKA across spacings, a probe for λ, effective receptive field, error and score-entropy maps, accuracy vs distance to the nearest tracer, reliability of the class scores |
 | `09_figures.ipynb` | Figures from data, finished runs and trained models, including the README summary figure |
+| `10_pointclouds.ipynb` | TNG300-1 subhalo samples as Potree point clouds colored by T-web class, one per spacing |
 
 Planned:
 
 | Notebook | Purpose |
 |---|---|
-| `10_redshift_space.ipynb` | Redshift-space inputs with real-space labels |
-| `11_survey.ipynb` | Survey masks and radial selection |
-| `12_calibration.ipynb` | Reliability of the class scores and temperature scaling |
+| `11_redshift_space.ipynb` | Redshift-space inputs with real-space labels |
+| `12_survey.ipynb` | Survey masks and radial selection |
+| `13_calibration.ipynb` | Reliability of the class scores and temperature scaling |
