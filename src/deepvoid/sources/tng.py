@@ -24,12 +24,11 @@ def fetch_subhalos(path: str | os.PathLike, api_key: str, sim: str = "TNG300-1",
                    tmp_dir: str | os.PathLike = "/tmp") -> Path:
     """Download selected subhalo fields of a TNG group catalog and save them as .npz.
 
-    Asks the TNG web API for the whole catalog restricted to ``fields``
-    (a few hundred MB for TNG300-1), and falls back to the catalog's file
-    chunks one at a time if the server refuses the full request. Values are
-    saved in TNG units (positions in ckpc/h, masses in 1e10 h^-1 Msun,
-    velocities in km/s), with the simulation name and snapshot, so
-    :func:`read_subhalos` can read the file.
+    The TNG web API serves one field of the whole catalog per request, so
+    each field is a separate download (about 170 MB per 3-vector field for
+    TNG300-1). Values are saved in TNG units (positions in ckpc/h, masses in
+    1e10 h^-1 Msun, velocities in km/s), with the simulation name and
+    snapshot, so :func:`read_subhalos` can read the file.
 
     The API key is on your profile page at tng-project.org.
     """
@@ -37,42 +36,20 @@ def fetch_subhalos(path: str | os.PathLike, api_key: str, sim: str = "TNG300-1",
     import requests
 
     path = Path(path)
-    headers = {"api-key": api_key}
-    query = {"Subhalo": ",".join(fields)}
-    base = f"{API}/{sim}/files/groupcat-{snapshot}"
-
-    def download(url: str, dest: Path) -> bool:
-        with requests.get(url, headers=headers, params=query, stream=True, timeout=600) as r:
+    url = f"{API}/{sim}/files/groupcat-{snapshot}/"
+    data = {}
+    for field in fields:
+        tmp = Path(tmp_dir) / f"{sim}_groupcat_{snapshot}_{field}.hdf5"
+        with requests.get(url, headers={"api-key": api_key}, params={"Subhalo": field},
+                          stream=True, timeout=600) as r:
             if r.status_code != 200:
-                return False
-            with open(dest, "wb") as f:
+                raise RuntimeError(f"{r.url} returned HTTP {r.status_code}: {r.text[:200]}")
+            with open(tmp, "wb") as f:
                 for block in r.iter_content(chunk_size=1 << 22):
                     f.write(block)
-        return True
-
-    tmp = Path(tmp_dir) / f"{sim}_groupcat_{snapshot}.hdf5"
-    if download(base + "/", tmp):
-        files = [tmp]
-    else:
-        files, i = [], 0
-        while True:
-            chunk = Path(tmp_dir) / f"{sim}_groupcat_{snapshot}.{i}.hdf5"
-            if not download(f"{base}.{i}.hdf5", chunk):
-                break
-            files.append(chunk)
-            i += 1
-        if not files:
-            raise RuntimeError(f"could not download the {sim} group catalog; check the API key")
-
-    parts = {k: [] for k in fields}
-    for f in files:
-        with h5py.File(f, "r") as h:
-            if "Subhalo" not in h:   # chunks holding only FoF groups
-                continue
-            for k in fields:
-                parts[k].append(h["Subhalo"][k][:])
-        f.unlink()
-    data = {k: np.concatenate(v) for k, v in parts.items()}
+        with h5py.File(tmp, "r") as h:
+            data[field] = h["Subhalo"][field][:]
+        tmp.unlink()
     path.parent.mkdir(parents=True, exist_ok=True)
     np.savez(path, sim=sim, snapshot=snapshot, **data)
     return path
