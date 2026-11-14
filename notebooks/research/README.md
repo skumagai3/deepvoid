@@ -2,8 +2,10 @@
 
 The notebooks behind the results. They read TNG300-3 and Bolshoi grids from
 the author's Google Drive (the names in `src/deepvoid/catalog.yaml`) and write
-runs there, so they will not run elsewhere without those files. Configs are in
-`configs/research/`.
+runs there, so they will not run elsewhere as they are. The same grids are on Zenodo:
+`deepvoid.data.fetch()` downloads them and writes a catalog, and setting a
+config's `catalog` to that file runs it on the downloaded copies. Configs are
+in `configs/research/`.
 
 Each notebook needs a Colab secret `GITHUB_TOKEN` with read access to the
 repo while it is private.

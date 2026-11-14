@@ -777,3 +777,42 @@ def test_find_runs_lists_folders_whose_config_no_longer_loads(tmp_path):
     assert runs[0].config["name"] == "new"
     with pytest.raises(KeyError):
         runs[1].config
+
+
+def test_fetch_downloads_checks_and_writes_a_catalog(tmp_path):
+    import hashlib
+    from deepvoid import data
+    from deepvoid.io import save_volume
+    from deepvoid.volume import Volume
+
+    # A stand-in for the Zenodo record: two small files and their manifest.
+    record = tmp_path / "record"
+    record.mkdir()
+    rng = np.random.default_rng(0)
+    save_volume(Volume(rng.random((8, 8, 8)).astype(np.float32), 205.0, {"field": "density"}),
+                record / data.FILES["tng300-3/subhalos/L10"], dtype="float32")
+    save_volume(Volume(rng.integers(0, 4, (8, 8, 8)).astype(np.uint8), 205.0, {"field": "mask"}),
+                record / data.FILES["tng300-3/mask"])
+    lines = ["# file  bytes  sha256  source"]
+    for f in sorted(record.glob("*.npz")):
+        lines.append(f"{f.name}  {f.stat().st_size}  {hashlib.sha256(f.read_bytes()).hexdigest()}  x")
+    (record / "MANIFEST.txt").write_text("\n".join(lines) + "\n")
+    url = record.as_uri() + "/{file}"
+
+    out = tmp_path / "data"
+    cat = data.fetch(["tng300-3/subhalos/L10", "tng300-3/mask"], out, url=url)
+    assert cat.names() == ["tng300-3/mask", "tng300-3/subhalos/L10"]
+    vol = cat.load("tng300-3/subhalos/L10")
+    assert vol.box_size == 205.0 and vol.meta["spacing"] == 10.0 and vol.n == 8
+    assert cat.load("tng300-3/mask").data.dtype == np.uint8
+
+    # A corrupted local copy is downloaded again; a wrong checksum is refused.
+    (out / data.FILES["tng300-3/mask"]).write_bytes(b"broken")
+    data.fetch("tng300-3/mask", out, url=url)
+    assert cat.load("tng300-3/mask").data.shape == (8, 8, 8)
+    (record / data.FILES["tng300-3/mask"]).write_bytes(b"tampered")
+    (out / data.FILES["tng300-3/mask"]).unlink()
+    with pytest.raises(OSError):
+        data.fetch("tng300-3/mask", out, url=url)
+    with pytest.raises(KeyError):
+        data.fetch("tng300-3/subhalos/L4", out, url=url)

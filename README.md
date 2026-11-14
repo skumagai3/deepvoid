@@ -94,6 +94,25 @@ Grids are arrays of shape (n, n, n) with axis order (x, y, z), covering a
 periodic box, with lengths in h⁻¹ Mpc. The default labels need cells smaller
 than 1 h⁻¹ Mpc.
 
+## The data behind the results
+
+The TNG300-3-Dark and Bolshoi grids used here (dark matter, T-web labels,
+and subhalos or halos at mean separations of 3, 5, 7 and 10 h⁻¹ Mpc) are on
+Zenodo: [doi:10.5281/zenodo.24233069](https://doi.org/10.5281/zenodo.24233069).
+They are derived from IllustrisTNG and Bolshoi data, so please credit those
+simulations as the record describes.
+
+```python
+from deepvoid import data
+
+catalog = data.fetch(["tng300-3/mask", "tng300-3/subhalos/L10"], "deepvoid_data")
+labels = catalog.load("tng300-3/mask")
+```
+
+`fetch` checks every file against the record's checksums and writes a
+`catalog.yaml` in the folder. To run a config from `configs/research/` on
+these files, set `catalog: deepvoid_data/catalog.yaml` in it.
+
 ## The choices, and where they are explained
 
 Every setting of a run is in one config.
@@ -126,6 +145,7 @@ src/deepvoid/
   project.py            Project: your grids, their catalog and your runs
   volume.py, io.py      a periodic grid with its metadata; reading and writing
   catalog.py            datasets by name
+  data.py               downloading the published grids
   grid.py               cloud-in-cell gridding of point tracers
   labels/               T-web classification
   observe/              tracer selection, redshift space
