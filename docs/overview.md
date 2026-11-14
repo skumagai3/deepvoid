@@ -80,16 +80,17 @@ Collaboration (IllustrisTNG, https://www.tng-project.org/media/).*
 ### Why voids are interesting
 
 **They fill most of the volume.** Depending on the definition, voids take up
-roughly 70% of the volume of the universe (Pan et al. 2012; Cautun et al.
-2014).
+roughly 60–80% of the volume of the universe (Pan et al. 2012; Cautun et al.
+2014; Cai & Neyrinck 2025).
 
 **They keep the imprint of the early universe.** Voids grow from troughs in
-the primordial Gaussian field of density fluctuations (Kumagai 2025). In groups
-and clusters, gravitational collapse folds the matter flow back on itself
-(shell-crossing) and the memory of the initial conditions is scrambled. Voids
-lack this phase-space folding (Falck et al. 2012), so they
-retain information from the earliest stages of structure formation (Kumagai 2025). Vogeley & Aragon-Calvo (2021) put it this way: the primordial fluctuation blueprint is
-preserved in voids, while chaotic dynamics in clusters and filaments hide it.
+the primordial field of density fluctuations (Sheth & van de Weygaert 2004).
+In groups and clusters, gravitational collapse folds the matter flow back on
+itself (shell-crossing) and the memory of the initial conditions is
+scrambled. Void interiors have not gone through this (Falck, Neyrinck &
+Szalay 2012), so the initial density profile, and even the pattern of
+primordial fluctuations, is partly preserved inside them (Aragon-Calvo &
+Szalay 2013; Cai & Neyrinck 2025).
 
 **Voids only get emptier.** Write the density contrast as
 
@@ -100,8 +101,9 @@ $$
 Since ρ ≥ 0, δ ≥ −1, and δ = −1 is perfect emptiness. In linear theory a
 perturbation grows in place as δ ∝ D(t), where D(t) is the linear growth
 factor, so an initial underdensity (δ < 0) simply becomes more negative.
-The Zel'dovich approximation extends this past the linear regime. It maps the
-initial (Lagrangian) position **q** to the later (Eulerian) position
+The Zel'dovich approximation (Zel'dovich 1970) extends this past the linear
+regime. It maps the initial (Lagrangian) position **q** to the later
+(Eulerian) position
 
 $$
 \mathbf{x}(\mathbf{q}, t) = \mathbf{q} + D(t)\,\nabla_q \Phi_0(\mathbf{q}),
@@ -114,12 +116,11 @@ $$
 = \frac{1}{(1 - D\lambda_1)(1 - D\lambda_2)(1 - D\lambda_3)},
 $$
 
-where λ₁ ≥ λ₂ ≥ λ₃ are the eigenvalues of the deformation tensor (these λ's
-are unrelated to the tracer spacing λ of Section 2)
-$d_{ij} = \partial_i \partial_j \Phi_0$ (Kumagai 2025). A caustic
-(shell-crossing) forms when det J = 0, that is, when D = 1/λᵢ for some
-eigenvalue λᵢ > 0. In a void all three eigenvalues are
-negative, so with $|\lambda_i| = -\lambda_i$,
+where λ₁ ≥ λ₂ ≥ λ₃ are the eigenvalues of the deformation tensor
+$d_{ij} = \partial_i \partial_j \Phi_0$ (these λ's are unrelated to the
+tracer spacing λ of Section 2). A caustic (shell-crossing) forms when
+det J = 0, that is, when D = 1/λᵢ for some eigenvalue λᵢ > 0. In a void all
+three eigenvalues are negative, so with $|\lambda_i| = -\lambda_i$,
 
 $$
 \frac{\rho}{\bar\rho} = \prod_{i=1}^{3} \frac{1}{1 + D\,|\lambda_i|}.
@@ -128,112 +129,127 @@ $$
 Every factor is below 1 and decreases as D grows. The density falls
 monotonically, tends to δ = −1 only asymptotically, and no caustic forms in
 the interior. Overdense regions are the opposite: some λᵢ > 0, the
-denominator reaches zero at a finite time, and the region collapses. This is
-the picture in Kumagai (2025): matter in a void's interior streams out toward
-its edges and empties the interior over time, and the density approaches
-δ = −1. At the edge the outflowing matter piles up into a ridge (a
-"compensation wall", Palmer & Voglis 1983), and shell-crossing there sets a
-timescale for the void's evolution (Kumagai 2025). Kumagai et al. (2025) make the same point:
-voids form from primordial density troughs and become emptier as structure
-evolves, so surveys covering a range of redshifts can track the change. The
-Zel'dovich approximation is only an approximation, and it fails once flows
-cross, but it describes the basic structure of the cosmic web well (Bond et
-al. 1996).
+denominator reaches zero at a finite time, and the region collapses. The
+spherical model gives the same picture with numbers: matter in a void's
+interior streams outward, the interior flattens toward a uniform low
+density, and the outflowing matter piles up into a ridge at the edge (Palmer
+& Voglis 1983; Sheth & van de Weygaert 2004). Interior shells eventually
+overtake outer ones. In a matter-dominated universe this shell-crossing
+happens when the void has expanded by a factor of about 1.7 in radius and
+its mean density has fallen to about 20% of the cosmic mean (Sheth & van de
+Weygaert 2004; van de Weygaert & Platen 2011). The Zel'dovich approximation
+fails once flows cross, but it describes the basic structure of the cosmic
+web well (Bond, Kofman & Pogosyan 1996).
 
 **Their dynamics are simple.** Voids are regions of single-stream flow,
-unlike the multistream flow in dense regions (Aragon-Calvo & Szalay 2013; Falck & Neyrinck 2015). They evolve quasi-linearly and retain memory of large-scale modes (Kumagai 2025). On average they are spherical and evolve toward a top-hat density
-profile (Icke 1984), which makes them close to standard
-objects: in the aggregate they are spherical, common, and carry information
-from early times (Kumagai 2025).
+unlike the multistream flow in dense regions (Aragon-Calvo & Szalay 2013;
+Falck & Neyrinck 2015). The mean outflow around a void follows linear theory
+closely (Hamaus et al. 2014). As a void expands it becomes more spherical
+(Icke 1984), although individual voids stay irregular because of the tides
+from surrounding structure (van de Weygaert & Platen 2011). Averaged over
+many voids, the shape is spherical, which is what the tests below rely on.
 
 **They are small universes of their own.** A void interior behaves like a
-patch of a lower-density Friedmann–Robertson–Walker universe that expands
-faster than its surroundings (Goldberg & Vogeley 2004). Because the matter
-density is lower, dark energy dominates inside a void earlier than it does on
-average (Vogeley & Aragon-Calvo 2021). Overdense structures formed long before dark energy
-mattered, so voids are the part of the cosmic web that dark energy affects
-most (Kumagai 2025; Kumagai et al. 2025; Vogeley & Aragon-Calvo 2021). To leading order, the accelerated
-expansion of voids is the main signature of dark energy: dense structures
-appear to accelerate away from each other because the voids between them are
-expanding (Sheth & van de Weygaert 2004). Over- and
-underdensities are statistically symmetric in the initial conditions (large
-voids are "anti-clusters" (Vogeley & Aragon-Calvo 2021)); gravitational instability breaks
-that symmetry early on.
+patch of a lower-density universe that expands faster than its surroundings
+(Goldberg & Vogeley 2004). Dark energy has the same density everywhere, so
+where there is little matter it dominates earlier and more strongly: voids
+are the most dark-energy-dominated places in the universe (Verza et al.
+2019; Cai & Neyrinck 2025). The equation for a spherical shell of radius r
+shows what a void responds to,
+
+$$
+\frac{\ddot r}{r} = -\frac{4\pi G}{3}\left[\rho_m + (1 + 3w)\,\rho_\Lambda\right],
+$$
+
+where ρ_m is the mean matter density inside r, ρ_Λ the dark energy density
+and w its equation of state (Cai & Neyrinck 2025). Both the strength of
+gravity and the properties of dark energy enter.
 
 ### What people measure with voids
 
-All of these tests need a catalog of voids (Kumagai 2025; Vogeley & Aragon-Calvo 2021).
+All of these tests need a catalog of voids.
 
-- **Void size spectrum** (number of voids against size). It depends on the
-  growth of structure and on the dark energy equation of state, which
-  Vogeley & Aragon-Calvo (2021) write as $w(z) = w_0 + w_a\, z/(1+z)$ (Kumagai et al. 2025; Kumagai 2025; Vogeley & Aragon-Calvo 2021). It also responds to neutrino mass and to modifications of
-  gravity (Vogeley & Aragon-Calvo 2021).
-- **Alcock–Paczynski (AP) test.** Voids are spherically symmetric on average
-  in real space. A survey measures redshifts, and turning them into
-  distances needs a cosmological model. If the assumed model is wrong, voids
-  look stretched or squashed along the line of sight, and the radial and
-  transverse sizes are related to the product of the Hubble parameter and
-  the angular diameter distance (Bos et al. 2012).
-  Redshift-space distortions are easier to model in voids than in dense
-  regions, which is why the void–galaxy correlation function works well for
-  this test (Nadathur et al. 2019). Lavaux & Wandelt (2012)
+- **Void size function** (number of voids against size). It depends on the
+  growth of structure and on the dark energy equation of state (Sheth & van
+  de Weygaert 2004; Pisani et al. 2015; Verza et al. 2019; Contarini et al.
+  2022), usually written $w(z) = w_0 + w_a\, z/(1+z)$ (Chevallier & Polarski
+  2001; Linder 2003). It also responds to neutrino mass (Massara et al.
+  2015; Kreisch et al. 2019) and to modifications of gravity (Cai, Padilla &
+  Li 2015).
+- **Alcock–Paczynski (AP) test** (Alcock & Paczynski 1979; Ryden 1995).
+  Stacked voids are spherically symmetric in real space. A survey measures
+  redshifts, and turning them into distances needs a cosmological model. If
+  the assumed model is wrong, the stack looks stretched or squashed along
+  the line of sight, and the size of the stretch gives the product of the
+  Hubble rate and the angular diameter distance. Lavaux & Wandelt (2012)
   forecast that for a Euclid-like survey the stacked-void AP test could give
   a dark energy figure of merit several times to roughly twenty times that
   of baryon acoustic oscillations (BAO), depending on the smallest void the
   survey can resolve. That is a forecast from dark-matter-only simulations.
   On real data, Nadathur et al. (2019) measured D_A H / c at z = 0.57 from
-  BOSS voids to 1%, about 3.5 times tighter than BAO in the same sample.
-- **Integrated Sachs–Wolfe (ISW) effect.** When a void's interior expands
-  faster, the gravitational potential decays faster, and CMB photons crossing
-  it cannot regain the energy they lost on entering. The result is a cold
-  spot on the CMB. Some recent measurements find larger decrements than
-  ΛCDM predicts (Kumagai 2025; Vogeley & Aragon-Calvo 2021), and Vogeley & Aragon-Calvo (2021) note that
-  the ISW effect of one large void has been proposed as the cause of the CMB
-  "cold spot", which might itself need new physics.
-- **Weak lensing.** The lensing shear of background galaxies behind a void
-  depends on the gradient of the matter density, which can be compared with
-  the projected galaxy density (Kumagai 2025; Vogeley & Aragon-Calvo 2021). This probes how
-  dark and luminous matter relate inside voids.
-- **Galaxy formation.** The pristine, non-virialized environment of a void is
-  a clean setting for studying how local environment shapes galaxies
-  (Kumagai 2025).
+  BOSS voids to 1%, about 3.5 times tighter than BAO in the same sample,
+  using the void–galaxy correlation function (see also Hamaus et al. 2020).
+- **Integrated Sachs–Wolfe (ISW) effect** (Sachs & Wolfe 1967). Dark energy
+  makes the gravitational potential of a void decay while a CMB photon is
+  crossing it, so the photon does not regain the energy it lost on the way
+  in. The result is a cold spot on the CMB. Granett, Neyrinck & Szapudi
+  (2008) detected this by stacking the CMB on large voids and superclusters,
+  with an amplitude several times the ΛCDM prediction. Later work is mixed:
+  some analyses confirm an excess (Kovács et al. 2019), others agree with
+  ΛCDM (Nadathur & Crittenden 2016). All agree on the sign.
+- **Gravitational lensing.** Voids deflect light slightly outward. The
+  lensing shear of background galaxies (Melchior et al. 2014; Clampitt &
+  Jain 2015) and the lensing of the CMB (Cai et al. 2017) measure the total
+  matter profile of voids, which tests gravity and neutrino mass (Baker et
+  al. 2018).
+- **Galaxy formation.** The low-density, undisturbed environment of a void
+  is a clean setting for studying how environment shapes galaxies (Kreckel
+  et al. 2011; van de Weygaert & Platen 2011).
 
 ### The catch: what is a void?
 
-There is no universally agreed definition (Kumagai 2025; Kumagai et al. 2025). Nearly all
-studies find underdensities in the galaxy distribution and differ mainly in
-the shape of the density kernel (Colberg et al. 2008; Vogeley & Aragon-Calvo 2021). Void
-catalogs built from the same galaxies can differ drastically depending on the
-definition (Kumagai 2025; Kumagai et al. 2025), and the accuracy of each test above depends on
-that choice (Kumagai 2025). Watershed methods built on Voronoi tessellations
-(ZOBOV, VIDE) have specific problems: the smoothing scale varies with local
-galaxy density, cells at void edges become long thin polyhedra, and the void
-centers they return do not reliably coincide with maxima of the
-gravitational potential (Vogeley & Aragon-Calvo 2021). These methods also ignore
-redshift-space distortions.
+There is no agreed definition. Colberg et al. (2008) ran thirteen void
+finders on the same simulated volume: all of them found the large central
+void, but the number of voids ranged from 3 to 167 and the fraction of the
+volume called void from 13% to 100%. The accuracy of each test above depends
+on that choice.
 
-DeepVoid takes a different route. It defines voids by the physics that
-creates them and trains a network to recognize that signature in the kind of
-data a survey provides (Kumagai et al. 2025; Kumagai 2025; Vogeley & Aragon-Calvo 2021). The Vogeley & Aragon-Calvo (2021)
-proposal planned to define voids around maxima of the gravitational
-potential, extended to the surrounding single-stream flow. The definition
-used in Kumagai et al. (2025) is the tidal tensor (Section 4 below), which is the same
-eigenvalue criterion as above: a void voxel has none of the three tidal
-tensor eigenvalues above the threshold, so nothing is collapsing along any
-axis. Because the definition
-is only a training target, it can be changed and the model retrained
-(Kumagai 2025).
+The most widely used finders are watershed methods built on a Voronoi
+tessellation of the galaxies (ZOBOV, Neyrinck 2008; VIDE, Sutter et al.
+2015). They need no assumed shape, but the resolution of the density
+estimate varies with the local galaxy density, a significance or density cut
+has to be chosen to turn basins into a catalog (Neyrinck 2008), and the void
+centers they return do not reliably sit at maxima of the gravitational
+potential (Nadathur, Hotchkiss & Crittenden 2017). When tracers are sparse,
+voids not much larger than the tracer spacing are dominated by shot noise
+and are usually discarded (Verza, Pisani et al. 2026). Veyrat, Douglass &
+BenZvi (2023) compared two finders against a dynamical definition (regions
+with no shell-crossing) and found clear differences in how well they
+recover it.
+
+DeepVoid takes a different route (Kumagai et al. 2025). It defines voids by
+the physics that creates them and trains a network to recognize that
+signature in the kind of data a survey provides, building on the use of
+deep networks to classify the cosmic web in Aragon-Calvo (2019). The
+definition is the tidal tensor (Hahn et al. 2007; Forero-Romero et al. 2009;
+Section 4 below), which is the same eigenvalue criterion as above: a void
+voxel has none of the three tidal tensor eigenvalues above the threshold, so
+nothing is collapsing along any axis. Because the definition is only a
+training target, it can be changed and the model retrained.
 
 ### Real surveys
 
 Redshift surveys do not give 3D maps directly. Distances come from redshifts
 only after assuming a cosmology, and the observed redshift also contains a
-Doppler shift from peculiar velocities. In voids this stretches the voids
-along the line of sight, and the velocities of galaxies in groups on the void
-boundary make walls and filaments look elongated ("fingers of god")
-(Vogeley & Aragon-Calvo 2021). Upcoming surveys (DESI, PFS, 4MOST, WEAVE, Rubin/LSST,
-SPHEREx, Euclid, Roman) will map voids to much greater depth (Vogeley & Aragon-Calvo 2021; Kumagai 2025). This work trains on real-space simulation data, so redshift
-space and survey effects are outside what the models here have been tested on.
+Doppler shift from peculiar velocities (Kaiser 1987). The outflow from a
+void stretches it along the line of sight, and the random velocities of
+galaxies in groups on the void boundary smear walls and filaments into
+"fingers of god" (Jackson 1972). Void finding on such data is affected too,
+because the void centers themselves move (Nadathur et al. 2019). Current and
+upcoming surveys (DESI, PFS, 4MOST, Rubin/LSST, SPHEREx, Euclid, Roman) will
+map voids to much greater depth. This work trains on real-space simulation
+data, so redshift space and survey effects are outside what the models here
+have been tested on.
 
 **Units.** Distances are in h⁻¹ Mpc. Here h ≈ 0.68 is the Hubble constant in
 units of 100 km s⁻¹ Mpc⁻¹; writing distances in h⁻¹ Mpc keeps results
@@ -834,7 +850,34 @@ planned remedies.
 - Pan et al. 2012, MNRAS 421, 926, [arXiv:1103.4156](https://arxiv.org/abs/1103.4156)
 - Sachs & Wolfe 1967, ApJ 147, 73
 - Sheth & van de Weygaert 2004, MNRAS 350, 517, [arXiv:astro-ph/0311260](https://arxiv.org/abs/astro-ph/0311260)
+- Baker et al. 2018, Phys. Rev. D 98, 023511
+- Cai & Neyrinck 2025, Cosmology with Cosmic Voids, [arXiv:2503.22532](https://arxiv.org/abs/2503.22532)
+- Cai, Padilla & Li 2015, MNRAS 451, 1036
+- Cai et al. 2017, MNRAS 466, 3364
+- Chevallier & Polarski 2001, Int. J. Mod. Phys. D 10, 213
+- Clampitt & Jain 2015, MNRAS 454, 3357
+- Contarini et al. 2022, A&A 667, A162, [arXiv:2205.11525](https://arxiv.org/abs/2205.11525)
+- Granett, Neyrinck & Szapudi 2008, ApJ 683, L99
+- Hamaus et al. 2014, Phys. Rev. Lett. 112, 251302
+- Hamaus et al. 2020, JCAP 12, 023
+- Jackson 1972, MNRAS 156, 1P
+- Kaiser 1987, MNRAS 227, 1
+- Kovács et al. 2019, MNRAS 484, 5267
+- Kreckel et al. 2011, AJ 141, 4
+- Kreisch et al. 2019, MNRAS 488, 4413
+- Linder 2003, Phys. Rev. Lett. 90, 091301
+- Massara et al. 2015, JCAP 11, 018
+- Melchior et al. 2014, MNRAS 440, 2922
+- Nadathur & Crittenden 2016, ApJ 830, L19
+- Nadathur, Hotchkiss & Crittenden 2017, MNRAS 467, 4067, [arXiv:1610.08382](https://arxiv.org/abs/1610.08382)
+- Neyrinck 2008, MNRAS 386, 2101, [arXiv:0712.3049](https://arxiv.org/abs/0712.3049)
+- Pisani et al. 2015, Phys. Rev. D 92, 083531
+- Ryden 1995, ApJ 452, 25
+- Sutter et al. 2015, Astron. Comput. 9, 1
+- van de Weygaert & Platen 2011, Int. J. Mod. Phys. Conf. Ser. 1, 41, [arXiv:0912.2997](https://arxiv.org/abs/0912.2997)
+- Verza et al. 2019, JCAP 12, 040
+- Verza, Pisani et al. 2026, The era of precision cosmology with voids, [arXiv:2601.14362](https://arxiv.org/abs/2601.14362)
+- Veyrat, Douglass & BenZvi 2023, A comparison of void-finding algorithms using crossing numbers, [arXiv:2302.05469](https://arxiv.org/abs/2302.05469)
+- Zel'dovich 1970, A&A 5, 84
 - Kumagai et al. 2025, DeepVoid: A Deep Learning Void Detector, [arXiv:2504.21134](https://arxiv.org/abs/2504.21134)
 - Aragon-Calvo 2019, MNRAS 484, 5771, [arXiv:1804.00816](https://arxiv.org/abs/1804.00816)
-- Kumagai 2025, PhD dissertation, Drexel University
-- Vogeley & Aragon-Calvo, "What Stretches the Fabric of the Cosmos? Probes of Fundamental Physics in Cosmic Voids Using Artificial Intelligence", proposal to the John Templeton Foundation, 2021
