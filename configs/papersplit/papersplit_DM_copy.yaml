@@ -21,6 +21,9 @@ model:
 training:
   batch_size: 4
   epochs: 150
-  optimizer: {name: adamw, learning_rate: 1.0e-3, weight_decay: 1.0e-4, clipnorm: 1.0}
+  # 3e-4 is the paper's learning rate. No weight averaging (the paper had none);
+  # with only ~38 steps per epoch the averaged weights lag the trained ones.
+  optimizer: {name: adamw, learning_rate: 3.0e-4, weight_decay: 1.0e-4, clipnorm: 1.0}
+  ema: null
   loss: {name: scce, class_weights: null}
   early_stopping: {monitor: val_mcc, patience: 15, min_delta: 0.002}
