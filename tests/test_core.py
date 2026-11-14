@@ -762,3 +762,18 @@ def test_template_config_is_complete_and_valid():
                if k not in written and not any(w.startswith(k + ".") for w in written)}
     assert missing <= {"training.schedule.factor", "training.schedule.patience",
                        "training.schedule.min_lr"}, missing
+
+
+def test_find_runs_lists_folders_whose_config_no_longer_loads(tmp_path):
+    from deepvoid.runs import find_runs
+
+    (tmp_path / "old").mkdir()
+    (tmp_path / "old" / "config.yaml").write_text("name: old\ntraining: {class_weights: auto}\n")
+    (tmp_path / "new").mkdir()
+    (tmp_path / "new" / "config.yaml").write_text("name: new\ndata: {inputs: [a], labels: b}\n")
+    runs = find_runs(tmp_path)
+    assert [r.name for r in runs] == ["new", "old"]
+    assert not runs[0].finished and not runs[1].finished
+    assert runs[0].config["name"] == "new"
+    with pytest.raises(KeyError):
+        runs[1].config

@@ -31,11 +31,17 @@ class Run:
         self.path = Path(path)
         if not (self.path / "config.yaml").exists():
             raise FileNotFoundError(f"{self.path} has no config.yaml; is it a run folder?")
+        self._catalog = catalog
+
+    @cached_property
+    def catalog(self) -> Catalog:
+        """The catalog the run's grids come from. Read on first use, so that
+        listing run folders does not depend on every old config still loading."""
         cfg = dict(self.config)
         if cfg["catalog"] and not Path(cfg["catalog"]).exists():
             # A project folder that was moved: its catalog sits two levels up.
             cfg["catalog"] = str(self.path.parent.parent / "catalog.yaml")
-        self.catalog = Catalog.for_config(cfg, catalog)
+        return Catalog.for_config(cfg, self._catalog)
 
     def __repr__(self) -> str:
         return f"Run({self.name!r})"
@@ -83,7 +89,8 @@ class Run:
         name = name or self.config["data"]["inputs"][0]
         norms = json.loads((self.path / "normalization.json").read_text())
         train = self.regions["train"].mask(self.catalog.load(self.config["data"]["labels"]).n)
-        return build(self.catalog, name, self.config["data"]["smoothing"], norms, train)
+        return build(self.catalog, name, self.config["data"]["smoothing"], norms, train,
+                     self.config["data"]["normalization"])
 
     def labels(self) -> np.ndarray:
         """The T-web mask the run was trained on."""

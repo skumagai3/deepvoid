@@ -227,8 +227,9 @@ All of these tests need a catalog of voids.
 There is no agreed definition. Colberg et al. (2008) ran thirteen void
 finders on the same simulated volume: all of them found the large central
 void, but the number of voids ranged from 3 to 167 and the fraction of the
-volume called void from 13% to 100%. The accuracy of each test above depends
-on that choice.
+volume called void from 13% to 100%. No single definition is the right one
+for everything: each test above is best served by a definition suited to
+what it measures.
 
 The most widely used finders are watershed methods built on a Voronoi
 tessellation of the galaxies: ZOBOV (ZOnes Bordering On Voidness; Neyrinck
