@@ -283,9 +283,13 @@ upcoming surveys will map voids to much greater depth:
 data, so redshift space and survey effects are outside what the models here
 have been tested on.
 
-**Units.** Distances are in h⁻¹ Mpc. Here h ≈ 0.68 is the Hubble constant in
-units of 100 km s⁻¹ Mpc⁻¹; writing distances in h⁻¹ Mpc keeps results
-independent of its exact value.
+**Units.** Distances are in h⁻¹ Mpc. Here h is the Hubble constant in units
+of 100 km s⁻¹ Mpc⁻¹. Its value depends on the cosmological model you adopt,
+so writing distances in h⁻¹ Mpc keeps results independent of that choice.
+IllustrisTNG uses h = 0.6774, from a cosmology consistent with the Planck
+2015 results (Planck Collaboration 2016): Ω_m = 0.3089, Ω_Λ = 0.6911,
+Ω_b = 0.0486, σ₈ = 0.8159, n_s = 0.9667. With that h, the TNG300 box of
+205 h⁻¹ Mpc is about 303 Mpc on a side.
 
 ## 2. Simulations, tracers and tracer spacing
 
@@ -843,7 +847,9 @@ planned remedies.
 
 | Term | Meaning |
 |---|---|
-| h⁻¹ Mpc | distance unit; 1 Mpc ≈ 3.26 million light years, h ≈ 0.68 |
+| h | the Hubble constant divided by 100 km s⁻¹ Mpc⁻¹; its value depends on the assumed cosmology (0.6774 in IllustrisTNG) |
+| h⁻¹ Mpc | distance unit that leaves h unspecified; 1 Mpc ≈ 3.26 million light years, so 1 h⁻¹ Mpc ≈ 1.48 Mpc for h = 0.6774 |
+| TNG300 cosmology | Planck 2015: Ω_m = 0.3089, Ω_Λ = 0.6911, Ω_b = 0.0486, σ₈ = 0.8159, n_s = 0.9667, h = 0.6774 |
 | Comoving coordinates | coordinates that expand with the universe |
 | N-body simulation | a simulation following many particles under gravity |
 | Dark matter (DM) | matter that interacts only by gravity; most of the mass |
@@ -927,6 +933,7 @@ planned remedies.
 - Pan et al. 2012, MNRAS 421, 926, [arXiv:1103.4156](https://arxiv.org/abs/1103.4156)
 - Pillepich et al. 2018, MNRAS 475, 648 (IllustrisTNG), [arXiv:1707.03406](https://arxiv.org/abs/1707.03406)
 - Pisani et al. 2015, Phys. Rev. D 92, 083531, [arXiv:1503.07690](https://arxiv.org/abs/1503.07690)
+- Planck Collaboration 2016, A&A 594, A13 (Planck 2015 results. XIII. Cosmological parameters), [arXiv:1502.01589](https://arxiv.org/abs/1502.01589)
 - Raichoor et al. 2023, AJ 165, 126 (DESI emission-line galaxies), [arXiv:2208.08513](https://arxiv.org/abs/2208.08513)
 - Ronneberger, Fischer & Brox 2015, MICCAI (U-Net), [arXiv:1505.04597](https://arxiv.org/abs/1505.04597)
 - Ryden 1995, ApJ 452, 25, [arXiv:astro-ph/9506028](https://arxiv.org/abs/astro-ph/9506028)
