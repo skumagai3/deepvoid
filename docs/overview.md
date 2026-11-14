@@ -6,6 +6,29 @@ algebra and basic machine learning, but new to cosmology and to this
 particular segmentation problem. Equations are written in LaTeX (GitHub
 renders them).
 
+## The short version
+
+Galaxies are not scattered evenly through space. They trace a web of dense
+knots, threads and sheets, with huge nearly empty regions called voids in
+between. Voids are useful for studying dark energy and gravity, but a galaxy
+survey only gives us a sparse set of points, and finding the voids from those
+points is hard.
+
+DeepVoid is a neural network that takes a sparse set of points and labels
+every location in the volume as void, wall, filament or halo. It learns from
+a computer simulation of the universe, where the right answer is known.
+
+![Left: the only input, a thin slice of the simulation showing one dot per galaxy-like object. Middle: DeepVoid's labels for that slice. Right: the true labels.](figures/sparse_tracers_to_web.png)
+
+*What DeepVoid does. Left: the input, about 170 galaxy-like objects (subhalos)
+in a slice 4 h⁻¹ Mpc thick and 205 h⁻¹ Mpc on a side. Middle: the structure
+DeepVoid predicts from those points. Right: the true structure, computed from
+the full dark matter distribution that a survey cannot see. Black is void.
+Figure from Kumagai et al. (2025), made with the first version of the model;
+the current models are more accurate (Section 12).*
+
+The rest of this document explains each step.
+
 Contents
 
 1. [The cosmic web and why voids matter](#1-the-cosmic-web-and-why-voids-matter)
@@ -335,6 +358,13 @@ $$
 \mathrm{tr}\, T = \lambda_1 + \lambda_2 + \lambda_3 = \delta_\sigma .
 $$
 
+![Three panels of the same slice: matter density, gravitational potential, and the four-class labels.](figures/density_potential_labels.png)
+
+*From matter to labels, for one slice through the TNG300 box. Left: the dark
+matter density (log scale). Middle: the gravitational potential it produces.
+Right: the T-web labels computed from the potential's second derivatives.
+Figure from Kumagai et al. (2025).*
+
 **Eigenvalues and classes.** T is a real symmetric 3 × 3 matrix at every
 point, with eigenvalues λ₁ ≥ λ₂ ≥ λ₃ (these λ's are unrelated to the tracer
 spacing λ; the notation clash is standard, unfortunately). A positive
@@ -353,6 +383,15 @@ The threshold λ_th = 0.65 is a choice. With λ_th = 0 almost everything is
 wall and voids are tiny; a modest positive threshold gives a web that looks
 like the observed one. Every DeepVoid label uses λ_th = 0.65 and
 σ_eff = 1 h⁻¹ Mpc.
+
+![Nine panels showing the labels for eigenvalue thresholds from -0.2 to 2.6.](figures/threshold_comparison.png)
+
+*The same slice labeled with nine different thresholds λ_th, from −0.2 (top
+left) to 2.6 (bottom right). Dark purple is void, blue is wall, green is
+filament, yellow is halo. Axes are in grid cells. At 0 the voids are small
+isolated pockets; at 0.65 (middle right) they connect into the large empty
+regions seen by eye. This plot is from an earlier exploration and uses a
+different color scheme from the other figures.*
 
 In TNG300 this gives roughly 65% void, 26% wall, 9% filament and 0.5% halo
 by volume. The classes are strongly imbalanced.
@@ -382,6 +421,15 @@ Why it is hard:
 - **Imbalance.** Halo voxels are 0.5% of the volume.
 
 ## 6. The network: a 3D U-Net
+
+![Diagram of a U-Net: a density cube goes in, is compressed through several levels, expanded again, and a label cube comes out.](figures/unet.png)
+
+*The U-Net. A small cube of the density field (a) goes into the network (b).
+The left half (orange) repeatedly halves the resolution to see larger
+structures; the right half (green) builds the resolution back up; the grey
+arrows carry fine detail straight across. The output (c) is a label for every
+voxel. Figure from Kumagai et al. (2025), which shows 3 levels and 128³
+inputs; the current default is 4 or 5 levels.*
 
 A **convolutional neural network (CNN)** applies the same small filter at
 every position. One 3D convolution layer with $C_\mathrm{in}$ input and
@@ -675,6 +723,11 @@ smoothed channel):
 | 5 | 0.880 | 0.842 |
 | 7 | 0.825 | 0.781 |
 | 10 | 0.736 | 0.683 |
+
+![Line chart of void MCC against tracer spacing for the depth-4 and depth-5 models.](figures/void_mcc_vs_spacing.png)
+
+*Void MCC on the test slab against tracer spacing. Depth 4 is the mean of
+three seeds, which differ by at most 0.002; depth 5 is a single run.*
 
 At λ = 10, about 27% of true wall voxels are predicted void, and the model's
 void scores depend mostly on distance to the nearest tracer. Thin walls far
