@@ -136,10 +136,13 @@ All of these tests need a catalog of voids (Kumagai 2025; Vogeley & Aragon-Calvo
   the angular diameter distance (Bos et al. 2012).
   Redshift-space distortions are easier to model in voids than in dense
   regions, which is why the void–galaxy correlation function works well for
-  this test (Nadathur et al. 2019). Kumagai (2025) quotes
-  Lavaux & Wandelt (2012) that the stacked-void AP test should beat baryon
-  acoustic oscillations for Euclid-like surveys by an order of magnitude in
-  accuracy. I have not checked that figure against the original paper.
+  this test (Nadathur et al. 2019). Lavaux & Wandelt (2012)
+  forecast that for a Euclid-like survey the stacked-void AP test could give
+  a dark energy figure of merit several times to roughly twenty times that
+  of baryon acoustic oscillations (BAO), depending on the smallest void the
+  survey can resolve. That is a forecast from dark-matter-only simulations.
+  On real data, Nadathur et al. (2019) measured D_A H / c at z = 0.57 from
+  BOSS voids to 1%, about 3.5 times tighter than BAO in the same sample.
 - **Integrated Sachs–Wolfe (ISW) effect.** When a void's interior expands
   faster, the gravitational potential decays faster, and CMB photons crossing
   it cannot regain the energy they lost on entering. The result is a cold
