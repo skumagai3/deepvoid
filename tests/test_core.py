@@ -600,3 +600,37 @@ def test_write_las_roundtrip(tmp_path):
     np.testing.assert_allclose(np.stack([las.x, las.y, las.z], 1), pos, atol=1e-3)
     np.testing.assert_array_equal(las.classification, cls)
     assert "log_mass" in las.point_format.extra_dimension_names
+
+
+def test_subcube_split_reproduces_the_paper_protocol_and_a_clean_control():
+    from deepvoid.subcubes import extract, copy_fraction, subcube_split
+    n, size = 512, 128
+    copy = subcube_split(n, size=size, split_by="copy")
+    region = subcube_split(n, size=size, split_by="region")
+    for s in (copy, region):
+        # 48 regions outside the held-out layer, 4 rotations each; 16 test subcubes
+        assert len(s["train"]) + len(s["val"]) == 48 * 4
+        assert len(s["test"]) == 16
+        assert all(e[0] == 384 and e[3] == 0 for e in s["test"])
+        assert all(e[0] + size <= 384 for e in s["train"] + s["val"])
+        assert not set(s["train"]) & set(s["val"])
+    assert len(copy["val"]) == 39            # ceil(0.2 * 192), as sklearn
+    assert copy_fraction(region) == 0.0
+    assert copy_fraction(copy) > 0.9
+    # A rotation is a 90-degree turn about the first two axes, as np.rot90 in the paper
+    v = np.arange(n ** 3, dtype=np.int32).reshape(n, n, n)
+    cube = extract(v, (128, 0, 256, 1), size)
+    assert np.array_equal(cube, np.rot90(v[128:256, 0:128, 256:384], 1, axes=(0, 1)))
+
+
+def test_papersplit_configs_are_valid():
+    from pathlib import Path
+    from deepvoid.config import load_config
+    from deepvoid.subcubes import settings
+    paths = sorted((Path(__file__).parents[1] / "configs" / "papersplit").glob("*.yaml"))
+    assert len(paths) == 4
+    for path in paths:
+        cfg = load_config(path)
+        s = settings(cfg["data"]["subcubes"])
+        assert s["split_by"] in path.stem
+        Catalog().info(cfg["data"]["inputs"][0])

@@ -75,6 +75,10 @@ def run(config, seed: int | None = None, catalog: Catalog | None = None) -> Path
     if tr["mixed_precision"]:
         keras.mixed_precision.set_global_policy("mixed_float16")
 
+    if cfg["data"]["subcubes"] is not None:      # the first paper's protocol, see subcubes.py
+        from .subcubes import run_subcubes
+        return run_subcubes(cfg, catalog, out, resuming)
+
     # Data, split and normalization (fit on the training slab only).
     labels = catalog.load(cfg["data"]["labels"])
     regions = slab_split(labels.n, **cfg["data"]["split"])
@@ -185,8 +189,11 @@ def evaluate_run(out: str | Path, catalog: Catalog | None = None, **overrides) -
     if unknown:
         raise KeyError(f"unknown evaluate settings {sorted(unknown)}")
     cfg["evaluate"].update(overrides)
-    names = cfg["evaluate"]["inputs"] or cfg["data"]["inputs"]
     catalog = catalog or Catalog()
+    if cfg["data"]["subcubes"] is not None:      # scored per subcube, see subcubes.py
+        from .subcubes import evaluate_subcubes
+        return evaluate_subcubes(out, cfg, catalog)
+    names = cfg["evaluate"]["inputs"] or cfg["data"]["inputs"]
     model = load_model(out / "best.keras")
     labels, masks, make_x, factor = _test_setup(out, cfg, catalog)
     # Slice for the figure: the middle of the test slab, on the scoring grid.

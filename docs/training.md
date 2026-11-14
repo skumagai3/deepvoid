@@ -206,6 +206,31 @@ its 2x2x2 fine cells and is scored on the same test slab at 512^3.
 Halving `data.split.buffer` (8 instead of 16) makes the 256^3 slabs exactly
 half the 512^3 ones. See `configs/subhalo/A256_scratch_L10.yaml`.
 
+## The first paper's split (split test)
+
+`data.subcubes` replaces the slab split with the first paper's protocol, to
+measure what that protocol does to the scores (`src/deepvoid/subcubes.py`,
+configs in `configs/papersplit/`). The box is cut into non-overlapping 128^3
+subcubes, each stored with copies rotated by 90, 180 and 270 degrees about
+one axis, and the examples are split 80/20 at random. One layer of subcubes
+(x in [384, 512) by default) is held out entirely and used only for the
+final scores.
+
+| Setting | Default | What it does |
+|---|---|---|
+| `size` | 128 | Subcube side in cells |
+| `rotations` | 4 | Copies per subcube (0, 90, 180, 270 degrees) |
+| `val_fraction` | 0.2 | Fraction of examples (or regions) for validation |
+| `split_by` | `copy` | `copy`: each rotated copy is its own example, as in the paper; `region`: the copies of a region stay together |
+| `holdout` | [384, 512] | x range of the held-out test subcubes |
+| `seed` | 12 | Seed for the split |
+
+Training uses whole subcubes, shuffled each epoch, with no other
+augmentation. `test_scores.json` has `validation` and `test` scores, both
+from predicting each subcube whole, and the fraction of validation examples
+whose region also has a copy in training. Comparing a `copy` run with its
+`region` twin shows how much the paper's split raises the validation score.
+
 ## Watching a run
 
 - **`log.csv`** in the run folder gets a row per epoch with the training loss

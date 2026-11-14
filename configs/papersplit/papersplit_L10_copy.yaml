@@ -1,0 +1,26 @@
+# Split test at spacing 10 h^-1 Mpc (subhalos, raw input), with the first
+# paper's split: each rotated copy is its own example, so the rotations of
+# one region can land in both training and validation.
+# Everything else matches papersplit_L10_region.
+# Compare validation and test scores across the pair (see src/deepvoid/subcubes.py).
+
+name: papersplit_L10_copy
+output: /content/drive/MyDrive/deepvoid_runs
+seed: 12
+
+data:
+  inputs: [tng300-3/subhalos/L10]
+  labels: tng300-3/mask
+  subcubes: {size: 128, rotations: 4, val_fraction: 0.2, split_by: copy,
+             holdout: [384, 512], seed: 12}
+
+model:
+  depth: 3                 # the paper's best: depth 3, 32 filters
+  base_filters: 32
+
+training:
+  batch_size: 4
+  epochs: 150
+  optimizer: {name: adamw, learning_rate: 1.0e-3, weight_decay: 1.0e-4, clipnorm: 1.0}
+  loss: {name: scce, class_weights: null}
+  early_stopping: {monitor: val_mcc, patience: 15, min_delta: 0.002}

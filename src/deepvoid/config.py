@@ -23,6 +23,7 @@ DEFAULTS: dict[str, Any] = {
         "labels": None,
         "split": {"fractions": [0.7, 0.15, 0.15], "buffer": 16, "axis": 0},
         "smoothing": None,
+        "subcubes": None,
     },
     "model": {
         "depth": 4,
