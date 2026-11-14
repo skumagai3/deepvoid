@@ -233,18 +233,21 @@ on that choice.
 The most widely used finders are watershed methods built on a Voronoi
 tessellation of the galaxies: ZOBOV (ZOnes Bordering On Voidness; Neyrinck
 2008) and VIDE (the Void IDentification and Examination toolkit; Sutter et
-al. 2015). They need no assumed shape, but the resolution of the density
-estimate varies with the local galaxy density, so the cells near void edges
-and survey boundaries can be long, thin polyhedra that misrepresent where
-the void ends (Kumagai 2025). A significance or density cut
-also has to be chosen to turn basins into a catalog (Neyrinck 2008), and the void
-centers they return do not reliably sit at maxima of the gravitational
-potential (Nadathur, Hotchkiss & Crittenden 2017). When tracers are sparse,
-voids not much larger than the tracer spacing are dominated by shot noise
-and are usually discarded (Contarini, Verza & Pisani 2026). Veyrat, Douglass &
-BenZvi (2023) compared two finders against a dynamical definition (regions
-with no shell-crossing) and found clear differences in how well they
-recover it.
+al. 2015). They find density depressions without free parameters or an
+assumed void shape (Neyrinck 2008), and their density estimate adapts to the
+galaxies, with fine resolution wherever galaxies are dense. The same
+adaptivity means coarse resolution where galaxies are few. The Voronoi cells
+there are large, and near void edges and survey boundaries, which is where
+this happens most often, they can be long, thin polyhedra, so the edge of a
+void is located less precisely (Kumagai 2025). Turning the watershed basins
+into a catalog takes a significance or density cut (Neyrinck 2008), and the
+void centers do not always sit at maxima of the gravitational potential
+(Nadathur, Hotchkiss & Crittenden 2017). Sparse tracers are a difficulty for
+any finder: voids not much larger than the tracer spacing are dominated by
+shot noise and are usually discarded (Contarini, Verza & Pisani 2026).
+Veyrat, Douglass & BenZvi (2023) compared two finders against a dynamical
+definition (regions with no shell-crossing) and found clear differences in
+how well they recover it.
 
 DeepVoid takes a different route (Kumagai et al. 2025). It defines voids by
 the physics that creates them and trains a network to recognize that

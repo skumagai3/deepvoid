@@ -197,7 +197,7 @@ def summary_figure(dm: np.ndarray, truth: np.ndarray, tracers: np.ndarray,
     import matplotlib.pyplot as plt
     from matplotlib.patches import FancyArrowPatch
 
-    fig, axes = plt.subplots(2, 2, figsize=(11, 11.6))
+    fig, axes = plt.subplots(2, 2, figsize=(11, 12.6))
     ext_box = box_size or truth.shape[0]
     show_density(axes[0, 0], take_slice(dm, index, axis, thickness=2), box_size)
     axes[0, 0].set_title("Dark matter (simulation)")
@@ -218,17 +218,22 @@ def summary_figure(dm: np.ndarray, truth: np.ndarray, tracers: np.ndarray,
     axes[1, 1].set_title("DeepVoid prediction from the tracers")
     for a in axes.ravel():
         _label_axes(a, box_size)
+        a.title.set_position((0.5, 1.0)); a.set_title(a.get_title(), pad=10)
 
-    arrow = dict(arrowstyle="-|>", mutation_scale=22, lw=2, color="#4a5568")
-    fig.patches.append(FancyArrowPatch((0.475, 0.74), (0.525, 0.74), transform=fig.transFigure, **arrow))
-    fig.patches.append(FancyArrowPatch((0.475, 0.27), (0.525, 0.27), transform=fig.transFigure, **arrow))
-    fig.text(0.5, 0.765, "T-web", ha="center", fontsize=10, color="#4a5568")
-    fig.text(0.5, 0.295, "DeepVoid\n(3D U-Net)", ha="center", fontsize=10, color="#4a5568")
-    mask_legend(fig, loc="lower center", ncol=4, fontsize=11, bbox_to_anchor=(0.5, -0.01))
     fig.suptitle("DeepVoid: cosmic-web classes from sparse tracers", fontsize=15, y=0.995)
+    # Lay the panels out first, then put each arrow level with its row.
+    fig.tight_layout(rect=(0, 0.085, 1, 0.97), h_pad=5.0, w_pad=7.0)
+    arrow = dict(arrowstyle="-|>", mutation_scale=22, lw=2, color="#4a5568")
+    for row, text in ((0, "T-web"), (1, "DeepVoid\n(3D U-Net)")):
+        left, right = axes[row, 0].get_position(), axes[row, 1].get_position()
+        y = (left.y0 + left.y1) / 2
+        gap = right.x0 - left.x1
+        x0, x1 = left.x1 + 0.12 * gap, left.x1 + 0.6 * gap    # clear of the tick labels
+        fig.patches.append(FancyArrowPatch((x0, y), (x1, y), transform=fig.transFigure, **arrow))
+        fig.text((x0 + x1) / 2, y + 0.022, text, ha="center", fontsize=10, color="#4a5568")
+    mask_legend(fig, loc="lower center", ncol=4, fontsize=11, bbox_to_anchor=(0.5, -0.01))
     if note:
-        fig.text(0.5, 0.05, note, ha="center", fontsize=10)
-    fig.tight_layout(rect=(0, 0.07, 1, 0.97), h_pad=2.5)
+        fig.text(0.5, 0.052, note, ha="center", fontsize=10)
     return fig
 
 
