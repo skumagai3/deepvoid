@@ -65,17 +65,20 @@ in the universe is not spread evenly. Galaxies sit in a network called the
 
 *The real thing: a slice of the galaxy map from the Sloan Digital Sky Survey.
 We are at the center; each dot is a galaxy, and distance from the center is
-redshift (z = 0.14 is about 2 billion light years). The galaxies trace
+redshift z, the stretching of a galaxy's light by cosmic expansion, which
+grows with distance (z = 0.14 is about 2 billion light years). The galaxies trace
 filaments and walls around large empty voids. The blank wedges are parts of
 the sky the survey did not cover. Image credit: M. Blanton and the Sloan
-Digital Sky Survey (CC BY).*
+Digital Sky Survey (SDSS; York et al. 2000), under a Creative Commons
+Attribution (CC BY) license.*
 
 ![Simulated cosmic web from the IllustrisTNG simulation: bright knots connected by thin filaments, with dark voids in between.](figures/cosmic_web_tng.jpg)
 
 *The same kind of structure in a simulation, where the matter between the
 galaxies can be seen too. Bright knots are halos, the threads between them
 are filaments, and the dark regions are voids. Image credit: TNG
-Collaboration (IllustrisTNG, https://www.tng-project.org/media/).*
+Collaboration (the IllustrisTNG simulations; TNG stands for "The Next
+Generation"; https://www.tng-project.org/media/).*
 
 ### Why voids are interesting
 
@@ -194,15 +197,20 @@ All of these tests need a catalog of voids.
   a dark energy figure of merit several times to roughly twenty times that
   of baryon acoustic oscillations (BAO), depending on the smallest void the
   survey can resolve. That is a forecast from dark-matter-only simulations.
-  On real data, Nadathur et al. (2019) measured D_A H / c at z = 0.57 from
-  BOSS voids to 1%, about 3.5 times tighter than BAO in the same sample,
+  On real data, Nadathur et al. (2019) measured D_A H / c (D_A is the angular
+  diameter distance, H the Hubble rate, c the speed of light) at redshift
+  z = 0.57 from voids in the Baryon Oscillation Spectroscopic Survey (BOSS;
+  Dawson et al. 2013) to 1%, about 3.5 times tighter than BAO in the same sample,
   using the void–galaxy correlation function (see also Hamaus et al. 2020).
 - **Integrated Sachs–Wolfe (ISW) effect** (Sachs & Wolfe 1967). Dark energy
-  makes the gravitational potential of a void decay while a CMB photon is
+  makes the gravitational potential of a void decay while a photon of the cosmic microwave background (CMB, the light
+  left over from the early universe) is
   crossing it, so the photon does not regain the energy it lost on the way
   in. The result is a cold spot on the CMB. Granett, Neyrinck & Szapudi
   (2008) detected this by stacking the CMB on large voids and superclusters,
-  with an amplitude several times the ΛCDM prediction. Later work is mixed:
+  with an amplitude several times the prediction of ΛCDM, the standard
+  cosmological model (a cosmological constant Λ as the dark energy, plus
+  cold dark matter). Later work is mixed:
   some analyses confirm an excess (Kovács 2018), others agree with
   ΛCDM (Nadathur & Crittenden 2016). All agree on the sign.
 - **Gravitational lensing.** Voids deflect light slightly outward. The
@@ -223,8 +231,9 @@ volume called void from 13% to 100%. The accuracy of each test above depends
 on that choice.
 
 The most widely used finders are watershed methods built on a Voronoi
-tessellation of the galaxies (ZOBOV, Neyrinck 2008; VIDE, Sutter et al.
-2015). They need no assumed shape, but the resolution of the density
+tessellation of the galaxies: ZOBOV (ZOnes Bordering On Voidness; Neyrinck
+2008) and VIDE (the Void IDentification and Examination toolkit; Sutter et
+al. 2015). They need no assumed shape, but the resolution of the density
 estimate varies with the local galaxy density, so the cells near void edges
 and survey boundaries can be long, thin polyhedra that misrepresent where
 the void ends (Kumagai 2025). A significance or density cut
@@ -256,8 +265,21 @@ void stretches it along the line of sight, and the random velocities of
 galaxies in groups on the void boundary smear walls and filaments into
 "fingers of god" (Jackson 1972). Void finding on such data is affected too,
 because the void centers themselves move (Nadathur et al. 2019). Current and
-upcoming surveys (DESI, PFS, 4MOST, Rubin/LSST, SPHEREx, Euclid, Roman) will
-map voids to much greater depth. This work trains on real-space simulation
+upcoming surveys will map voids to much greater depth:
+
+- the Dark Energy Spectroscopic Instrument (DESI; DESI Collaboration 2016);
+- the Prime Focus Spectrograph on the Subaru telescope (PFS; Tamura et al.
+  2018);
+- the 4-metre Multi-Object Spectroscopic Telescope (4MOST; de Jong et al.
+  2016);
+- the Vera C. Rubin Observatory Legacy Survey of Space and Time (LSST; LSST
+  Science Collaboration 2009; Ivezić et al. 2019);
+- SPHEREx, the Spectro-Photometer for the History of the Universe, Epoch of
+  Reionization and Ices Explorer (Doré et al. 2018);
+- Euclid (Laureijs et al. 2011; Euclid Collaboration: Mellier et al. 2024);
+- the Nancy Grace Roman Space Telescope (Spergel et al. 2015; Wang et al.
+  2022).
+ This work trains on real-space simulation
 data, so redshift space and survey effects are outside what the models here
 have been tested on.
 
@@ -273,7 +295,8 @@ particles under gravity in a periodic cube (a box whose opposite faces are
 identified, so there are no edges) from nearly uniform initial conditions to
 today.
 
-DeepVoid uses **IllustrisTNG** (TNG300): a periodic box of side
+DeepVoid uses **IllustrisTNG** (Pillepich et al. 2018; Springel et al. 2018;
+Nelson et al. 2019), specifically its largest box, TNG300: a periodic box of side
 L = 205 h⁻¹ Mpc.
 
 - **Dark matter (DM)** particles sample the matter field densely. Their mean
@@ -303,8 +326,8 @@ $$
 | 7 | 25,117 |
 | 10 | 8,615 |
 
-For comparison, DESI's luminous red galaxies and emission-line galaxies have
-λ ≈ 11–13 h⁻¹ Mpc. λ = 10 is the regime that matters for real surveys, and
+For comparison, DESI's luminous red galaxies (Zhou et al. 2023) and
+emission-line galaxies (Raichoor et al. 2023) have λ ≈ 11–13 h⁻¹ Mpc. λ = 10 is the regime that matters for real surveys, and
 the hardest one.
 
 ## 3. From points to a density field
@@ -488,7 +511,8 @@ same weights apply everywhere, a CNN responds the same way to a structure
 wherever it appears (translation equivariance). It is **not** automatically
 rotation equivariant: a rotated input generally gives a different response.
 
-Each convolution is followed by **batch normalization** and a **ReLU**:
+Each convolution is followed by **batch normalization** and a **ReLU** (rectified linear
+unit):
 
 $$
 \hat z = \frac{z - \mu_B}{\sqrt{\sigma_B^2 + \epsilon}}, \qquad
@@ -638,7 +662,8 @@ Two optional terms exist:
   straddles a boundary has fractional targets), with weights proportional
   to 2^(−ℓ). This gives the deep layers a direct training signal.
 
-**Optimizer.** Weights θ are updated by AdamW. With gradient g_t at step t:
+**Optimizer.** Weights θ are updated by AdamW (the Adam optimizer with
+decoupled weight decay; Loshchilov & Hutter 2019). With gradient g_t at step t:
 
 $$
 \begin{aligned}
@@ -706,8 +731,9 @@ F_1 = \frac{2\,TP}{2\,TP + FP + FN}, \qquad
 $$
 
 Precision is purity (of the voxels called void, how many are void); recall
-is completeness (of the true void voxels, how many were found). IoU and F1
-are related by IoU = F1/(2 − F1).
+is completeness (of the true void voxels, how many were found). IoU is the intersection over union: the overlap between predicted and true
+void voxels divided by their union. F1 is the harmonic mean of precision and
+recall. The two are related by IoU = F1/(2 − F1).
 
 **Matthews correlation coefficient (MCC).** For a two-class problem,
 
@@ -854,6 +880,11 @@ planned remedies.
 - Colberg et al. 2008, MNRAS 387, 933, [arXiv:0803.0918](https://arxiv.org/abs/0803.0918)
 - Contarini et al. 2022, A&A 667, A162, [arXiv:2205.11525](https://arxiv.org/abs/2205.11525)
 - Contarini, Verza & Pisani 2026, The era of precision cosmology with voids, [arXiv:2601.14362](https://arxiv.org/abs/2601.14362)
+- Dawson et al. 2013, AJ 145, 10 (BOSS), [arXiv:1208.0022](https://arxiv.org/abs/1208.0022)
+- de Jong et al. 2016, Proc. SPIE 9908, 473 (4MOST)
+- DESI Collaboration 2016, The DESI Experiment Part I: Science, Targeting, and Survey Design, [arXiv:1611.00036](https://arxiv.org/abs/1611.00036)
+- Doré et al. 2018, Science Impacts of the SPHEREx All-Sky Optical to Near-Infrared Spectral Survey II, [arXiv:1805.05489](https://arxiv.org/abs/1805.05489)
+- Euclid Collaboration: Mellier et al. 2024, Euclid. I. Overview of the Euclid mission, [arXiv:2405.13491](https://arxiv.org/abs/2405.13491)
 - Falck & Neyrinck 2015, MNRAS 450, 3239, [arXiv:1410.4751](https://arxiv.org/abs/1410.4751)
 - Falck, Neyrinck & Szalay 2012, ApJ 754, 126, [arXiv:1201.2353](https://arxiv.org/abs/1201.2353)
 - Forero-Romero et al. 2009, MNRAS 396, 1815 (eigenvalue threshold), [arXiv:0809.4135](https://arxiv.org/abs/0809.4135)
@@ -864,6 +895,7 @@ planned remedies.
 - Hamaus et al. 2020, JCAP 12, 023, [arXiv:2007.07895](https://arxiv.org/abs/2007.07895)
 - Hamaus, Sutter & Wandelt 2014, Phys. Rev. Lett. 112, 251302, [arXiv:1403.5499](https://arxiv.org/abs/1403.5499)
 - Icke 1984, MNRAS 206, 1P
+- Ivezić et al. 2019, ApJ 873, 111 (LSST), [arXiv:0805.2366](https://arxiv.org/abs/0805.2366)
 - Jackson 1972, MNRAS 156, 1P, [arXiv:0810.3908](https://arxiv.org/abs/0810.3908)
 - Kaiser 1987, MNRAS 227, 1
 - Kovács 2018, MNRAS 475, 1777, [arXiv:1701.08583](https://arxiv.org/abs/1701.08583)
@@ -871,9 +903,11 @@ planned remedies.
 - Kreisch et al. 2019, MNRAS 488, 4413, [arXiv:1808.07464](https://arxiv.org/abs/1808.07464)
 - Kumagai 2025, PhD dissertation, Drexel University
 - Kumagai et al. 2025, DeepVoid: A Deep Learning Void Detector, [arXiv:2504.21134](https://arxiv.org/abs/2504.21134)
+- Laureijs et al. 2011, Euclid Definition Study Report, [arXiv:1110.3193](https://arxiv.org/abs/1110.3193)
 - Lavaux & Wandelt 2012, ApJ 754, 109, [arXiv:1110.0345](https://arxiv.org/abs/1110.0345)
 - Linder 2003, Phys. Rev. Lett. 90, 091301, [arXiv:astro-ph/0208512](https://arxiv.org/abs/astro-ph/0208512)
 - Loshchilov & Hutter 2019, ICLR (AdamW), [arXiv:1711.05101](https://arxiv.org/abs/1711.05101)
+- LSST Science Collaboration 2009, LSST Science Book, Version 2.0, [arXiv:0912.0201](https://arxiv.org/abs/0912.0201)
 - Massara et al. 2015, JCAP 11, 018, [arXiv:1506.03088](https://arxiv.org/abs/1506.03088)
 - Melchior et al. 2014, MNRAS 440, 2922, [arXiv:1309.2045](https://arxiv.org/abs/1309.2045)
 - Nadathur & Crittenden 2016, ApJ 830, L19, [arXiv:1608.08638](https://arxiv.org/abs/1608.08638)
@@ -883,13 +917,21 @@ planned remedies.
 - Neyrinck 2008, MNRAS 386, 2101, [arXiv:0712.3049](https://arxiv.org/abs/0712.3049)
 - Palmer & Voglis 1983, MNRAS 205, 543
 - Pan et al. 2012, MNRAS 421, 926, [arXiv:1103.4156](https://arxiv.org/abs/1103.4156)
+- Pillepich et al. 2018, MNRAS 475, 648 (IllustrisTNG), [arXiv:1707.03406](https://arxiv.org/abs/1707.03406)
 - Pisani et al. 2015, Phys. Rev. D 92, 083531, [arXiv:1503.07690](https://arxiv.org/abs/1503.07690)
+- Raichoor et al. 2023, AJ 165, 126 (DESI emission-line galaxies), [arXiv:2208.08513](https://arxiv.org/abs/2208.08513)
 - Ronneberger, Fischer & Brox 2015, MICCAI (U-Net), [arXiv:1505.04597](https://arxiv.org/abs/1505.04597)
 - Ryden 1995, ApJ 452, 25, [arXiv:astro-ph/9506028](https://arxiv.org/abs/astro-ph/9506028)
 - Sachs & Wolfe 1967, ApJ 147, 73
 - Sheth & van de Weygaert 2004, MNRAS 350, 517, [arXiv:astro-ph/0311260](https://arxiv.org/abs/astro-ph/0311260)
+- Spergel et al. 2015, WFIRST-AFTA 2015 Report (Roman), [arXiv:1503.03757](https://arxiv.org/abs/1503.03757)
+- Springel et al. 2018, MNRAS 475, 676 (IllustrisTNG), [arXiv:1707.03397](https://arxiv.org/abs/1707.03397)
 - Sutter et al. 2015, Astron. Comput. 9, 1, [arXiv:1406.1191](https://arxiv.org/abs/1406.1191)
+- Tamura et al. 2018, Proc. SPIE 10702, 107021C (PFS)
 - Verza et al. 2019, JCAP 12, 040, [arXiv:1906.00409](https://arxiv.org/abs/1906.00409)
 - Veyrat, Douglass & BenZvi 2023, ApJ 958, 59, [arXiv:2302.05469](https://arxiv.org/abs/2302.05469)
+- Wang et al. 2022, ApJ 928, 1 (Roman High Latitude Spectroscopic Survey), [arXiv:2110.01829](https://arxiv.org/abs/2110.01829)
 - van de Weygaert & Platen 2011, Int. J. Mod. Phys. Conf. Ser. 1, 41, [arXiv:0912.2997](https://arxiv.org/abs/0912.2997)
+- York et al. 2000, AJ 120, 1579 (SDSS)
 - Zel'dovich 1970, A&A 5, 84
+- Zhou et al. 2023, AJ 165, 58 (DESI luminous red galaxies), [arXiv:2208.08515](https://arxiv.org/abs/2208.08515)
