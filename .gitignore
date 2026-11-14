@@ -12,3 +12,4 @@ dist/
 *.keras
 *.h5
 runs/
+!sample/*.npz
