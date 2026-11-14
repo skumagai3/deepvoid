@@ -10,7 +10,11 @@ authors:
 preferred-citation:
   type: article
   title: "DeepVoid: A Deep Learning Void Detector"
-  year: 2025
+  year: 2026
+  journal: "The Astrophysical Journal"
+  volume: 998
+  start: 85
+  doi: "10.3847/1538-4357/ae2c80"
   authors:
     - family-names: Kumagai
       given-names: Sam
@@ -27,4 +31,4 @@ preferred-citation:
   identifiers:
     - type: other
       value: "arXiv:2504.21134"
-  url: "https://arxiv.org/abs/2504.21134"
+  url: "https://doi.org/10.3847/1538-4357/ae2c80"

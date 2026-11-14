@@ -249,7 +249,7 @@ Veyrat, Douglass & BenZvi (2023) compared two finders against a dynamical
 definition (regions with no shell-crossing) and found clear differences in
 how well they recover it.
 
-DeepVoid takes a different route (Kumagai et al. 2025). It defines voids by
+DeepVoid takes a different route (Kumagai et al. 2026). It defines voids by
 the physics that creates them and trains a network to recognize that
 signature in the kind of data a survey provides, building on the use of
 deep networks to classify the cosmic web in Aragon-Calvo (2019). The
@@ -440,7 +440,7 @@ it produces. The potential is shifted and rescaled before the logarithm is
 taken (log10 of Φ/10⁵ + 5.75, in the simulation's units), so its color scale
 is for display only; bright regions are highs of the potential, where voids
 form. Right: the T-web labels ("tidal mask") computed from the potential's
-second derivatives. Figure from Kumagai et al. (2025).*
+second derivatives. Figure from Kumagai et al. (2026).*
 
 **Eigenvalues and classes.** T is a real symmetric 3 × 3 matrix at every
 point, with eigenvalues λ₁ ≥ λ₂ ≥ λ₃ (these λ's are unrelated to the tracer
@@ -505,7 +505,7 @@ Why it is hard:
 The left half (orange) repeatedly halves the resolution to see larger
 structures; the right half (green) builds the resolution back up; the grey
 arrows carry fine detail straight across. The output (c) is a label for every
-voxel. Figure by M. A. Aragon-Calvo for Kumagai et al. (2025), adapted from
+voxel. Figure by M. A. Aragon-Calvo for Kumagai et al. (2026), adapted from
 Aragon-Calvo (2019). It shows 3 levels and 128³ inputs; the current default
 is 4 or 5 levels.*
 
@@ -934,7 +934,7 @@ planned remedies.
 - Kreckel et al. 2011, AJ 141, 4, [arXiv:1008.4616](https://arxiv.org/abs/1008.4616)
 - Kreisch et al. 2019, MNRAS 488, 4413, [arXiv:1808.07464](https://arxiv.org/abs/1808.07464)
 - Kumagai 2025, PhD dissertation, Drexel University
-- Kumagai et al. 2025, DeepVoid: A Deep Learning Void Detector, [arXiv:2504.21134](https://arxiv.org/abs/2504.21134)
+- Kumagai et al. 2026, ApJ 998, 85, DeepVoid: A Deep Learning Void Detector, [doi:10.3847/1538-4357/ae2c80](https://doi.org/10.3847/1538-4357/ae2c80), [arXiv:2504.21134](https://arxiv.org/abs/2504.21134)
 - Laureijs et al. 2011, Euclid Definition Study Report, [arXiv:1110.3193](https://arxiv.org/abs/1110.3193)
 - Lavaux & Wandelt 2012, ApJ 754, 109, [arXiv:1110.0345](https://arxiv.org/abs/1110.0345)
 - Linder 2003, Phys. Rev. Lett. 90, 091301, [arXiv:astro-ph/0208512](https://arxiv.org/abs/astro-ph/0208512)

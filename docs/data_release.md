@@ -74,8 +74,8 @@ paragraph, given at https://www.cosmosim.org/cms/credits/.
 **DeepVoid.** If these grids are useful to you, please also cite
 
 - Kumagai, S., Vogeley, M. S., Aragon-Calvo, M. A., Douglass, K. A.,
-  BenZvi, S., & Neyrinck, M. 2025, DeepVoid: A Deep Learning Void Detector,
-  arXiv:2504.21134
+  BenZvi, S., & Neyrinck, M. 2026, DeepVoid: A Deep Learning Void Detector,
+  ApJ, 998, 85, https://doi.org/10.3847/1538-4357/ae2c80
 
 ## License
 

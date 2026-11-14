@@ -9,7 +9,7 @@ not available.
 ![Dark matter, the T-web labels, sparse subhalos and the model's prediction from them](docs/figures/deepvoid_summary.png)
 
 This repository is a rewrite of the research code behind the DeepVoid paper
-([Kumagai et al. 2025](https://arxiv.org/abs/2504.21134)) and dissertation,
+([Kumagai et al. 2026, ApJ 998, 85](https://doi.org/10.3847/1538-4357/ae2c80)) and dissertation,
 made to be used on other simulations. [docs/overview.md](docs/overview.md)
 explains the whole problem from the physics up.
 
@@ -166,8 +166,8 @@ comparable.
 If you use this code, please cite the DeepVoid paper:
 
 > Kumagai, S., Vogeley, M. S., Aragon-Calvo, M. A., Douglass, K. A., BenZvi,
-> S., & Neyrinck, M. 2025, DeepVoid: A Deep Learning Void Detector,
-> [arXiv:2504.21134](https://arxiv.org/abs/2504.21134)
+> S., & Neyrinck, M. 2026, DeepVoid: A Deep Learning Void Detector, ApJ,
+> 998, 85, [doi:10.3847/1538-4357/ae2c80](https://doi.org/10.3847/1538-4357/ae2c80)
 
 and the simulation your data come from.
 
