@@ -216,21 +216,57 @@ def evaluate_subcubes(out: Path, cfg: dict, catalog) -> dict:
     model = load_model(out / "best.keras")
     result = {}
     for key, part in (("validation", "val"), ("test", "test")):
-        cm = 0
-        for xb, yb in _batches(x, labels, [tuple(e) for e in info[part]], sc["size"],
-                               cfg["evaluate"]["batch_size"]):
+        cm, by_region = 0, {}
+        examples = [tuple(e) for e in info[part]]
+        batches = _batches(x, labels, examples, sc["size"], cfg["evaluate"]["batch_size"])
+        done = 0
+        for xb, yb in batches:
             pred = np.asarray(model.predict_on_batch(xb)).argmax(-1)
-            cm = cm + confusion_matrix(yb, pred)
+            for y_one, p_one in zip(yb, pred):
+                one = confusion_matrix(y_one, p_one)
+                region = examples[done][:3]
+                by_region[region] = by_region.get(region, 0) + one
+                cm = cm + one
+                done += 1
         result[key] = {**scores(cm), "confusion_matrix": np.asarray(cm).tolist(),
-                       "examples": len(info[part])}
+                       "examples": len(examples), **region_summary(by_region)}
     result["validation_with_a_copy_in_training"] = info["validation_with_a_copy_in_training"]
     scored = {_label(name): plain(result)}
     (out / "test_scores.json").write_text(json.dumps(scored, indent=2))
     for key in ("validation", "test"):
         r = result[key]
+        m = r["by_region"]["mean"]
+        e = r["by_region"]["standard_error"]
         print(f"{key}: mcc {r['mcc']:.3f}, void_mcc {r['void_mcc']:.3f}, "
-              f"void_f1 {r['void_f1']:.3f} ({r['examples']} subcubes)")
+              f"void_f1 {r['void_f1']:.3f} ({r['examples']} subcubes). "
+              f"Per region ({r['by_region']['regions']} regions): "
+              f"mcc {m['mcc']:.3f} ± {e['mcc']:.3f}, void_mcc {m['void_mcc']:.3f} ± {e['void_mcc']:.3f}")
     return scored
+
+
+REGION_SCORES = ("mcc", "void_mcc", "void_f1")
+
+
+def region_summary(by_region: dict) -> dict:
+    """Scores per region, with their mean and standard error.
+
+    ``by_region`` maps a region's origin (x, y, z) to its confusion matrix,
+    summed over whichever rotated copies of that region are in the set.
+    Rotated copies of one region are not independent samples, so the spread
+    is taken over regions: the standard error is the standard deviation of
+    the per-region scores (ddof = 1) divided by sqrt(number of regions).
+    """
+    from .evaluate import scores
+
+    regions = sorted(by_region)
+    rows = [scores(np.asarray(by_region[r])) for r in regions]
+    values = {k: [float(row[k]) for row in rows] for k in REGION_SCORES}
+    n = len(regions)
+    mean = {k: float(np.mean(v)) for k, v in values.items()}
+    err = {k: float(np.std(v, ddof=1) / math.sqrt(n)) if n > 1 else float("nan")
+           for k, v in values.items()}
+    return {"by_region": {"regions": n, "mean": mean, "standard_error": err,
+                          "origins": [list(r) for r in regions], "scores": values}}
 
 
 def _with_channels(a: np.ndarray) -> np.ndarray:

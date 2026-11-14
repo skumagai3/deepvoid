@@ -634,3 +634,17 @@ def test_papersplit_configs_are_valid():
         s = settings(cfg["data"]["subcubes"])
         assert s["split_by"] in path.stem
         Catalog().info(cfg["data"]["inputs"][0])
+
+
+def test_region_summary_takes_the_spread_over_regions():
+    from deepvoid.subcubes import region_summary
+
+    good = np.diag([50, 30, 15, 5])
+    worse = good.copy()
+    worse[0, 1], worse[0, 0] = 20, 30
+    out = region_summary({(0, 0, 0): good, (128, 0, 0): worse, (0, 128, 0): good})["by_region"]
+    assert out["regions"] == 3
+    assert out["scores"]["mcc"][0] == pytest.approx(1.0)
+    assert out["mean"]["mcc"] == pytest.approx(np.mean(out["scores"]["mcc"]))
+    expected = np.std(out["scores"]["mcc"], ddof=1) / np.sqrt(3)
+    assert out["standard_error"]["mcc"] == pytest.approx(expected)
