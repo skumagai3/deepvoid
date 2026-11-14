@@ -1,0 +1,30 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite the DeepVoid paper."
+title: "DeepVoid"
+type: software
+license: MIT
+repository-code: "https://github.com/skumagai3/deepvoid"
+authors:
+  - family-names: Kumagai
+    given-names: Sam
+preferred-citation:
+  type: article
+  title: "DeepVoid: A Deep Learning Void Detector"
+  year: 2025
+  authors:
+    - family-names: Kumagai
+      given-names: Sam
+    - family-names: Vogeley
+      given-names: Michael S.
+    - family-names: Aragon-Calvo
+      given-names: Miguel A.
+    - family-names: Douglass
+      given-names: Kelly A.
+    - family-names: BenZvi
+      given-names: Segev
+    - family-names: Neyrinck
+      given-names: Mark
+  identifiers:
+    - type: other
+      value: "arXiv:2504.21134"
+  url: "https://arxiv.org/abs/2504.21134"

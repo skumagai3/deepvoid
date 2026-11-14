@@ -1,103 +1,145 @@
 # DeepVoid
 
-DeepVoid labels every voxel of a simulated universe as void, wall, filament
-or halo with a 3D U-Net. It learns the tidal-tensor (T-web) classification
-of the full dark-matter field and can recover it from much sparser tracers,
-such as the most massive subhalos.
+DeepVoid labels every cell of a simulated universe as void, wall, filament or
+halo with a 3D U-Net. The labels it learns are the tidal-tensor (T-web)
+classification of the full matter field. The point is to recover them from
+much sparser tracers, such as halos or galaxies, where the matter field is
+not available.
 
-This repository is a clean rewrite of the research code behind the DeepVoid
-paper and dissertation, organized so that new simulations and observational
-effects (redshift-space distortions, survey masks, selection functions) can
-be added without touching the rest.
+![Dark matter, the T-web labels, sparse subhalos and the model's prediction from them](docs/figures/deepvoid_summary.png)
 
-Status: early. Labels reproduce the dissertation's TNG masks exactly, and a
-first dark-matter baseline on TNG300-3 reaches a test-slab Matthews
-correlation coefficient (MCC) of 0.86 and void F1 score of 0.97. The current
-training setup (an exponential moving average of the weights (EMA), cosine
-learning-rate schedule, resume)
-is described in [docs/training.md](docs/training.md).
+This repository is a rewrite of the research code behind the DeepVoid paper
+([Kumagai et al. 2025](https://arxiv.org/abs/2504.21134)) and dissertation,
+made to be used on other simulations. [docs/overview.md](docs/overview.md)
+explains the whole problem from the physics up.
+
+## Status
+
+- **Ready:** training on your own simulation, scoring, figures.
+- **Not yet published:** trained weights. They will follow the final training
+  run.
+- **Tested on:** IllustrisTNG TNG300-3-Dark at redshift 0, in real space,
+  with subhalos as tracers.
+- **Not tested on:** other simulations or cosmologies, redshift space, survey
+  masks and selection, or real galaxy surveys. A model trained here should
+  not be assumed to carry over to those without checking.
+- **Not included:** a void catalog. The output is a class for each cell;
+  turning void cells into a list of voids with centers and sizes is future
+  work.
+
+## Results so far
+
+One model, trained on TNG300-3 subhalos at four mean separations at once, on
+a 512³ grid. Scores are on a slab of the box that was never used for
+training, for choosing the model or for tuning anything.
+
+| Mean tracer separation (h⁻¹ Mpc) | 3 | 5 | 7 | 10 |
+|---|---|---|---|---|
+| Void against everything else, MCC | 0.918 | 0.880 | 0.825 | 0.736 |
+| All four classes, MCC | 0.885 | 0.842 | 0.781 | 0.683 |
+
+MCC is the Matthews correlation coefficient: 1 is perfect, 0 is chance. The
+config is `configs/research/subhalo/C_mixed_smooth2ch_depth5.yaml`. At a
+separation of 10, about 27% of wall cells are still labelled void; that is
+the main remaining error.
+
+## Install
+
+```bash
+pip install "deepvoid[tf,figures] @ git+https://github.com/skumagai3/deepvoid.git"
+```
+
+Python 3.10 or later and TensorFlow 2.16 or later. Building grids and labels
+needs only NumPy and SciPy; training is meant for a GPU.
+
+## Train on your own simulation
+
+You need the matter density on a grid (for the labels) and the tracers the
+model should work from.
+
+```python
+from deepvoid import Project
+from deepvoid.train import run
+
+project = Project("my_simulation")                      # a folder: data/, catalog.yaml, runs/
+
+project.add_density("dm", matter_density, box_size=205.0, tracer="dm")
+project.add_labels("labels", density="dm")              # T-web classes from the matter density
+project.add_tracers("halos/L5", positions, box_size=205.0, n=512,
+                    masses=masses, spacing=5.0)         # most massive halos, 5 h^-1 Mpc apart on average
+print(project.summary())
+
+cfg = project.config("first_run", inputs=["halos/L5"], labels="labels")
+out = run(cfg)                                          # trains, then scores the held-out slab
+```
+
+Then look at the result:
+
+```python
+from deepvoid.runs import Run
+
+r = Run(out)
+r.scores()                    # test-slab scores
+scores = r.predict()          # class scores for every cell, shape (n, n, n, 4)
+```
+
+Two notebooks walk through this on Google Colab:
+
+- [`notebooks/01_quickstart.ipynb`](notebooks/01_quickstart.ipynb) runs every
+  step on a small sample that ships with the repository.
+- [`notebooks/02_your_simulation.ipynb`](notebooks/02_your_simulation.ipynb)
+  is a template for your own data.
+
+Grids are arrays of shape (n, n, n) with axis order (x, y, z), covering a
+periodic box, with lengths in h⁻¹ Mpc. The default labels need cells smaller
+than 1 h⁻¹ Mpc.
+
+## The choices, and where they are explained
+
+Every setting of a run is in one config.
+[`configs/template.yaml`](configs/template.yaml) lists all of them with a
+comment on each. The ones that matter most:
+
+| Choice | Default | What it means |
+|---|---|---|
+| Labels | T-web, smoothing 1 h⁻¹ Mpc, eigenvalue threshold 0.65 | What counts as a void. Set in `Project.add_labels`; [docs/conventions.md](docs/conventions.md) |
+| Split | 70 / 15 / 15% slabs with buffers | Which part of the box trains the model, which picks the best epoch, and which is scored once at the end |
+| Input scaling | log₁₀(ρ/ρ̄ + 10⁻³), standardized on the training slab | How density becomes the network input |
+| Smoothed channel | off | A second input channel with the tracer field smoothed, for sparse tracers |
+| Network depth | 4 levels | How far apart two tracers can be and still be related |
+| Several spacings in one model | one input | List several inputs and each training crop is drawn from one of them |
+| Weight averaging (EMA) | on | Validation, testing and the saved model use a running average of the weights |
+| Model choice | best validation void MCC | Which epoch is saved |
+
+[docs/training.md](docs/training.md) covers logs, resuming, seeds, fine-tuning
+from another model and the less common options.
 
 ## Layout
 
 ```
-configs/              one YAML per experiment
+configs/template.yaml   every setting, explained
+configs/research/       the experiments behind the results
+notebooks/              quickstart and your-simulation notebooks; research/ has the rest
+sample/                 a small TNG300-3 sample for the quickstart
+docs/                   overview, conventions, training
 src/deepvoid/
-  catalog.yaml        named datasets: where each file lives and what it is
-  volume.py           Volume: a periodic grid plus its metadata
-  io.py               legacy .fvol and compact .npz files
-  catalog.py          load datasets by name
-  sources/            simulation readers (TNG, Bolshoi, Indra, Quijote)
-  observe/            tracer selection, redshift space, survey effects
-  grid.py             cloud-in-cell gridding
-  labels/             T-web classification
-  split.py            spatial train / val / test slabs
-  preprocess.py       input normalization, class weights
-  inputs.py           network inputs from catalog fields (optional smoothed channel)
-  resample.py         moving between grid resolutions
-  pipeline.py         random crops drawn on the GPU
-  curriculum.py       how often each input is sampled, epoch by epoch
-  models/, losses.py  3D U-Net (optionally conditioned on tracer spacing) and losses
-  config.py           run settings and their defaults
-  callbacks.py        weight averaging, validation scores, checkpoints, resume
-  stopping.py         early-stopping bookkeeping
-  train.py            training, resuming and test scoring from a config
-  runs.py             Run: a finished run's config, log, scores, model and predictions
-  predict.py          full-box prediction, optional test-time augmentation
-  evaluate.py         confusion matrices, F1, MCC, void scores and the void threshold
-  calibrate.py        reliability (calibration) of the class scores, temperature scaling
-  figures.py          standard figures: fields, training curves, predictions, summary
-  interpret.py        looking inside a model: centered kernel alignment (CKA), probes, receptive field
-  report.py           saving a notebook's figures and numbers
-scripts/              one-off utilities
-notebooks/            Colab front-ends
-docs/conventions.md   units, classes, smoothing, splits
-docs/training.md      training settings, logs, resuming, seeds
+  project.py            Project: your grids, their catalog and your runs
+  volume.py, io.py      a periodic grid with its metadata; reading and writing
+  catalog.py            datasets by name
+  grid.py               cloud-in-cell gridding of point tracers
+  labels/               T-web classification
+  observe/              tracer selection, redshift space
+  sources/              simulation readers
+  split.py              train / validation / test slabs
+  preprocess.py, inputs.py   input scaling and channels
+  pipeline.py           random training crops
+  models/, losses.py    the 3D U-Net and its losses
+  config.py, train.py   settings and the training loop
+  runs.py               Run: a finished run's config, log, scores, model and predictions
+  predict.py, evaluate.py, calibrate.py   full-box prediction and scoring
+  figures.py, interpret.py   figures; looking inside a model
+tests/                  tests of everything that does not need TensorFlow
 ```
-
-Every input is a `Volume` with metadata saying which simulation, tracer,
-spacing and observational effects produced it, so results always carry
-their provenance.
-
-## Quick start (Colab)
-
-```python
-from google.colab import drive
-drive.mount("/content/drive")
-!pip install -q "git+https://github.com/skumagai3/deepvoid.git"
-
-from deepvoid import Catalog
-from deepvoid.labels import tweb_labels
-
-cat = Catalog()                      # data root: /content/drive/MyDrive/data
-dm = cat.load("tng300-3/dm")
-mask = tweb_labels(dm)               # sigma_eff = 1 h^-1 Mpc, lambda_th = 0.65
-```
-
-Set `DEEPVOID_DATA` to use a different data root.
-
-To train, write a config (see `configs/research/tng_dm_baseline.yaml`) and run
-
-```python
-from deepvoid.train import run
-out = run("configs/research/tng_dm_baseline.yaml")
-```
-
-The notebooks in `notebooks/` do this on Colab, starting with a data check
-(`00`), a short smoke test (`01`) and the TNG baseline (`02`).
-
-To look at a finished run:
-
-```python
-from deepvoid.runs import Run
-from deepvoid import figures
-
-run = Run("/content/drive/MyDrive/deepvoid_runs/subhalo_A_smooth2ch_L10")
-run.scores()["tng300-3/subhalos/L10"]["void_f1"]
-scores = run.predict("tng300-3/subhalos/L10")     # class scores, (n, n, n, 4)
-fig = figures.training_curves([run])
-```
-
-`notebooks/09_figures.ipynb` makes the standard figures this way.
 
 ## How this differs from the first DeepVoid paper
 
@@ -119,12 +161,15 @@ comparable.
 | Full-box prediction | Overlapping patches, keeping their central regions | The same, with the kept region and overlap set in the config |
 | Scores | Per-class F1, MCC | The same, plus void-vs-rest scores, a void-score threshold chosen on the validation slab, and calibration of the class scores |
 
-## Conventions
+## Citing
 
-See [docs/conventions.md](docs/conventions.md). In short: T-web labels with
-an effective smoothing of 1 h^-1 Mpc and an eigenvalue threshold of 0.65,
-computed from the real-space matter field; train, validation and test are
-separate slabs of the box; normalization is fit on the training slab.
+If you use this code, please cite the DeepVoid paper:
+
+> Kumagai, S., Vogeley, M. S., Aragon-Calvo, M. A., Douglass, K. A., BenZvi,
+> S., & Neyrinck, M. 2025, DeepVoid: A Deep Learning Void Detector,
+> [arXiv:2504.21134](https://arxiv.org/abs/2504.21134)
+
+and the simulation your data come from.
 
 ## Data and credits
 
@@ -136,3 +181,7 @@ Data release: Nelson et al. 2019, ComAC 6, 2, doi:10.1186/s40668-019-0028-x.
 
 The Bolshoi simulation (Klypin, Trujillo-Gomez & Primack 2011, ApJ 740, 102)
 is distributed through CosmoSim and Skies & Universes.
+
+## License
+
+MIT. See [LICENSE](LICENSE).
