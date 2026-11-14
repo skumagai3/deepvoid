@@ -37,24 +37,172 @@ in the universe is not spread evenly. Galaxies sit in a network called the
 - **voids**: large underdense regions, typically 10–50 h⁻¹ Mpc across, that
   fill most of the volume.
 
-Voids are useful for cosmology because they are simple and sensitive:
+Citations in this section are given as [Diss] (Kumagai 2025, PhD
+dissertation, Drexel), [P1] (Kumagai et al. 2025, the first DeepVoid paper,
+arXiv:2504.21134) and [Templeton] (the proposal "What Stretches the Fabric of
+the Cosmos? Probes of Fundamental Physics in Cosmic Voids Using Artificial
+Intelligence", Vogeley & Aragon-Calvo). Works those sources cite are named
+as they name them; the full list is at the end.
 
-- **Alcock–Paczynski (AP) test.** Averaged over many voids, a void has no
-  preferred direction. If we assume the wrong cosmological model when we
-  convert redshifts into distances, the average void looks stretched along
-  the line of sight. Measuring that distortion constrains the expansion
-  history.
-- **Integrated Sachs–Wolfe (ISW) effect.** Photons from the cosmic microwave
-  background that cross a large void while dark energy is stretching it gain
-  or lose a little energy. Stacking the CMB on many voids measures this.
-- Void sizes, shapes and densities also respond to neutrino mass and to
-  modified gravity.
+### Why voids are interesting
 
-The catch is that "void" has no single definition. Different void finders
-(spherical underdensities, watershed basins, and so on) give very different
-catalogs from the same galaxies. DeepVoid takes a physics-based definition
-(Section 4) and trains a network to reproduce it from the kind of data a
-galaxy survey actually provides.
+**They fill most of the volume.** Depending on the definition, voids take up
+roughly 70% of the volume of the universe (Pan et al. 2012; Cautun et al.
+2014, as quoted in [Diss] §1.2 and [P1]).
+
+**They keep the imprint of the early universe.** Voids grow from troughs in
+the primordial Gaussian field of density fluctuations [Diss §1.2]. In groups
+and clusters, gravitational collapse folds the matter flow back on itself
+(shell-crossing) and the memory of the initial conditions is scrambled. Voids
+lack this phase-space folding (Falck et al. 2012, via [Diss] §1.2), so they
+retain information from the earliest stages of structure formation [Diss
+§1.2]. [Templeton] §1 puts it as: the primordial fluctuation blueprint is
+preserved in voids, while chaotic dynamics in clusters and filaments hide it.
+
+**Voids only get emptier.** Write the density contrast as
+
+$$
+\delta(\mathbf{x}) = \frac{\rho(\mathbf{x}) - \bar\rho}{\bar\rho}.
+$$
+
+Since ρ ≥ 0, δ ≥ −1, and δ = −1 is perfect emptiness. In linear theory a
+perturbation grows in place as δ ∝ D(t), where D(t) is the linear growth
+factor, so an initial underdensity (δ < 0) simply becomes more negative.
+The Zel'dovich approximation extends this past the linear regime. It maps the
+initial (Lagrangian) position **q** to the later (Eulerian) position
+
+$$
+\mathbf{x}(\mathbf{q}, t) = \mathbf{q} + D(t)\,\nabla_q \Phi_0(\mathbf{q}),
+$$
+
+and conservation of mass gives
+
+$$
+\frac{\rho}{\bar\rho} = \frac{1}{\det J}
+= \frac{1}{(1 - D\lambda_1)(1 - D\lambda_2)(1 - D\lambda_3)},
+$$
+
+where λ₁ ≥ λ₂ ≥ λ₃ are the eigenvalues of the deformation tensor (these λ's
+are unrelated to the tracer spacing λ of Section 2)
+$d_{ij} = \partial_i \partial_j \Phi_0$ [Diss §1.1.4, Eq. 1.17]. A caustic
+(shell-crossing) forms when det J = 0, that is, when D = 1/λᵢ for some
+eigenvalue λᵢ > 0 [Diss Eq. 1.22]. In a void all three eigenvalues are
+negative, so with $|\lambda_i| = -\lambda_i$,
+
+$$
+\frac{\rho}{\bar\rho} = \prod_{i=1}^{3} \frac{1}{1 + D\,|\lambda_i|}.
+$$
+
+Every factor is below 1 and decreases as D grows. The density falls
+monotonically, tends to δ = −1 only asymptotically, and no caustic forms in
+the interior. Overdense regions are the opposite: some λᵢ > 0, the
+denominator reaches zero at a finite time, and the region collapses. This is
+the picture in [Diss] §1.2: matter in a void's interior streams out toward
+its edges and empties the interior over time, and the density approaches
+δ = −1. At the edge the outflowing matter piles up into a ridge (a
+"compensation wall", Palmer & Voglis 1983), and shell-crossing there sets a
+timescale for the void's evolution [Diss §1.2]. [P1] makes the same point:
+voids form from primordial density troughs and become emptier as structure
+evolves, so surveys covering a range of redshifts can track the change. The
+Zel'dovich approximation is only an approximation, and it fails once flows
+cross, but it describes the basic structure of the cosmic web well (Bond et
+al. 1996, via [Diss] §1.1.3).
+
+**Their dynamics are simple.** Voids are regions of single-stream flow,
+unlike the multistream flow in dense regions [Templeton §3, citing refs. 43,
+44]. They evolve quasi-linearly and retain memory of large-scale modes [Diss
+§1.1.5]. On average they are spherical and evolve toward a top-hat density
+profile (Icke 1984, via [Diss] §1.2), which makes them close to standard
+objects: in the aggregate they are spherical, common, and carry information
+from early times [Diss §1.2].
+
+**They are small universes of their own.** A void interior behaves like a
+patch of a lower-density Friedmann–Robertson–Walker universe that expands
+faster than its surroundings (Goldberg & Vogeley 2004). Because the matter
+density is lower, dark energy dominates inside a void earlier than it does on
+average [Templeton §2]. Overdense structures formed long before dark energy
+mattered, so voids are the part of the cosmic web that dark energy affects
+most [Diss §1.2; P1; Templeton §2]. To leading order, the accelerated
+expansion of voids is the main signature of dark energy: dense structures
+appear to accelerate away from each other because the voids between them are
+expanding (Sheth & van de Weygaert 2004, via [Diss] §1.2). Over- and
+underdensities are statistically symmetric in the initial conditions (large
+voids are "anti-clusters" [Templeton §2]); gravitational instability breaks
+that symmetry early on.
+
+### What people measure with voids
+
+All of these tests need a catalog of voids [Diss §1.2.2; Templeton §3].
+
+- **Void size spectrum** (number of voids against size). It depends on the
+  growth of structure and on the dark energy equation of state, which
+  [Templeton] §2 writes as $w(z) = w_0 + w_a\, z/(1+z)$ [P1; Diss §5.1;
+  Templeton §2]. It also responds to neutrino mass and to modifications of
+  gravity [Templeton §2].
+- **Alcock–Paczynski (AP) test.** Voids are spherically symmetric on average
+  in real space. A survey measures redshifts, and turning them into
+  distances needs a cosmological model. If the assumed model is wrong, voids
+  look stretched or squashed along the line of sight, and the radial and
+  transverse sizes are related to the product of the Hubble parameter and
+  the angular diameter distance [Diss §1.2.1, citing Bos et al. 2012].
+  Redshift-space distortions are easier to model in voids than in dense
+  regions, which is why the void–galaxy correlation function works well for
+  this test (Nadathur et al. 2019, via [Diss] §1.2.1). [Diss] §1.2.1 quotes
+  Lavaux & Wandelt (2012) that the stacked-void AP test should beat baryon
+  acoustic oscillations for Euclid-like surveys by an order of magnitude in
+  accuracy. I have not checked that figure against the original paper.
+- **Integrated Sachs–Wolfe (ISW) effect.** When a void's interior expands
+  faster, the gravitational potential decays faster, and CMB photons crossing
+  it cannot regain the energy they lost on entering. The result is a cold
+  spot on the CMB. Some recent measurements find larger decrements than
+  ΛCDM predicts [Diss §1.2.1; Templeton §2], and [Templeton] §2 notes that
+  the ISW effect of one large void has been proposed as the cause of the CMB
+  "cold spot", which might itself need new physics.
+- **Weak lensing.** The lensing shear of background galaxies behind a void
+  depends on the gradient of the matter density, which can be compared with
+  the projected galaxy density [Diss §1.2.1; Templeton §2]. This probes how
+  dark and luminous matter relate inside voids.
+- **Galaxy formation.** The pristine, non-virialized environment of a void is
+  a clean setting for studying how local environment shapes galaxies
+  [Diss §1.2.1].
+
+### The catch: what is a void?
+
+There is no universally agreed definition [Diss §1.2.2; P1]. Nearly all
+studies find underdensities in the galaxy distribution and differ mainly in
+the shape of the density kernel (Colberg et al. 2008; [Templeton] §3). Void
+catalogs built from the same galaxies can differ drastically depending on the
+definition [Diss Ch. 5; P1], and the accuracy of each test above depends on
+that choice [Diss §1.2.2]. Watershed methods built on Voronoi tessellations
+(ZOBOV, VIDE) have specific problems: the smoothing scale varies with local
+galaxy density, cells at void edges become long thin polyhedra, and the void
+centers they return do not reliably coincide with maxima of the
+gravitational potential [Templeton §3]. These methods also ignore
+redshift-space distortions.
+
+DeepVoid takes a different route. It defines voids by the physics that
+creates them and trains a network to recognize that signature in the kind of
+data a survey provides [P1; Diss §1.2.2; Templeton §3]. The [Templeton]
+proposal planned to define voids around maxima of the gravitational
+potential, extended to the surrounding single-stream flow. The definition
+used in [P1] is the tidal tensor (Section 4 below), which is the same
+eigenvalue criterion as above: a void voxel has none of the three tidal
+tensor eigenvalues above the threshold, so nothing is collapsing along any
+axis. Because the definition
+is only a training target, it can be changed and the model retrained
+[Diss §1.2.2].
+
+### Real surveys
+
+Redshift surveys do not give 3D maps directly. Distances come from redshifts
+only after assuming a cosmology, and the observed redshift also contains a
+Doppler shift from peculiar velocities. In voids this stretches the voids
+along the line of sight, and the velocities of galaxies in groups on the void
+boundary make walls and filaments look elongated ("fingers of god")
+[Templeton §2]. Upcoming surveys (DESI, PFS, 4MOST, WEAVE, Rubin/LSST,
+SPHEREx, Euclid, Roman) will map voids to much greater depth [Templeton §1;
+Diss Ch. 5]. This work trains on real-space simulation data, so redshift
+space and survey effects are outside what the models here have been tested on.
 
 **Units.** Distances are in h⁻¹ Mpc. Here h ≈ 0.68 is the Hubble constant in
 units of 100 km s⁻¹ Mpc⁻¹; writing distances in h⁻¹ Mpc keeps results
@@ -600,4 +748,6 @@ planned remedies.
 - Loshchilov & Hutter 2019, ICLR (AdamW)
 - Gorodkin 2004, Comput. Biol. Chem. 28, 367 (multiclass MCC)
 - Nelson et al. 2019, ComAC 6, 2 (IllustrisTNG data release)
-- Kumagai et al. 2025, arXiv:2504.21134 (DeepVoid)
+- Kumagai et al. 2025, arXiv:2504.21134 (DeepVoid) (cited as [P1])
+- Kumagai 2025, PhD dissertation, Drexel University (cited as [Diss])
+- Vogeley & Aragon-Calvo, "What Stretches the Fabric of the Cosmos? Probes of Fundamental Physics in Cosmic Voids Using Artificial Intelligence", Templeton Foundation proposal (cited as [Templeton])
