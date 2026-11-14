@@ -209,7 +209,7 @@ half the 512^3 ones. See `configs/subhalo/A256_scratch_L10.yaml`.
 ## The first paper's split (split test)
 
 `data.subcubes` replaces the slab split with the first paper's protocol, to
-measure what that protocol does to the scores (`src/deepvoid/subcubes.py`,
+test whether that protocol affects the scores (`src/deepvoid/subcubes.py`,
 configs in `configs/papersplit/`). The box is cut into non-overlapping 128^3
 subcubes, each stored with copies rotated by 90, 180 and 270 degrees about
 one axis, and the examples are split 80/20 at random. One layer of subcubes
@@ -228,8 +228,11 @@ final scores.
 Training uses whole subcubes, shuffled each epoch, with no other
 augmentation. `test_scores.json` has `validation` and `test` scores, both
 from predicting each subcube whole, and the fraction of validation examples
-whose region also has a copy in training. Comparing a `copy` run with its
-`region` twin shows how much the paper's split raises the validation score.
+whose region also has a copy in training, plus per-region scores with their
+mean and standard error. If rotated copies in training helped, a `copy` run
+would score higher on validation than on test; a `region` run is the
+control. At spacing 10 h^-1 Mpc the two agree within the errors
+([overview](overview.md), section 7).
 
 ## Watching a run
 

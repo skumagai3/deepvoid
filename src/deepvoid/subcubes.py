@@ -1,4 +1,4 @@
-"""The first paper's data protocol, for measuring what it does to the scores.
+"""The first paper's data protocol, for testing whether it affects the scores.
 
 The first DeepVoid paper cut the 512^3 box into 4^3 = 64 non-overlapping
 128^3 subcubes, stored each with copies rotated by 90, 180 and 270 degrees
@@ -18,9 +18,11 @@ it:
   ``"copy"`` treats each rotated copy as its own example (the paper's way),
   ``"region"`` keeps the rotations of a region together (the control).
 
-Comparing the validation and test scores of a ``"copy"`` run with those of
-a ``"region"`` run measures how much the paper's split raises the
-validation score.
+The test: if rotated copies of a region in training help the model on that
+region, a ``"copy"`` run scores higher on validation than on the held-out
+test subcubes. A ``"region"`` run is the control. ``test_scores.json`` has
+per-region scores with standard errors for both sets. (Measured at spacing
+10 h^-1 Mpc: no difference, see docs/overview.md, section 7.)
 
 Training draws whole subcubes, shuffled each epoch, with no augmentation
 beyond the stored rotations, as in the paper. Optimizer, schedule, loss,

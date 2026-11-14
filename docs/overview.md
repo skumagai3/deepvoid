@@ -594,12 +594,30 @@ training set. A second simulation is the real independence test.
 128³ subcubes, stored each with three rotated copies (90°, 180°, 270° about
 one axis), and split all copies 80/20 at random into training and
 validation. Rotated copies of the same region therefore usually ended up on
-both sides. A rotated copy is a different input tensor to the network, but
-it contains the same structures, and the training set already held rotated
-copies of every training region. Whether this affects the scores is an
-open question; the new pipeline can measure it directly by training once
-with the old split and comparing its validation score with its test-slab
-score.
+both sides. The paper treated a rotated subcube as a new example, because a
+convolutional network is not rotation-invariant, and reported its scores on
+that validation set, saying so.
+
+I tested whether the rotated copies in training help the model on the
+validation regions. I trained a model on subhalos at λ = 10 h⁻¹ Mpc with
+the paper's split (64 non-overlapping subcubes, four rotations each, 80/20
+over copies), after first setting aside 16 subcubes that the model never
+saw in any orientation. Every validation subcube had a rotated copy of its
+region in training. If those copies helped, validation would score higher
+than the 16 unseen subcubes. It does not:
+
+| Mean over regions | Validation (29 regions) | Unseen test (16 regions) | Difference |
+|---|---|---|---|
+| Four-class MCC | 0.543 ± 0.005 | 0.548 ± 0.006 | −0.005 ± 0.008 |
+| Void MCC | 0.597 ± 0.005 | 0.603 ± 0.007 | −0.007 ± 0.009 |
+
+Errors are standard errors over regions; the error on the difference adds
+them in quadrature. The difference is consistent with zero, and an advantage
+larger than about 0.01 in MCC is excluded at 2σ. For this model, a rotated
+copy of a training region is as good as a new region. The test covers one
+model (depth 3, 32 filters, trained directly at λ = 10 with the new
+optimizer settings); I did not repeat it for the dense dark-matter model or
+the curriculum models.
 
 ## 8. Inputs: normalization and the smoothed channel
 
