@@ -1,0 +1,141 @@
+# A DeepVoid run, with every setting written out and explained.
+#
+# Copy this file, change the first block, and run
+#     python -m deepvoid.train my_run.yaml
+# or, in Python,
+#     from deepvoid.train import run; run("my_run.yaml")
+#
+# The values here are the ones used for the best model so far (TNG300-3
+# subhalos at mean separations of 3 to 10 h^-1 Mpc on a 512^3 grid). Only
+# `name`, `data.inputs` and `data.labels` are required; anything you delete
+# falls back to the default noted beside it. `Project.config(...)` builds the
+# same thing in Python and fills in `output` and `catalog` for you.
+# Lengths are in h^-1 Mpc and grid sizes in cells.
+
+# ---------------------------------------------------------------- your run
+name: my_first_run                 # the run's folder name, created inside `output`
+output: my_project/runs            # where runs are written
+catalog: my_project/catalog.yaml   # the catalog that names your grids (written by deepvoid.Project)
+seed: 12                           # fixes the initial weights and the sequence of training crops
+
+data:
+  # Input grids, by catalog name. With several, each training crop is drawn
+  # from one of them at random and one model learns them all. All inputs are
+  # trained against the same labels and must share its grid.
+  inputs: [halos/L5]
+  # The label grid: 0 void, 1 wall, 2 filament, 3 halo.
+  labels: labels
+
+  # ------------------------------------------------- train / validation / test
+  # The box is cut into three slabs along one axis, with empty buffer slabs
+  # between them (and at the periodic wrap), before any crop is drawn.
+  # Training crops never touch validation or test cells. The validation slab
+  # picks the best epoch; the test slab is used once, for the final scores.
+  split:
+    fractions: [0.7, 0.15, 0.15]   # train, validation, test shares of the usable cells
+    buffer: 16                     # cells between slabs
+    axis: 0                        # slabs are cut along x
+
+  # ----------------------------------------------------------- input channels
+  # Sparse tracers leave most cells empty (99.95% at spacing 10 on a 512^3
+  # grid). `smoothing` adds a Gaussian-smoothed copy of each input as a second
+  # channel so the first layers see more than zeros.
+  #   sigma_spacing: 0.5   sigma = half the tracer spacing (needs `spacing` in the catalog)
+  #   sigma_mpc: 5         or a fixed sigma in h^-1 Mpc
+  #   keep_raw: true       keep the unsmoothed field as the first channel
+  # Default: null (one channel, the raw field). For dense fields such as the
+  # full dark matter, leave it null.
+  smoothing: {sigma_spacing: 0.5, keep_raw: true}
+
+  # How each channel is scaled before the network sees it.
+  #   log_standard   log10(rho/rho_bar + 0.001), then (x - mean) / std, with the
+  #                  mean and std taken from the training slab and saved with the run
+  #   minmax         (rho - min) / (max - min), as in the first DeepVoid paper
+  normalization: log_standard
+
+  subcubes: null                   # only for reproducing the first paper's data protocol
+
+# -------------------------------------------------------------------- model
+model:
+  # Number of resolution levels in the U-Net. Each level halves the
+  # resolution, so one more level roughly doubles how far apart two tracers
+  # can be and still be related. Default 4; 5 scored higher at every spacing
+  # in our runs (void MCC 0.900 -> 0.918 at spacing 3, 0.731 -> 0.736 at 10).
+  # Crop sizes must be divisible by 2^(depth - 1).
+  depth: 5
+  base_filters: 16                 # channels at full resolution; doubles at each level
+  batch_norm: true                 # batch normalization after each convolution
+  bn_momentum: 0.99                # how slowly its running averages move
+  dropout: 0.0                     # dropout at the bottom of the U
+  # Tell the model the tracer spacing (feature-wise modulation, FiLM), e.g.
+  # {units: 32, noise: 0.1}. Default null. In a model trained on spacings 3 to
+  # 10 without it, the spacing could already be read from the first-level
+  # features (linear probe, R^2 about 1.0), so the model has that information.
+  conditioning: null
+  # Extra training outputs at each coarser level. Default false; it changed
+  # test scores by 0.004 or less in our runs.
+  deep_supervision: false
+
+# ----------------------------------------------------------------- training
+training:
+  crop: 96                         # side of a training crop; must fit in the training slab
+  batch_size: 8                    # crops per step
+  steps_per_epoch: 200             # training steps between validation passes
+  val_crop: 64                     # side of a validation crop; must fit in the validation slab
+  val_batches: 16                  # validation batches per input, the same crops every epoch (default 32)
+  epochs: 60                       # upper limit, and the length of the learning-rate schedule (default 80)
+  rotate: true                     # apply one of the 48 rotations/reflections of a cube to each batch
+  init_from: null                  # start from a trained model: a .keras file or a run folder
+  curriculum: null                 # change how often each input is drawn as training goes on
+
+  optimizer:
+    name: adamw                    # adamw (Adam with weight decay) or adam
+    learning_rate: 1.0e-3          # the peak rate
+    weight_decay: 1.0e-3           # default 1.0e-4
+    clipnorm: 1.0                  # cap on the gradient norm; null turns it off
+  schedule:
+    name: cosine                   # linear warm-up, then cosine decay; or constant
+    warmup_epochs: 3
+    min_lr_ratio: 0.01             # the rate ends at this fraction of the peak
+
+  # Validation, testing and the saved model use an exponential moving average
+  # of the weights (average <- d * average + (1 - d) * weights after every
+  # step). It smooths out step-to-step noise. null turns it off, and then the
+  # trained weights themselves are used. With few steps per epoch the average
+  # lags the weights by many epochs, so turn it off for very short epochs.
+  ema: 0.999
+
+  loss:
+    name: scce                     # cross-entropy over the four classes; dice_scce adds a Dice term
+    # Halo cells are about 0.5% of a box. `auto` weights each class by
+    # (its fraction)^(-1/2), scaled to average 1, so rare classes count for
+    # more. null (the default) weights every cell equally.
+    class_weights: auto
+    dice_weight: 1.0               # weight of the Dice term, for dice_scce
+    void_weight: 0.0               # weight of an extra void-vs-rest term
+
+  early_stopping:
+    # The validation score that picks the saved model:
+    #   val_mcc        Matthews correlation coefficient over all four classes
+    #   val_void_mcc   the same for void against everything else (the default)
+    #   val_loss       the validation loss
+    monitor: val_mcc
+    patience: 15                   # stop after this many epochs without a gain of...
+    min_delta: 0.002               # ...at least this much
+
+  mixed_precision: true            # float16 arithmetic with float32 weights; faster on a GPU
+  xla: true                        # compile the training step; faster after the first step
+  resume: true                     # rerunning the same config continues an interrupted run
+
+# --------------------------------------------------------------- final scores
+# After training, the saved model labels the whole box in overlapping tiles
+# and is scored on the test slab only.
+evaluate:
+  crop: 128                        # tile side
+  margin: 32                       # cells discarded at each tile edge, where the model lacks context
+  batch_size: 4
+  tta: none                        # average over symmetries at prediction: none, flips (8x) or full (48x)
+  inputs: null                     # inputs to score; null means the training inputs
+  labels: null                     # a finer label grid to score against; null means data.labels
+  void_threshold: null             # also score "void if its score > t": `tune` picks t on the validation slab
+  void_objective: mcc              # what the tuned threshold maximizes: mcc, f1 or iou

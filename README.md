@@ -75,11 +75,11 @@ mask = tweb_labels(dm)               # sigma_eff = 1 h^-1 Mpc, lambda_th = 0.65
 
 Set `DEEPVOID_DATA` to use a different data root.
 
-To train, write a config (see `configs/tng_dm_baseline.yaml`) and run
+To train, write a config (see `configs/research/tng_dm_baseline.yaml`) and run
 
 ```python
 from deepvoid.train import run
-out = run("configs/tng_dm_baseline.yaml")
+out = run("configs/research/tng_dm_baseline.yaml")
 ```
 
 The notebooks in `notebooks/` do this on Colab, starting with a data check

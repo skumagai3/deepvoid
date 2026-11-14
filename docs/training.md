@@ -3,13 +3,13 @@
 ```python
 from deepvoid.train import run, run_seeds, evaluate_run, spacing_sweep
 
-out = run("configs/tng_dm_baseline.yaml")                       # one run
-summary = run_seeds("configs/tng_dm_baseline.yaml", [1, 2, 3])  # mean and std over seeds
+out = run("configs/research/tng_dm_baseline.yaml")                       # one run
+summary = run_seeds("configs/research/tng_dm_baseline.yaml", [1, 2, 3])  # mean and std over seeds
 evaluate_run(out)                                               # re-score a finished run
 spacing_sweep(out, "tng300-3/subhalos/L10", [3, 5, 7, 10])     # FiLM check, see below
 ```
 
-From a shell: `python -m deepvoid.train configs/tng_dm_baseline.yaml [--seeds 1 2 3]`.
+From a shell: `python -m deepvoid.train configs/research/tng_dm_baseline.yaml [--seeds 1 2 3]`.
 
 ## Settings
 
@@ -95,7 +95,7 @@ resuming changes when training ends but not the schedule.
 
 `data.inputs` can list several fields that share one label set, such as
 subhalo fields at tracer spacings 3, 5, 7 and 10 h^-1 Mpc
-(`configs/subhalo/`). Each crop in a training batch comes from its own
+(`configs/research/subhalo/`). Each crop in a training batch comes from its own
 randomly chosen input, with equal probability unless a curriculum says
 otherwise. Mixing within the batch matters with batch normalization:
 when every batch came from a single input, training looked fine but the
@@ -109,7 +109,7 @@ over all inputs. `test_scores.json` has one entry per input scored.
 **Starting from a trained model.** `training.init_from` copies weights from
 a saved model, layer by layer, matching names and shapes; the run log says
 how many layers were copied. Every layer stays trainable. Use a lower
-learning rate than from scratch (`configs/subhalo/B_finetune_L10.yaml` uses
+learning rate than from scratch (`configs/research/subhalo/B_finetune_L10.yaml` uses
 2e-4 with one warmup epoch).
 
 **Spacing conditioning (FiLM, feature-wise linear modulation; Perez et al. 2018).** With `model.conditioning`, the model also
@@ -204,13 +204,13 @@ mask recomputed from the dark matter with the same sigma_eff. A config
 then sets `evaluate.labels` to the 512^3 mask: each 256^3 prediction fills
 its 2x2x2 fine cells and is scored on the same test slab at 512^3.
 Halving `data.split.buffer` (8 instead of 16) makes the 256^3 slabs exactly
-half the 512^3 ones. See `configs/subhalo/A256_scratch_L10.yaml`.
+half the 512^3 ones. See `configs/research/subhalo/A256_scratch_L10.yaml`.
 
 ## The first paper's split (split test)
 
 `data.subcubes` replaces the slab split with the first paper's protocol, to
 test whether that protocol affects the scores (`src/deepvoid/subcubes.py`,
-configs in `configs/papersplit/`). The box is cut into non-overlapping 128^3
+configs in `configs/research/papersplit/`). The box is cut into non-overlapping 128^3
 subcubes, each stored with copies rotated by 90, 180 and 270 degrees about
 one axis, and the examples are split 80/20 at random. One layer of subcubes
 (x in [384, 512) by default) is held out entirely and used only for the

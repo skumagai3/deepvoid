@@ -15,6 +15,7 @@ dependencies = ["numpy>=1.24", "scipy>=1.10", "pyyaml>=6"]
 [project.optional-dependencies]
 tf = ["tensorflow>=2.16"]
 test = ["pytest>=7"]
+figures = ["matplotlib>=3.7"]
 viz = ["laspy[lazrs]>=2.4", "h5py", "requests"]
 
 [tool.setuptools.packages.find]

@@ -198,7 +198,7 @@ def test_config_fills_defaults_and_rejects_typos():
 def test_packaged_baseline_config_is_valid():
     from pathlib import Path
     from deepvoid.config import load_config
-    cfg = load_config(Path(__file__).parents[1] / "configs" / "tng_dm_baseline.yaml")
+    cfg = load_config(Path(__file__).parents[1] / "configs" / "research" / "tng_dm_baseline.yaml")
     assert cfg["training"]["loss"]["class_weights"] == "auto"
 
 
@@ -257,7 +257,7 @@ def test_subhalo_configs_are_valid_and_inputs_have_spacings():
     from pathlib import Path
     from deepvoid.config import load_config
     catalog = Catalog()
-    paths = sorted((Path(__file__).parents[1] / "configs" / "subhalo").glob("*.yaml"))
+    paths = sorted((Path(__file__).parents[1] / "configs" / "research" / "subhalo").glob("*.yaml"))
     assert len(paths) == 14
     for path in paths:
         cfg = load_config(path)
@@ -311,7 +311,7 @@ def test_coarse_split_matches_full_resolution_split():
 def test_coarse_config_and_catalog_entries():
     from pathlib import Path
     from deepvoid.config import load_config
-    cfg = load_config(Path(__file__).parents[1] / "configs" / "subhalo" / "A256_scratch_L10.yaml")
+    cfg = load_config(Path(__file__).parents[1] / "configs" / "research" / "subhalo" / "A256_scratch_L10.yaml")
     catalog = Catalog()
     for name in cfg["data"]["inputs"] + cfg["evaluate"]["inputs"] + [cfg["data"]["labels"]]:
         assert "n256" in str(catalog.path(name))
@@ -629,7 +629,7 @@ def test_papersplit_configs_are_valid():
     from pathlib import Path
     from deepvoid.config import load_config
     from deepvoid.subcubes import settings
-    paths = sorted((Path(__file__).parents[1] / "configs" / "papersplit").glob("*.yaml"))
+    paths = sorted((Path(__file__).parents[1] / "configs" / "research" / "papersplit").glob("*.yaml"))
     assert len(paths) == 4
     for path in paths:
         cfg = load_config(path)
@@ -668,7 +668,7 @@ def test_papersplit_configs_use_the_paper_settings():
     from deepvoid.config import load_config
 
     for name in ("papersplit_L10_copy", "papersplit_L10_region", "papersplit_DM_copy", "papersplit_DM_region"):
-        cfg = load_config(f"configs/papersplit/{name}.yaml")
+        cfg = load_config(f"configs/research/papersplit/{name}.yaml")
         tr = cfg["training"]
         assert cfg["data"]["normalization"] == "minmax"
         assert tr["optimizer"]["name"] == "adam" and tr["optimizer"]["learning_rate"] == 3e-4
@@ -740,3 +740,25 @@ def test_packaged_catalog_still_loads():
 
     cat = Catalog()
     assert "tng300-3/dm" in cat.names() and cat.info("tng300-3/dm")["box_size"] == 205.0
+
+
+def test_template_config_is_complete_and_valid():
+    from deepvoid.config import DEFAULTS, load_config
+
+    path = Path(__file__).parents[1] / "configs" / "template.yaml"
+    user = yaml.safe_load(path.read_text())
+    cfg = load_config(path)                      # unknown settings would raise
+    assert cfg["model"]["depth"] == 5
+
+    def keys(d, prefix=""):
+        out = set()
+        for k, v in d.items():
+            out |= keys(v, f"{prefix}{k}.") if isinstance(v, dict) else {prefix + k}
+        return out
+
+    # Every setting is written out, except those that only the first paper's protocol reads.
+    written = keys(user)
+    missing = {k for k in keys(DEFAULTS)
+               if k not in written and not any(w.startswith(k + ".") for w in written)}
+    assert missing <= {"training.schedule.factor", "training.schedule.patience",
+                       "training.schedule.min_lr"}, missing

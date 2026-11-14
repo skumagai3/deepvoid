@@ -27,7 +27,7 @@ per-region scores with standard errors for both sets. (Measured at spacing
 Training draws whole subcubes, shuffled each epoch, with no augmentation
 beyond the stored rotations, as in the paper. Optimizer, schedule, loss,
 weight averaging, early stopping and normalization are set in the config;
-``configs/papersplit`` sets them to the paper's (Adam, learning rate cut on a
+``configs/research/papersplit`` sets them to the paper's (Adam, learning rate cut on a
 validation-loss plateau, no weight averaging, min-max scaling).
 
 Enable with ``data.subcubes`` in a config, e.g.::

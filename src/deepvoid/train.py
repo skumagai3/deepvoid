@@ -1,9 +1,9 @@
 """Train and evaluate a model from a config.
 
-    python -m deepvoid.train configs/tng_dm_baseline.yaml
-    python -m deepvoid.train configs/tng_dm_baseline.yaml --seeds 1 2 3
+    python -m deepvoid.train configs/research/tng_dm_baseline.yaml
+    python -m deepvoid.train configs/research/tng_dm_baseline.yaml --seeds 1 2 3
 
-or in a notebook, ``run("configs/tng_dm_baseline.yaml")``.
+or in a notebook, ``run("configs/research/tng_dm_baseline.yaml")``.
 
 Each run gets its own folder, ``<output>/<name>`` (``<name>_seed<n>`` when
 seeds are given), holding:
