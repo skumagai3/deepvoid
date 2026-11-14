@@ -78,6 +78,8 @@ def run(config, seed: int | None = None, catalog: Catalog | None = None) -> Path
     if cfg["data"]["subcubes"] is not None:      # the first paper's protocol, see subcubes.py
         from .subcubes import run_subcubes
         return run_subcubes(cfg, catalog, out, resuming)
+    if tr["schedule"]["name"] == "plateau":
+        raise ValueError("schedule 'plateau' is only available with data.subcubes")
 
     # Data, split and normalization (fit on the training slab only).
     labels = catalog.load(cfg["data"]["labels"])
@@ -371,7 +373,8 @@ def _normalized_inputs(cfg, catalog, train_mask, out, resuming):
     """One (n, n, n, channels) array per input; normalization saved to the run folder."""
     path = out / "normalization.json"
     norms = json.loads(path.read_text()) if resuming and path.exists() else {}
-    arrays = [build_input(catalog, name, cfg["data"]["smoothing"], norms, train_mask)
+    arrays = [build_input(catalog, name, cfg["data"]["smoothing"], norms, train_mask,
+                          cfg["data"]["normalization"])
               for name in cfg["data"]["inputs"]]
     path.write_text(json.dumps(norms, indent=2))
     return arrays
@@ -419,8 +422,8 @@ def _optimizer(tr):
             initial_learning_rate=0.0, decay_steps=max(total - warmup, 1),
             alpha=sched["min_lr_ratio"], warmup_target=opt["learning_rate"],
             warmup_steps=warmup)
-    elif sched["name"] != "constant":
-        raise ValueError("schedule must be 'cosine' or 'constant'")
+    elif sched["name"] not in ("constant", "plateau"):
+        raise ValueError("schedule must be 'cosine', 'constant' or 'plateau'")
     if opt["name"] == "adamw":
         return keras.optimizers.AdamW(learning_rate=lr, weight_decay=opt["weight_decay"],
                                       clipnorm=opt["clipnorm"])

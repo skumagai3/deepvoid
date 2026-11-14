@@ -24,9 +24,9 @@ validation score.
 
 Training draws whole subcubes, shuffled each epoch, with no augmentation
 beyond the stored rotations, as in the paper. Optimizer, schedule, loss,
-weight averaging and early stopping are the same as in ``train.run``.
-Normalization statistics come from everything outside the held-out layer
-(the paper normalized each whole volume).
+weight averaging, early stopping and normalization are set in the config;
+``configs/papersplit`` sets them to the paper's (Adam, learning rate cut on a
+validation-loss plateau, no weight averaging, min-max scaling).
 
 Enable with ``data.subcubes`` in a config, e.g.::
 
@@ -184,6 +184,13 @@ def run_subcubes(cfg: dict, catalog, out: Path, resuming: bool) -> Path:
                  min_delta=tr["early_stopping"]["min_delta"], ema=ema, tb_local=tb_local,
                  state=state, rows=read_log(out / "log.csv")),
     ]
+    if tr["schedule"]["name"] == "plateau":
+        # The paper's schedule: multiply the learning rate by ``factor`` when
+        # the validation loss has not improved for ``patience`` epochs.
+        sched = tr["schedule"]
+        callbacks.insert(-1, keras.callbacks.ReduceLROnPlateau(
+            monitor="val_loss", factor=sched["factor"], patience=sched["patience"],
+            min_lr=sched["min_lr"], verbose=1))
     if first_epoch < tr["epochs"] and state.get("wait", 0) < patience:
         model.fit(train_data, epochs=tr["epochs"], initial_epoch=first_epoch,
                   callbacks=callbacks, verbose=2)

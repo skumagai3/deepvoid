@@ -44,6 +44,38 @@ class Normalizer:
         return asdict(self)
 
 
+@dataclass
+class MinMax:
+    """x -> (x - min) / (max - min), on the density itself (no logarithm).
+
+    This is the first paper's scaling. The minimum and maximum are taken
+    over the whole array passed to ``fit``, as the paper did.
+    """
+
+    lo: float
+    hi: float
+    kind: str = "minmax"
+
+    @classmethod
+    def fit(cls, density: np.ndarray, region_mask: np.ndarray | None = None) -> "MinMax":
+        return cls(lo=float(density.min()), hi=float(density.max()))
+
+    def __call__(self, density: np.ndarray) -> np.ndarray:
+        if self.hi == self.lo:
+            return np.zeros(density.shape, np.float32)
+        return ((density - self.lo) / (self.hi - self.lo)).astype(np.float32)
+
+    def to_dict(self) -> dict:
+        return asdict(self)
+
+
+def normalizer(settings: dict):
+    """The normalizer saved as ``settings`` (a ``to_dict()`` result)."""
+    if settings.get("kind") == "minmax":
+        return MinMax(**settings)
+    return Normalizer(**settings)
+
+
 def auto_class_weights(labels: np.ndarray, n_classes: int = 4) -> list[float]:
     """Class weights from label frequencies: w_c proportional to f_c^(-1/2).
 

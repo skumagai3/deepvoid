@@ -25,7 +25,7 @@ import numpy as np
 from scipy import ndimage
 
 from .catalog import Catalog
-from .preprocess import Normalizer
+from .preprocess import MinMax, Normalizer, normalizer
 
 
 def smoothing_cells(smoothing: dict, spacing: float | None, cell_size: float) -> float:
@@ -58,19 +58,24 @@ def channels(catalog: Catalog, name: str, smoothing: dict | None) -> dict[str, n
 
 
 def build(catalog: Catalog, name: str, smoothing: dict | None, norms: dict,
-          train_mask: np.ndarray | None = None) -> np.ndarray:
+          train_mask: np.ndarray | None = None, kind: str = "log_standard") -> np.ndarray:
     """Normalized input of shape (n, n, n, channels).
 
     ``norms`` maps channel names to saved :class:`Normalizer` settings (as
     dicts); a channel missing from it is fit on ``train_mask`` and added.
+    ``kind`` chooses what is fit: ``"log_standard"`` (:class:`Normalizer`) or
+    ``"minmax"`` (:class:`MinMax`, the first paper's scaling).
     """
+    if kind not in ("log_standard", "minmax"):
+        raise ValueError("data.normalization must be 'log_standard' or 'minmax'")
     parts = []
     for key, data in channels(catalog, name, smoothing).items():
         if key not in norms:
             if train_mask is None:
                 raise ValueError(f"no saved normalization for {key!r}")
-            norms[key] = Normalizer.fit(data, train_mask).to_dict()
-        parts.append(Normalizer(**norms[key])(data))
+            fit = MinMax.fit if kind == "minmax" else Normalizer.fit
+            norms[key] = fit(data, train_mask).to_dict()
+        parts.append(normalizer(norms[key])(data))
     return np.stack(parts, axis=-1)
 
 

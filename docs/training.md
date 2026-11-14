@@ -42,7 +42,7 @@ as `config.yaml` in the run folder.
 | `training.init_from` | null | Start from a trained model: a `.keras` file or a run folder (its `best.keras`), relative to `output` |
 | `training.curriculum` | null | Sampling weights over inputs that change with the epoch; see below |
 | `training.optimizer` | AdamW, lr 1e-3, weight decay 1e-4, clipnorm 1.0 | `name` is `adamw` or `adam`; `clipnorm` clips the gradient norm |
-| `training.schedule` | cosine, 3 warmup epochs, min 1% of lr | `cosine` (linear warmup, then cosine decay) or `constant` |
+| `training.schedule` | cosine, 3 warmup epochs, min 1% of lr | `cosine` (linear warmup, then cosine decay), `constant`, or, for `data.subcubes` runs only, `plateau` (multiply the rate by `factor` when the validation loss has not improved for `patience` epochs, as in the first paper) |
 | `training.ema` | 0.999 | Decay of the weight average; `null` turns it off |
 | `training.loss.name` | `scce` | `scce` or `dice_scce` (cross-entropy plus Dice) |
 | `training.loss.class_weights` | null | `null`, `auto`, or a list of 4 weights |

@@ -648,3 +648,28 @@ def test_region_summary_takes_the_spread_over_regions():
     assert out["mean"]["mcc"] == pytest.approx(np.mean(out["scores"]["mcc"]))
     expected = np.std(out["scores"]["mcc"], ddof=1) / np.sqrt(3)
     assert out["standard_error"]["mcc"] == pytest.approx(expected)
+
+
+def test_minmax_scales_to_unit_range_and_round_trips():
+    from deepvoid.preprocess import MinMax, normalizer
+
+    den = np.random.default_rng(0).random((8, 8, 8)).astype(np.float32) * 7 + 2
+    norm = MinMax.fit(den)
+    out = norm(den)
+    assert out.min() == pytest.approx(0.0) and out.max() == pytest.approx(1.0)
+    again = normalizer(norm.to_dict())
+    assert isinstance(again, MinMax)
+    np.testing.assert_allclose(again(den), out)
+
+
+def test_papersplit_configs_use_the_paper_settings():
+    from deepvoid.config import load_config
+
+    for name in ("papersplit_L10_copy", "papersplit_L10_region", "papersplit_DM_copy", "papersplit_DM_region"):
+        cfg = load_config(f"configs/papersplit/{name}.yaml")
+        tr = cfg["training"]
+        assert cfg["data"]["normalization"] == "minmax"
+        assert tr["optimizer"]["name"] == "adam" and tr["optimizer"]["learning_rate"] == 3e-4
+        sched = tr["schedule"]
+        assert (sched["name"], sched["factor"], sched["patience"]) == ("plateau", 0.25, 10)
+        assert tr["ema"] is None and tr["early_stopping"]["monitor"] == "val_loss"

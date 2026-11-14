@@ -9,6 +9,7 @@ output: /content/drive/MyDrive/deepvoid_runs
 seed: 12
 
 data:
+  normalization: minmax     # the paper scaled each volume to [0, 1]
   inputs: [tng300-3/subhalos/L10]
   labels: tng300-3/mask
   subcubes: {size: 128, rotations: 4, val_fraction: 0.2, split_by: region,
@@ -19,11 +20,16 @@ model:
   base_filters: 32
 
 training:
+  # Settings of the first paper (dissertation sec. 5.5 and deepvoid_misc
+  # DV_MULTI_TRAIN.py), so that this run trains the way those models did:
+  # Adam at 3e-4; learning rate x0.25 when the validation loss has not
+  # improved for 10 epochs; stop after 25 such epochs, at most 300 epochs;
+  # keep the weights with the lowest validation loss. No weight decay,
+  # gradient clipping, warm-up or weight averaging.
   batch_size: 4
-  epochs: 150
-  # 3e-4 is the paper's learning rate. No weight averaging (the paper had none);
-  # with only ~38 steps per epoch the averaged weights lag the trained ones.
-  optimizer: {name: adamw, learning_rate: 3.0e-4, weight_decay: 1.0e-4, clipnorm: 1.0}
+  epochs: 300
+  optimizer: {name: adam, learning_rate: 3.0e-4, clipnorm: null}
+  schedule: {name: plateau, factor: 0.25, patience: 10, min_lr: 1.0e-7}
   ema: null
   loss: {name: scce, class_weights: null}
-  early_stopping: {monitor: val_mcc, patience: 15, min_delta: 0.002}
+  early_stopping: {monitor: val_loss, patience: 25, min_delta: 0.0}

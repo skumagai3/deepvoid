@@ -23,6 +23,7 @@ DEFAULTS: dict[str, Any] = {
         "labels": None,
         "split": {"fractions": [0.7, 0.15, 0.15], "buffer": 16, "axis": 0},
         "smoothing": None,
+        "normalization": "log_standard",
         "subcubes": None,
     },
     "model": {
@@ -46,7 +47,9 @@ DEFAULTS: dict[str, Any] = {
         "curriculum": None,
         "optimizer": {"name": "adamw", "learning_rate": 1.0e-3,
                       "weight_decay": 1.0e-4, "clipnorm": 1.0},
-        "schedule": {"name": "cosine", "warmup_epochs": 3, "min_lr_ratio": 0.01},
+        "schedule": {"name": "cosine", "warmup_epochs": 3, "min_lr_ratio": 0.01,
+                     # read only by the "plateau" schedule (data.subcubes runs)
+                     "factor": 0.25, "patience": 10, "min_lr": 1.0e-7},
         "ema": 0.999,
         "loss": {"name": "scce", "class_weights": None, "dice_weight": 1.0, "void_weight": 0.0},
         "early_stopping": {"monitor": "val_void_mcc", "patience": 15, "min_delta": 0.002},
