@@ -39,6 +39,7 @@ from __future__ import annotations
 
 import json
 import math
+import shutil
 import tempfile
 from pathlib import Path
 
@@ -171,11 +172,14 @@ def run_subcubes(cfg: dict, catalog, out: Path, resuming: bool) -> Path:
     first_epoch = state.get("epoch", -1) + 1
     patience = tr["early_stopping"]["patience"]
     tb_local = Path(tempfile.gettempdir()) / "deepvoid_tensorboard" / cfg["name"]
+    if resuming and (out / "tensorboard").exists() and not tb_local.exists():
+        shutil.copytree(out / "tensorboard", tb_local)
     ema = EMA(tr["ema"]) if tr["ema"] else None
     if ema and resuming and (out / "ema.npz").exists():
         ema.load(out / "ema.npz")
     callbacks = ([ema] if ema else []) + [
         Validation(val_batches, tb_local, ema),
+        keras.callbacks.TensorBoard(str(tb_local), write_graph=False),
         RunState(out, train_data, monitor=tr["early_stopping"]["monitor"], patience=patience,
                  min_delta=tr["early_stopping"]["min_delta"], ema=ema, tb_local=tb_local,
                  state=state, rows=read_log(out / "log.csv")),
