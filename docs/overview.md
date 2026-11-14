@@ -60,6 +60,22 @@ in the universe is not spread evenly. Galaxies sit in a network called the
 - **voids**: large underdense regions, typically 10–50 h⁻¹ Mpc across, that
   fill most of the volume.
 
+![Map of galaxies observed by the Sloan Digital Sky Survey, in two wedges out to redshift 0.14.](figures/sdss_galaxy_map.jpg)
+
+*The real thing: a slice of the galaxy map from the Sloan Digital Sky Survey.
+We are at the center; each dot is a galaxy, and distance from the center is
+redshift (z = 0.14 is about 2 billion light years). The galaxies trace
+filaments and walls around large empty voids. The blank wedges are parts of
+the sky the survey did not cover. Image credit: M. Blanton and the Sloan
+Digital Sky Survey (CC BY).*
+
+![Simulated cosmic web from the IllustrisTNG simulation: bright knots connected by thin filaments, with dark voids in between.](figures/cosmic_web_tng.jpg)
+
+*The same kind of structure in a simulation, where the matter between the
+galaxies can be seen too. Bright knots are halos, the threads between them
+are filaments, and the dark regions are voids. Image credit: TNG
+Collaboration (IllustrisTNG, https://www.tng-project.org/media/).*
+
 ### Why voids are interesting
 
 **They fill most of the volume.** Depending on the definition, voids take up
@@ -428,8 +444,9 @@ Why it is hard:
 The left half (orange) repeatedly halves the resolution to see larger
 structures; the right half (green) builds the resolution back up; the grey
 arrows carry fine detail straight across. The output (c) is a label for every
-voxel. Figure from Kumagai et al. (2025), which shows 3 levels and 128³
-inputs; the current default is 4 or 5 levels.*
+voxel. Figure by M. A. Aragon-Calvo for Kumagai et al. (2025), adapted from
+Aragon-Calvo (2019). It shows 3 levels and 128³ inputs; the current default
+is 4 or 5 levels.*
 
 A **convolutional neural network (CNN)** applies the same small filter at
 every position. One 3D convolution layer with $C_\mathrm{in}$ input and
@@ -785,29 +802,30 @@ planned remedies.
 
 ### References
 
-- Hahn, Porciani, Carollo & Dekel 2007, MNRAS 375, 489 (tidal-tensor classification)
-- Forero-Romero et al. 2009, MNRAS 396, 1815 (eigenvalue threshold)
-- Ronneberger, Fischer & Brox 2015, MICCAI (U-Net)
-- Çiçek et al. 2016, MICCAI (3D U-Net)
-- Loshchilov & Hutter 2019, ICLR (AdamW)
+- Hahn, Porciani, Carollo & Dekel 2007, MNRAS 375, 489 (tidal-tensor classification), [arXiv:astro-ph/0610280](https://arxiv.org/abs/astro-ph/0610280)
+- Forero-Romero et al. 2009, MNRAS 396, 1815 (eigenvalue threshold), [arXiv:0809.4135](https://arxiv.org/abs/0809.4135)
+- Ronneberger, Fischer & Brox 2015, MICCAI (U-Net), [arXiv:1505.04597](https://arxiv.org/abs/1505.04597)
+- Çiçek et al. 2016, MICCAI (3D U-Net), [arXiv:1606.06650](https://arxiv.org/abs/1606.06650)
+- Loshchilov & Hutter 2019, ICLR (AdamW), [arXiv:1711.05101](https://arxiv.org/abs/1711.05101)
 - Gorodkin 2004, Comput. Biol. Chem. 28, 367 (multiclass MCC)
-- Nelson et al. 2019, ComAC 6, 2 (IllustrisTNG data release)
+- Nelson et al. 2019, ComAC 6, 2 (IllustrisTNG data release), [arXiv:1812.05609](https://arxiv.org/abs/1812.05609)
 - Alcock & Paczynski 1979, Nature 281, 358
-- Aragon-Calvo & Szalay 2013, MNRAS 428, 3409
-- Bond, Kofman & Pogosyan 1996, Nature 380, 603
-- Bos et al. 2012, MNRAS 426, 440
-- Cautun et al. 2014, MNRAS 441, 2923
-- Colberg et al. 2008, MNRAS 387, 933
-- Falck, Neyrinck & Szalay 2012, ApJ 754, 126
-- Falck & Neyrinck 2015, MNRAS 450, 3239
-- Goldberg & Vogeley 2004, ApJ 605, 1
+- Aragon-Calvo & Szalay 2013, MNRAS 428, 3409, [arXiv:1203.0248](https://arxiv.org/abs/1203.0248)
+- Bond, Kofman & Pogosyan 1996, Nature 380, 603, [arXiv:astro-ph/9512141](https://arxiv.org/abs/astro-ph/9512141)
+- Bos et al. 2012, MNRAS 426, 440, [arXiv:1205.4238](https://arxiv.org/abs/1205.4238)
+- Cautun et al. 2014, MNRAS 441, 2923, [arXiv:1401.7866](https://arxiv.org/abs/1401.7866)
+- Colberg et al. 2008, MNRAS 387, 933, [arXiv:0803.0918](https://arxiv.org/abs/0803.0918)
+- Falck, Neyrinck & Szalay 2012, ApJ 754, 126, [arXiv:1201.2353](https://arxiv.org/abs/1201.2353)
+- Falck & Neyrinck 2015, MNRAS 450, 3239, [arXiv:1410.4751](https://arxiv.org/abs/1410.4751)
+- Goldberg & Vogeley 2004, ApJ 605, 1, [arXiv:astro-ph/0307191](https://arxiv.org/abs/astro-ph/0307191)
 - Icke 1984, MNRAS 206, 1P
-- Lavaux & Wandelt 2012, ApJ 754, 109
-- Nadathur et al. 2019, Phys. Rev. D 100, 023504
+- Lavaux & Wandelt 2012, ApJ 754, 109, [arXiv:1110.0345](https://arxiv.org/abs/1110.0345)
+- Nadathur et al. 2019, Phys. Rev. D 100, 023504, [arXiv:1904.01030](https://arxiv.org/abs/1904.01030)
 - Palmer & Voglis 1983, MNRAS 205, 543
-- Pan et al. 2012, MNRAS 421, 926
+- Pan et al. 2012, MNRAS 421, 926, [arXiv:1103.4156](https://arxiv.org/abs/1103.4156)
 - Sachs & Wolfe 1967, ApJ 147, 73
-- Sheth & van de Weygaert 2004, MNRAS 350, 517
-- Kumagai et al. 2025, arXiv:2504.21134 (DeepVoid)
+- Sheth & van de Weygaert 2004, MNRAS 350, 517, [arXiv:astro-ph/0311260](https://arxiv.org/abs/astro-ph/0311260)
+- Kumagai et al. 2025, DeepVoid: A Deep Learning Void Detector, [arXiv:2504.21134](https://arxiv.org/abs/2504.21134)
+- Aragon-Calvo 2019, MNRAS 484, 5771, [arXiv:1804.00816](https://arxiv.org/abs/1804.00816)
 - Kumagai 2025, PhD dissertation, Drexel University
 - Vogeley & Aragon-Calvo, "What Stretches the Fabric of the Cosmos? Probes of Fundamental Physics in Cosmic Voids Using Artificial Intelligence", proposal to the John Templeton Foundation, 2021
