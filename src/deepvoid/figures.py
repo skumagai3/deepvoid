@@ -228,7 +228,7 @@ def summary_figure(dm: np.ndarray, truth: np.ndarray, tracers: np.ndarray,
     fig.suptitle("DeepVoid: cosmic-web classes from sparse tracers", fontsize=15, y=0.995)
     if note:
         fig.text(0.5, 0.05, note, ha="center", fontsize=10)
-    fig.tight_layout(rect=(0, 0.07, 1, 0.97))
+    fig.tight_layout(rect=(0, 0.07, 1, 0.97), h_pad=2.5)
     return fig
 
 
