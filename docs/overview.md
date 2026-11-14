@@ -165,6 +165,14 @@ where ρ_m is the mean matter density inside r, ρ_Λ the dark energy density
 and w its equation of state (Cai & Neyrinck 2025). Both the strength of
 gravity and the properties of dark energy enter.
 
+Overdense structures broke away from the expansion and collapsed long before
+dark energy mattered, and a bound cluster does not expand at all. What
+expands is the space between them, and that space is the voids. So to
+leading order the accelerated expansion of voids is the primary signature of
+dark energy: dense structures accelerate away from each other because the
+voids between them are growing (Sheth & van de Weygaert 2004; Bromley &
+Geller 2025).
+
 ### What people measure with voids
 
 All of these tests need a catalog of voids.
@@ -195,7 +203,7 @@ All of these tests need a catalog of voids.
   in. The result is a cold spot on the CMB. Granett, Neyrinck & Szapudi
   (2008) detected this by stacking the CMB on large voids and superclusters,
   with an amplitude several times the ΛCDM prediction. Later work is mixed:
-  some analyses confirm an excess (Kovács et al. 2019), others agree with
+  some analyses confirm an excess (Kovács 2018), others agree with
   ΛCDM (Nadathur & Crittenden 2016). All agree on the sign.
 - **Gravitational lensing.** Voids deflect light slightly outward. The
   lensing shear of background galaxies (Melchior et al. 2014; Clampitt &
@@ -217,12 +225,14 @@ on that choice.
 The most widely used finders are watershed methods built on a Voronoi
 tessellation of the galaxies (ZOBOV, Neyrinck 2008; VIDE, Sutter et al.
 2015). They need no assumed shape, but the resolution of the density
-estimate varies with the local galaxy density, a significance or density cut
-has to be chosen to turn basins into a catalog (Neyrinck 2008), and the void
+estimate varies with the local galaxy density, so the cells near void edges
+and survey boundaries can be long, thin polyhedra that misrepresent where
+the void ends (Kumagai 2025). A significance or density cut
+also has to be chosen to turn basins into a catalog (Neyrinck 2008), and the void
 centers they return do not reliably sit at maxima of the gravitational
 potential (Nadathur, Hotchkiss & Crittenden 2017). When tracers are sparse,
 voids not much larger than the tracer spacing are dominated by shot noise
-and are usually discarded (Verza, Pisani et al. 2026). Veyrat, Douglass &
+and are usually discarded (Contarini, Verza & Pisani 2026). Veyrat, Douglass &
 BenZvi (2023) compared two finders against a dynamical definition (regions
 with no shell-crossing) and found clear differences in how well they
 recover it.
@@ -830,11 +840,12 @@ planned remedies.
 - Alcock & Paczynski 1979, Nature 281, 358
 - Aragon-Calvo & Szalay 2013, MNRAS 428, 3409, [arXiv:1203.0248](https://arxiv.org/abs/1203.0248)
 - Aragon-Calvo 2019, MNRAS 484, 5771, [arXiv:1804.00816](https://arxiv.org/abs/1804.00816)
-- Baker et al. 2018, Phys. Rev. D 98, 023511
+- Baker et al. 2018, Phys. Rev. D 98, 023511, [arXiv:1803.07533](https://arxiv.org/abs/1803.07533)
 - Bond, Kofman & Pogosyan 1996, Nature 380, 603, [arXiv:astro-ph/9512141](https://arxiv.org/abs/astro-ph/9512141)
 - Bos et al. 2012, MNRAS 426, 440, [arXiv:1205.4238](https://arxiv.org/abs/1205.4238)
+- Bromley & Geller 2025, JCAP 01, 011, [arXiv:2407.03882](https://arxiv.org/abs/2407.03882)
 - Cai & Neyrinck 2025, Cosmology with Cosmic Voids, [arXiv:2503.22532](https://arxiv.org/abs/2503.22532)
-- Cai et al. 2017, MNRAS 466, 3364
+- Cai et al. 2017, MNRAS 466, 3364, [arXiv:1609.00301](https://arxiv.org/abs/1609.00301)
 - Cai, Padilla & Li 2015, MNRAS 451, 1036
 - Cautun et al. 2014, MNRAS 441, 2923, [arXiv:1401.7866](https://arxiv.org/abs/1401.7866)
 - Chevallier & Polarski 2001, Int. J. Mod. Phys. D 10, 213
@@ -842,6 +853,7 @@ planned remedies.
 - Clampitt & Jain 2015, MNRAS 454, 3357
 - Colberg et al. 2008, MNRAS 387, 933, [arXiv:0803.0918](https://arxiv.org/abs/0803.0918)
 - Contarini et al. 2022, A&A 667, A162, [arXiv:2205.11525](https://arxiv.org/abs/2205.11525)
+- Contarini, Verza & Pisani 2026, The era of precision cosmology with voids, [arXiv:2601.14362](https://arxiv.org/abs/2601.14362)
 - Falck & Neyrinck 2015, MNRAS 450, 3239, [arXiv:1410.4751](https://arxiv.org/abs/1410.4751)
 - Falck, Neyrinck & Szalay 2012, ApJ 754, 126, [arXiv:1201.2353](https://arxiv.org/abs/1201.2353)
 - Forero-Romero et al. 2009, MNRAS 396, 1815 (eigenvalue threshold), [arXiv:0809.4135](https://arxiv.org/abs/0809.4135)
@@ -849,19 +861,20 @@ planned remedies.
 - Gorodkin 2004, Comput. Biol. Chem. 28, 367 (multiclass MCC)
 - Granett, Neyrinck & Szapudi 2008, ApJ 683, L99
 - Hahn, Porciani, Carollo & Dekel 2007, MNRAS 375, 489 (tidal-tensor classification), [arXiv:astro-ph/0610280](https://arxiv.org/abs/astro-ph/0610280)
-- Hamaus et al. 2014, Phys. Rev. Lett. 112, 251302
-- Hamaus et al. 2020, JCAP 12, 023
+- Hamaus et al. 2020, JCAP 12, 023, [arXiv:2007.07895](https://arxiv.org/abs/2007.07895)
+- Hamaus, Sutter & Wandelt 2014, Phys. Rev. Lett. 112, 251302
 - Icke 1984, MNRAS 206, 1P
 - Jackson 1972, MNRAS 156, 1P
 - Kaiser 1987, MNRAS 227, 1
-- Kovács et al. 2019, MNRAS 484, 5267
-- Kreckel et al. 2011, AJ 141, 4
+- Kovács 2018, MNRAS 475, 1777, [arXiv:1701.08583](https://arxiv.org/abs/1701.08583)
+- Kreckel et al. 2011, AJ 141, 4, [arXiv:1008.4616](https://arxiv.org/abs/1008.4616)
 - Kreisch et al. 2019, MNRAS 488, 4413
+- Kumagai 2025, PhD dissertation, Drexel University
 - Kumagai et al. 2025, DeepVoid: A Deep Learning Void Detector, [arXiv:2504.21134](https://arxiv.org/abs/2504.21134)
 - Lavaux & Wandelt 2012, ApJ 754, 109, [arXiv:1110.0345](https://arxiv.org/abs/1110.0345)
 - Linder 2003, Phys. Rev. Lett. 90, 091301
 - Loshchilov & Hutter 2019, ICLR (AdamW), [arXiv:1711.05101](https://arxiv.org/abs/1711.05101)
-- Massara et al. 2015, JCAP 11, 018
+- Massara et al. 2015, JCAP 11, 018, [arXiv:1506.03088](https://arxiv.org/abs/1506.03088)
 - Melchior et al. 2014, MNRAS 440, 2922
 - Nadathur & Crittenden 2016, ApJ 830, L19
 - Nadathur et al. 2019, Phys. Rev. D 100, 023504, [arXiv:1904.01030](https://arxiv.org/abs/1904.01030)
@@ -870,14 +883,13 @@ planned remedies.
 - Neyrinck 2008, MNRAS 386, 2101, [arXiv:0712.3049](https://arxiv.org/abs/0712.3049)
 - Palmer & Voglis 1983, MNRAS 205, 543
 - Pan et al. 2012, MNRAS 421, 926, [arXiv:1103.4156](https://arxiv.org/abs/1103.4156)
-- Pisani et al. 2015, Phys. Rev. D 92, 083531
+- Pisani et al. 2015, Phys. Rev. D 92, 083531, [arXiv:1503.07690](https://arxiv.org/abs/1503.07690)
 - Ronneberger, Fischer & Brox 2015, MICCAI (U-Net), [arXiv:1505.04597](https://arxiv.org/abs/1505.04597)
-- Ryden 1995, ApJ 452, 25
+- Ryden 1995, ApJ 452, 25, [arXiv:astro-ph/9506028](https://arxiv.org/abs/astro-ph/9506028)
 - Sachs & Wolfe 1967, ApJ 147, 73
 - Sheth & van de Weygaert 2004, MNRAS 350, 517, [arXiv:astro-ph/0311260](https://arxiv.org/abs/astro-ph/0311260)
-- Sutter et al. 2015, Astron. Comput. 9, 1
+- Sutter et al. 2015, Astron. Comput. 9, 1, [arXiv:1406.1191](https://arxiv.org/abs/1406.1191)
 - Verza et al. 2019, JCAP 12, 040
-- Verza, Pisani et al. 2026, The era of precision cosmology with voids, [arXiv:2601.14362](https://arxiv.org/abs/2601.14362)
-- Veyrat, Douglass & BenZvi 2023, A comparison of void-finding algorithms using crossing numbers, [arXiv:2302.05469](https://arxiv.org/abs/2302.05469)
+- Veyrat, Douglass & BenZvi 2023, ApJ 958, 59, [arXiv:2302.05469](https://arxiv.org/abs/2302.05469)
 - van de Weygaert & Platen 2011, Int. J. Mod. Phys. Conf. Ser. 1, 41, [arXiv:0912.2997](https://arxiv.org/abs/0912.2997)
 - Zel'dovich 1970, A&A 5, 84
