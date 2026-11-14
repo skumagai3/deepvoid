@@ -5,11 +5,6 @@ made by `scripts/make_data_release.py`.*
 
 ## Description
 
-**How to cite.** If you use these files, please cite the DeepVoid paper
-(Kumagai et al. 2026, ApJ, 998, 85) and the simulations listed under
-Credit below. Zenodo's citation box cites this dataset itself; cite it as
-well if you want to point to these exact files.
-
 Gridded density fields and cosmic-web class masks used to train and test
 [DeepVoid](https://github.com/skumagai3/deepvoid), a 3D U-Net that labels
 each cell of a simulated volume as void, wall, filament or halo.
