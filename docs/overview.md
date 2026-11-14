@@ -200,7 +200,7 @@ All of these tests need a catalog of voids.
   On real data, Nadathur et al. (2019) measured D_A H / c (D_A is the angular
   diameter distance, H the Hubble rate, c the speed of light) at redshift
   z = 0.57 from voids in the Baryon Oscillation Spectroscopic Survey (BOSS;
-  Dawson et al. 2013) to 1%, about 3.5 times tighter than BAO in the same sample,
+  Eisenstein et al. 2011; Dawson et al. 2013) to 1%, about 3.5 times tighter than BAO in the same sample,
   using the void–galaxy correlation function (see also Hamaus et al. 2020).
 - **Integrated Sachs–Wolfe (ISW) effect** (Sachs & Wolfe 1967). Dark energy
   makes the gravitational potential of a void decay while a photon of the cosmic microwave background (CMB, the light
@@ -276,7 +276,7 @@ upcoming surveys will map voids to much greater depth:
   Science Collaboration 2009; Ivezić et al. 2019);
 - SPHEREx, the Spectro-Photometer for the History of the Universe, Epoch of
   Reionization and Ices Explorer (Doré et al. 2018);
-- Euclid (Laureijs et al. 2011; Euclid Collaboration: Mellier et al. 2024);
+- Euclid (Laureijs et al. 2011; Euclid Collaboration: Mellier et al. 2025);
 - the Nancy Grace Roman Space Telescope (Spergel et al. 2015; Wang et al.
   2022).
  This work trains on real-space simulation
@@ -295,8 +295,9 @@ particles under gravity in a periodic cube (a box whose opposite faces are
 identified, so there are no edges) from nearly uniform initial conditions to
 today.
 
-DeepVoid uses **IllustrisTNG** (Pillepich et al. 2018; Springel et al. 2018;
-Nelson et al. 2019), specifically its largest box, TNG300: a periodic box of side
+DeepVoid uses **IllustrisTNG** (Marinacci et al. 2018; Naiman et al. 2018;
+Nelson et al. 2018; Pillepich et al. 2018; Springel et al. 2018; data
+release: Nelson et al. 2019), specifically its largest box, TNG300: a periodic box of side
 L = 205 h⁻¹ Mpc.
 
 - **Dark matter (DM)** particles sample the matter field densely. Their mean
@@ -427,9 +428,12 @@ $$
 ![Three panels of the same slice: matter density, gravitational potential, and the four-class labels.](figures/density_potential_labels.png)
 
 *From matter to labels, for one slice through the TNG300 box. Left: the dark
-matter density (log scale). Middle: the gravitational potential it produces.
-Right: the T-web labels computed from the potential's second derivatives.
-Figure from Kumagai et al. (2025).*
+matter density contrast, log10(δ + 1). Middle: the gravitational potential Φ
+it produces. The potential is shifted and rescaled before the logarithm is
+taken (log10 of Φ/10⁵ + 5.75, in the simulation's units), so its color scale
+is for display only; bright regions are highs of the potential, where voids
+form. Right: the T-web labels ("tidal mask") computed from the potential's
+second derivatives. Figure from Kumagai et al. (2025).*
 
 **Eigenvalues and classes.** T is a real symmetric 3 × 3 matrix at every
 point, with eigenvalues λ₁ ≥ λ₂ ≥ λ₃ (these λ's are unrelated to the tracer
@@ -884,7 +888,8 @@ planned remedies.
 - de Jong et al. 2016, Proc. SPIE 9908, 473 (4MOST)
 - DESI Collaboration 2016, The DESI Experiment Part I: Science, Targeting, and Survey Design, [arXiv:1611.00036](https://arxiv.org/abs/1611.00036)
 - Doré et al. 2018, Science Impacts of the SPHEREx All-Sky Optical to Near-Infrared Spectral Survey II, [arXiv:1805.05489](https://arxiv.org/abs/1805.05489)
-- Euclid Collaboration: Mellier et al. 2024, Euclid. I. Overview of the Euclid mission, [arXiv:2405.13491](https://arxiv.org/abs/2405.13491)
+- Eisenstein et al. 2011, AJ 142, 72 (SDSS-III)
+- Euclid Collaboration: Mellier et al. 2025, A&A 697, A1 (Euclid. I. Overview of the Euclid mission), [arXiv:2405.13491](https://arxiv.org/abs/2405.13491)
 - Falck & Neyrinck 2015, MNRAS 450, 3239, [arXiv:1410.4751](https://arxiv.org/abs/1410.4751)
 - Falck, Neyrinck & Szalay 2012, ApJ 754, 126, [arXiv:1201.2353](https://arxiv.org/abs/1201.2353)
 - Forero-Romero et al. 2009, MNRAS 396, 1815 (eigenvalue threshold), [arXiv:0809.4135](https://arxiv.org/abs/0809.4135)
@@ -908,11 +913,14 @@ planned remedies.
 - Linder 2003, Phys. Rev. Lett. 90, 091301, [arXiv:astro-ph/0208512](https://arxiv.org/abs/astro-ph/0208512)
 - Loshchilov & Hutter 2019, ICLR (AdamW), [arXiv:1711.05101](https://arxiv.org/abs/1711.05101)
 - LSST Science Collaboration 2009, LSST Science Book, Version 2.0, [arXiv:0912.0201](https://arxiv.org/abs/0912.0201)
+- Marinacci et al. 2018, MNRAS 480, 5113 (IllustrisTNG)
 - Massara et al. 2015, JCAP 11, 018, [arXiv:1506.03088](https://arxiv.org/abs/1506.03088)
 - Melchior et al. 2014, MNRAS 440, 2922, [arXiv:1309.2045](https://arxiv.org/abs/1309.2045)
 - Nadathur & Crittenden 2016, ApJ 830, L19, [arXiv:1608.08638](https://arxiv.org/abs/1608.08638)
 - Nadathur et al. 2019, Phys. Rev. D 100, 023504, [arXiv:1904.01030](https://arxiv.org/abs/1904.01030)
 - Nadathur, Hotchkiss & Crittenden 2017, MNRAS 467, 4067, [arXiv:1610.08382](https://arxiv.org/abs/1610.08382)
+- Naiman et al. 2018, MNRAS 477, 1206 (IllustrisTNG)
+- Nelson et al. 2018, MNRAS 475, 624 (IllustrisTNG), [arXiv:1707.03395](https://arxiv.org/abs/1707.03395)
 - Nelson et al. 2019, ComAC 6, 2 (IllustrisTNG data release), [arXiv:1812.05609](https://arxiv.org/abs/1812.05609)
 - Neyrinck 2008, MNRAS 386, 2101, [arXiv:0712.3049](https://arxiv.org/abs/0712.3049)
 - Palmer & Voglis 1983, MNRAS 205, 543
@@ -932,6 +940,6 @@ planned remedies.
 - Veyrat, Douglass & BenZvi 2023, ApJ 958, 59, [arXiv:2302.05469](https://arxiv.org/abs/2302.05469)
 - Wang et al. 2022, ApJ 928, 1 (Roman High Latitude Spectroscopic Survey), [arXiv:2110.01829](https://arxiv.org/abs/2110.01829)
 - van de Weygaert & Platen 2011, Int. J. Mod. Phys. Conf. Ser. 1, 41, [arXiv:0912.2997](https://arxiv.org/abs/0912.2997)
-- York et al. 2000, AJ 120, 1579 (SDSS)
+- York et al. 2000, AJ 120, 1579 (SDSS), [arXiv:astro-ph/0006396](https://arxiv.org/abs/astro-ph/0006396)
 - Zel'dovich 1970, A&A 5, 84
 - Zhou et al. 2023, AJ 165, 58 (DESI luminous red galaxies), [arXiv:2208.08515](https://arxiv.org/abs/2208.08515)

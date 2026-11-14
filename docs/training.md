@@ -30,7 +30,7 @@ as `config.yaml` in the run folder.
 | `model.depth`, `model.base_filters` | 4, 16 | U-Net size |
 | `model.batch_norm`, `model.bn_momentum` | true, 0.99 | Batch normalization |
 | `model.dropout` | 0 | Dropout at the bottom of the U-Net |
-| `model.conditioning` | null | Condition on tracer spacing (FiLM), e.g. `{units: 32, noise: 0.1}`; see below |
+| `model.conditioning` | null | Condition on tracer spacing (FiLM, feature-wise linear modulation), e.g. `{units: 32, noise: 0.1}`; see below |
 | `model.deep_supervision` | false | Extra training outputs at each coarser level; see below |
 | `training.crop` | 96 | Training crop side in cells |
 | `training.batch_size` | 8 | Crops per step |
@@ -50,7 +50,7 @@ as `config.yaml` in the run folder.
 | `training.loss.void_weight` | 0 | Weight of an added void-vs-rest term; see below |
 | `training.early_stopping` | `val_void_mcc`, patience 15, min_delta 0.002 | Score to track (`val_void_mcc`: void against everything else; `val_mcc`: all four classes), and epochs to wait without a gain of at least `min_delta` |
 | `training.mixed_precision` | true | float16 compute, float32 weights |
-| `training.xla` | true | Compile the training step with XLA |
+| `training.xla` | true | Compile the training step with XLA (TensorFlow's Accelerated Linear Algebra compiler) |
 | `training.resume` | true | Continue an interrupted run in the same folder |
 | `evaluate.crop`, `evaluate.margin` | 128, 32 | Crop size and discarded edge for full-box prediction. The margin should cover the model's effective receptive field: with 16 cells, tile seams showed in the λ = 10 predictions (notebook 08). Re-score an older run with `evaluate_run(out, margin=32)` |
 | `evaluate.tta` | `none` | Test-time augmentation: `none`, `flips` (8x) or `full` (48x) |
@@ -69,9 +69,9 @@ as `config.yaml` in the run folder.
 3. Each step draws `batch_size` crops from the training slab on the GPU and
    applies one random cube symmetry to the batch. The crops for a given seed,
    epoch and step are always the same.
-4. After each step the weight average (EMA) is updated.
+4. After each step the exponential moving average (EMA) of the weights is updated.
 5. After each epoch the averaged weights score the fixed validation crops
-   (loss, accuracy, MCC, void F1, halo F1). These are 64^3 by default,
+   (loss, accuracy, Matthews correlation coefficient (MCC), void F1, halo F1). These are 64^3 by default,
    smaller than the training crops, because the validation slab is thinner
    than the training slab. The best epoch by the monitored
    score is saved as `best.keras` (any gain counts). Training stops after
@@ -112,7 +112,7 @@ how many layers were copied. Every layer stays trainable. Use a lower
 learning rate than from scratch (`configs/subhalo/B_finetune_L10.yaml` uses
 2e-4 with one warmup epoch).
 
-**Spacing conditioning (FiLM).** With `model.conditioning`, the model also
+**Spacing conditioning (FiLM, feature-wise linear modulation; Perez et al. 2018).** With `model.conditioning`, the model also
 takes the tracer spacing lambda = n^(-1/3), read from each input's
 `spacing` in the catalog. log(lambda) goes through a two-layer network
 with `units` outputs, and after every normalization layer the features are

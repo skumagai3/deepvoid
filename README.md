@@ -11,8 +11,10 @@ effects (redshift-space distortions, survey masks, selection functions) can
 be added without touching the rest.
 
 Status: early. Labels reproduce the dissertation's TNG masks exactly, and a
-first dark-matter baseline on TNG300-3 reaches a test-slab MCC of 0.86 and
-void F1 of 0.97. The current training setup (EMA, cosine schedule, resume)
+first dark-matter baseline on TNG300-3 reaches a test-slab Matthews
+correlation coefficient (MCC) of 0.86 and void F1 score of 0.97. The current
+training setup (an exponential moving average of the weights (EMA), cosine
+learning-rate schedule, resume)
 is described in [docs/training.md](docs/training.md).
 
 ## Layout
@@ -44,7 +46,7 @@ src/deepvoid/
   evaluate.py         confusion matrices, F1, MCC, void scores and the void threshold
   calibrate.py        reliability (calibration) of the class scores, temperature scaling
   figures.py          standard figures: fields, training curves, predictions, summary
-  interpret.py        looking inside a model: CKA, probes, receptive field
+  interpret.py        looking inside a model: centered kernel alignment (CKA), probes, receptive field
   report.py           saving a notebook's figures and numbers
 scripts/              one-off utilities
 notebooks/            Colab front-ends
@@ -113,7 +115,7 @@ comparable.
 | Final scores | Validation subcubes | A separate test slab that is never used for choosing models, early stopping or thresholds |
 | Augmentation | Rotated copies stored with the data | The 48 rotations and reflections of a cube, applied on the fly to each training batch |
 | Normalization | Min–max, refit on each volume | log10(ρ/ρ̄ + 10⁻³), standardized with statistics from the training slab and saved with the model |
-| Sparse tracers | Curriculum from dense to sparse inputs, freezing encoder blocks | One model trained on several tracer spacings at once, optionally with a smoothed copy of the input as a second channel; curricula and spacing conditioning (FiLM) remain options |
+| Sparse tracers | Curriculum from dense to sparse inputs, freezing encoder blocks | One model trained on several tracer spacings at once, optionally with a smoothed copy of the input as a second channel; curricula and spacing conditioning (FiLM, feature-wise linear modulation) remain options |
 | Full-box prediction | Overlapping patches, keeping their central regions | The same, with the kept region and overlap set in the config |
 | Scores | Per-class F1, MCC | The same, plus void-vs-rest scores, a void-score threshold chosen on the validation slab, and calibration of the class scores |
 
