@@ -22,7 +22,7 @@ order (x, y, z) and lengths in h⁻¹ Mpc.
 |---|---|
 | `tng300-3-dark_dm_n512.npz` | TNG300-3-Dark, dark-matter density from all particles; 512³ cells in a 205 h⁻¹ Mpc box |
 | `tng300-3-dark_tweb_n512.npz` | T-web classes from that density (0 void, 1 wall, 2 filament, 3 halo): effective smoothing 1 h⁻¹ Mpc, eigenvalue threshold 0.65 |
-| `tng300-3-dark_subhalos_L{3,5,7,10}_n512.npz` | Mass density of the most massive subhalos, selected so that their mean separation is 3, 5, 7 or 10 h⁻¹ Mpc |
+| `tng300-3-dark_subhalos_L{3,5,7,10}_n512.npz` | Mass density of the most massive subhalos, selected so that their mean separation is 3, 5, 7 or 10 h⁻¹ Mpc. The subhalos are from the TNG group catalogs, found by the Subfind algorithm |
 | `bolshoi_dm_n640.npz` | Bolshoi, dark-matter density from all 2048³ particles (mean separation 0.122 h⁻¹ Mpc); 640³ cells in a 250 h⁻¹ Mpc box |
 | `bolshoi_tweb_n640.npz` | T-web classes from that density: effective smoothing 1 h⁻¹ Mpc, eigenvalue threshold 0.65 |
 | `bolshoi_halos_L{3,5,7,10}_n640.npz` | Bolshoi halos at mean separations of 3, 5, 7 or 10 h⁻¹ Mpc, from the CosmoSim BDMV catalog: halos found by the Bound Density Maxima (BDM) halo finder, with the halo boundary where the enclosed density is 360 times the mean matter density |
