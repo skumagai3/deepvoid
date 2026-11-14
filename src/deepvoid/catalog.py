@@ -65,6 +65,7 @@ class Catalog:
         info = self.info(name)
         if path.suffix == ".npz":
             vol = load_volume(path)
+            info.pop("box_size", None)            # the file's own box size is on the Volume
             vol.meta = {**info, **vol.meta}
             return vol
         data = read_fvol(path)
