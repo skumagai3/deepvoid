@@ -846,11 +846,11 @@ planned remedies.
 - Bromley & Geller 2025, JCAP 01, 011, [arXiv:2407.03882](https://arxiv.org/abs/2407.03882)
 - Cai & Neyrinck 2025, Cosmology with Cosmic Voids, [arXiv:2503.22532](https://arxiv.org/abs/2503.22532)
 - Cai et al. 2017, MNRAS 466, 3364, [arXiv:1609.00301](https://arxiv.org/abs/1609.00301)
-- Cai, Padilla & Li 2015, MNRAS 451, 1036
+- Cai, Padilla & Li 2015, MNRAS 451, 1036, [arXiv:1410.1510](https://arxiv.org/abs/1410.1510)
 - Cautun et al. 2014, MNRAS 441, 2923, [arXiv:1401.7866](https://arxiv.org/abs/1401.7866)
-- Chevallier & Polarski 2001, Int. J. Mod. Phys. D 10, 213
-- Çiçek et al. 2016, MICCAI (3D U-Net), [arXiv:1606.06650](https://arxiv.org/abs/1606.06650)
-- Clampitt & Jain 2015, MNRAS 454, 3357
+- Chevallier & Polarski 2001, Int. J. Mod. Phys. D 10, 213, [arXiv:gr-qc/0009008](https://arxiv.org/abs/gr-qc/0009008)
+- Çiçek et al. 2016, MICCAI, LNCS 9901, 424 (3D U-Net), [arXiv:1606.06650](https://arxiv.org/abs/1606.06650)
+- Clampitt & Jain 2015, MNRAS 454, 3357, [arXiv:1404.1834](https://arxiv.org/abs/1404.1834)
 - Colberg et al. 2008, MNRAS 387, 933, [arXiv:0803.0918](https://arxiv.org/abs/0803.0918)
 - Contarini et al. 2022, A&A 667, A162, [arXiv:2205.11525](https://arxiv.org/abs/2205.11525)
 - Contarini, Verza & Pisani 2026, The era of precision cosmology with voids, [arXiv:2601.14362](https://arxiv.org/abs/2601.14362)
@@ -859,24 +859,24 @@ planned remedies.
 - Forero-Romero et al. 2009, MNRAS 396, 1815 (eigenvalue threshold), [arXiv:0809.4135](https://arxiv.org/abs/0809.4135)
 - Goldberg & Vogeley 2004, ApJ 605, 1, [arXiv:astro-ph/0307191](https://arxiv.org/abs/astro-ph/0307191)
 - Gorodkin 2004, Comput. Biol. Chem. 28, 367 (multiclass MCC)
-- Granett, Neyrinck & Szapudi 2008, ApJ 683, L99
+- Granett, Neyrinck & Szapudi 2008, ApJ 683, L99, [arXiv:0805.3695](https://arxiv.org/abs/0805.3695)
 - Hahn, Porciani, Carollo & Dekel 2007, MNRAS 375, 489 (tidal-tensor classification), [arXiv:astro-ph/0610280](https://arxiv.org/abs/astro-ph/0610280)
 - Hamaus et al. 2020, JCAP 12, 023, [arXiv:2007.07895](https://arxiv.org/abs/2007.07895)
-- Hamaus, Sutter & Wandelt 2014, Phys. Rev. Lett. 112, 251302
+- Hamaus, Sutter & Wandelt 2014, Phys. Rev. Lett. 112, 251302, [arXiv:1403.5499](https://arxiv.org/abs/1403.5499)
 - Icke 1984, MNRAS 206, 1P
-- Jackson 1972, MNRAS 156, 1P
+- Jackson 1972, MNRAS 156, 1P, [arXiv:0810.3908](https://arxiv.org/abs/0810.3908)
 - Kaiser 1987, MNRAS 227, 1
 - Kovács 2018, MNRAS 475, 1777, [arXiv:1701.08583](https://arxiv.org/abs/1701.08583)
 - Kreckel et al. 2011, AJ 141, 4, [arXiv:1008.4616](https://arxiv.org/abs/1008.4616)
-- Kreisch et al. 2019, MNRAS 488, 4413
+- Kreisch et al. 2019, MNRAS 488, 4413, [arXiv:1808.07464](https://arxiv.org/abs/1808.07464)
 - Kumagai 2025, PhD dissertation, Drexel University
 - Kumagai et al. 2025, DeepVoid: A Deep Learning Void Detector, [arXiv:2504.21134](https://arxiv.org/abs/2504.21134)
 - Lavaux & Wandelt 2012, ApJ 754, 109, [arXiv:1110.0345](https://arxiv.org/abs/1110.0345)
-- Linder 2003, Phys. Rev. Lett. 90, 091301
+- Linder 2003, Phys. Rev. Lett. 90, 091301, [arXiv:astro-ph/0208512](https://arxiv.org/abs/astro-ph/0208512)
 - Loshchilov & Hutter 2019, ICLR (AdamW), [arXiv:1711.05101](https://arxiv.org/abs/1711.05101)
 - Massara et al. 2015, JCAP 11, 018, [arXiv:1506.03088](https://arxiv.org/abs/1506.03088)
-- Melchior et al. 2014, MNRAS 440, 2922
-- Nadathur & Crittenden 2016, ApJ 830, L19
+- Melchior et al. 2014, MNRAS 440, 2922, [arXiv:1309.2045](https://arxiv.org/abs/1309.2045)
+- Nadathur & Crittenden 2016, ApJ 830, L19, [arXiv:1608.08638](https://arxiv.org/abs/1608.08638)
 - Nadathur et al. 2019, Phys. Rev. D 100, 023504, [arXiv:1904.01030](https://arxiv.org/abs/1904.01030)
 - Nadathur, Hotchkiss & Crittenden 2017, MNRAS 467, 4067, [arXiv:1610.08382](https://arxiv.org/abs/1610.08382)
 - Nelson et al. 2019, ComAC 6, 2 (IllustrisTNG data release), [arXiv:1812.05609](https://arxiv.org/abs/1812.05609)
@@ -889,7 +889,7 @@ planned remedies.
 - Sachs & Wolfe 1967, ApJ 147, 73
 - Sheth & van de Weygaert 2004, MNRAS 350, 517, [arXiv:astro-ph/0311260](https://arxiv.org/abs/astro-ph/0311260)
 - Sutter et al. 2015, Astron. Comput. 9, 1, [arXiv:1406.1191](https://arxiv.org/abs/1406.1191)
-- Verza et al. 2019, JCAP 12, 040
+- Verza et al. 2019, JCAP 12, 040, [arXiv:1906.00409](https://arxiv.org/abs/1906.00409)
 - Veyrat, Douglass & BenZvi 2023, ApJ 958, 59, [arXiv:2302.05469](https://arxiv.org/abs/2302.05469)
 - van de Weygaert & Platen 2011, Int. J. Mod. Phys. Conf. Ser. 1, 41, [arXiv:0912.2997](https://arxiv.org/abs/0912.2997)
 - Zel'dovich 1970, A&A 5, 84
