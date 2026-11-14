@@ -18,14 +18,15 @@ DeepVoid is a neural network that takes a sparse set of points and labels
 every location in the volume as void, wall, filament or halo. It learns from
 a computer simulation of the universe, where the right answer is known.
 
-![Left: the only input, a thin slice of the simulation showing one dot per galaxy-like object. Middle: DeepVoid's labels for that slice. Right: the true labels.](figures/sparse_tracers_to_web.png)
+![Four panels: the simulated dark matter, the true classes computed from it, the sparse tracers DeepVoid is given, and DeepVoid's prediction from those tracers.](figures/deepvoid_summary.png)
 
-*What DeepVoid does. Left: the input, about 170 galaxy-like objects (subhalos)
-in a slice 4 h⁻¹ Mpc thick and 205 h⁻¹ Mpc on a side. Middle: the structure
-DeepVoid predicts from those points. Right: the true structure, computed from
-the full dark matter distribution that a survey cannot see. Black is void.
-Figure from Kumagai et al. (2025), made with the first version of the model;
-the current models are more accurate (Section 12).*
+*What DeepVoid does, on a part of the simulation the model never trained on.
+Top: the dark matter in one slice of the simulation and the true classes
+computed from it (blue is void). A survey cannot see either of these. Bottom
+left: what a survey does see, a sparse set of galaxy-like objects (subhalos,
+mean spacing 10 h⁻¹ Mpc; the panel shows those within a slab 10 h⁻¹ Mpc
+thick). Bottom right: the classes DeepVoid predicts from those points alone.
+The large voids are recovered; thin walls that cross them are often missed.*
 
 The rest of this document explains each step.
 
@@ -740,6 +741,14 @@ smoothed channel):
 | 5 | 0.880 | 0.842 |
 | 7 | 0.825 | 0.781 |
 | 10 | 0.736 | 0.683 |
+
+![Five panels for tracer spacing 10: the smoothed input, the true classes, the predicted classes, the void score, and the misclassified voxels.](figures/prediction_L10.png)
+
+*The hardest case, tracer spacing 10 h⁻¹ Mpc, on one slice of the test slab
+(depth 5 with deep supervision). From left: the smoothed tracer field the
+network is given, the true classes, the predicted classes, the void score,
+and the voxels the model got wrong, colored by their true class. Most errors
+are true wall (green) predicted as void: thin walls far from any tracer.*
 
 ![Line chart of void MCC against tracer spacing for the depth-4 and depth-5 models.](figures/void_mcc_vs_spacing.png)
 
