@@ -31,7 +31,11 @@ class Run:
         self.path = Path(path)
         if not (self.path / "config.yaml").exists():
             raise FileNotFoundError(f"{self.path} has no config.yaml; is it a run folder?")
-        self.catalog = catalog or Catalog()
+        cfg = dict(self.config)
+        if cfg["catalog"] and not Path(cfg["catalog"]).exists():
+            # A project folder that was moved: its catalog sits two levels up.
+            cfg["catalog"] = str(self.path.parent.parent / "catalog.yaml")
+        self.catalog = Catalog.for_config(cfg, catalog)
 
     def __repr__(self) -> str:
         return f"Run({self.name!r})"

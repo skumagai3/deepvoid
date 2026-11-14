@@ -59,7 +59,7 @@ def run(config, seed: int | None = None, catalog: Catalog | None = None) -> Path
         cfg["seed"] = seed
         cfg["name"] = f"{cfg['name']}_seed{seed}"
     tr = cfg["training"]
-    catalog = catalog or Catalog()
+    catalog = Catalog.for_config(cfg, catalog)
     out = Path(cfg["output"]) / cfg["name"]
     out.mkdir(parents=True, exist_ok=True)
 
@@ -191,7 +191,7 @@ def evaluate_run(out: str | Path, catalog: Catalog | None = None, **overrides) -
     if unknown:
         raise KeyError(f"unknown evaluate settings {sorted(unknown)}")
     cfg["evaluate"].update(overrides)
-    catalog = catalog or Catalog()
+    catalog = Catalog.for_config(cfg, catalog)
     if cfg["data"]["subcubes"] is not None:      # scored per subcube, see subcubes.py
         from .subcubes import evaluate_subcubes
         return evaluate_subcubes(out, cfg, catalog)
@@ -236,7 +236,7 @@ def spacing_sweep(out: str | Path, name: str, spacings: list[float],
     """
     out = Path(out)
     cfg = load_config(out / "config.yaml")
-    catalog = catalog or Catalog()
+    catalog = Catalog.for_config(cfg, catalog)
     model = load_model(out / "best.keras")
     if not is_conditioned(model):
         raise ValueError(f"{out.name} is not conditioned on spacing")

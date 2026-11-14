@@ -1,5 +1,7 @@
 """Tests for the NumPy parts of the package (no TensorFlow needed)."""
 
+from pathlib import Path
+
 import numpy as np
 import pytest
 import yaml
@@ -673,3 +675,68 @@ def test_papersplit_configs_use_the_paper_settings():
         sched = tr["schedule"]
         assert (sched["name"], sched["factor"], sched["patience"]) == ("plateau", 0.25, 10)
         assert tr["ema"] is None and tr["early_stopping"]["monitor"] == "val_loss"
+
+
+# ---- Project: a user's own simulation ----
+
+def _toy_density(n=32, seed=0):
+    rng = np.random.default_rng(seed)
+    return rng.lognormal(0.0, 1.0, (n, n, n)).astype(np.float32)
+
+
+def test_project_round_trip_and_config(tmp_path):
+    from deepvoid import Catalog, Project
+
+    project = Project(tmp_path / "proj")
+    den = _toy_density()
+    project.add_density("dm", den, box_size=16.0, tracer="dm")
+    labels = project.add_labels("labels", density="dm")          # cells 0.5 < sigma_eff 1
+    assert labels.data.dtype == np.uint8 and labels.data.max() <= 3
+    assert labels.meta["sigma_eff"] == pytest.approx(1.0)
+
+    rng = np.random.default_rng(1)
+    pos = rng.uniform(0, 16.0, (500, 3))
+    mass = rng.lognormal(0, 1, 500)
+    halos = project.add_tracers("halos/L4", pos, box_size=16.0, n=32, masses=mass, spacing=4.0)
+    assert halos.meta["n_tracers"] == 64 and halos.meta["spacing"] == 4.0
+    assert halos.data.sum() == pytest.approx(np.sort(mass)[-64:].sum(), rel=1e-5)
+    counts = project.add_tracers("halos/all", pos, box_size=16.0, n=32)
+    assert counts.data.sum() == pytest.approx(500, rel=1e-5)
+    assert counts.meta["spacing"] == pytest.approx(16.0 / 500 ** (1 / 3))
+
+    # A fresh catalog object reads everything back, with paths relative to the file.
+    cat = Catalog(project.catalog_file)
+    assert cat.names() == ["dm", "halos/L4", "halos/all", "labels"]
+    np.testing.assert_allclose(cat.load("dm").data, den)
+    assert cat.load("halos/L4").meta["spacing"] == 4.0
+
+    cfg = project.config("first", inputs="halos/L4", labels="labels", model={"depth": 3})
+    assert cfg["data"]["inputs"] == ["halos/L4"] and cfg["model"]["depth"] == 3
+    assert Catalog.for_config(cfg).names() == cat.names()
+    assert Path(cfg["output"]) == (tmp_path / "proj" / "runs").resolve()
+    assert "halos/L4" in project.summary()
+
+
+def test_project_refuses_bad_input(tmp_path):
+    from deepvoid import Project
+
+    project = Project(tmp_path / "proj")
+    project.add_density("dm", _toy_density(), box_size=16.0)
+    with pytest.raises(ValueError):
+        project.add_density("neg", -_toy_density(), box_size=16.0)
+    with pytest.raises(ValueError):
+        project.add_tracers("out", np.full((3, 3), 20.0), box_size=16.0, n=32)
+    with pytest.raises(ValueError):
+        project.add_mask("bad", np.full((32, 32, 32), 7), box_size=16.0)
+    with pytest.raises(ValueError):                      # an input is not a label grid
+        project.config("x", inputs="dm", labels="dm")
+    with pytest.raises(ValueError):                      # cells of 2 h^-1 Mpc cannot reach sigma_eff = 1
+        Project(tmp_path / "coarse").add_density("dm", _toy_density(8), box_size=16.0) \
+            and Project(tmp_path / "coarse").add_labels("labels", density="dm")
+
+
+def test_packaged_catalog_still_loads():
+    from deepvoid import Catalog
+
+    cat = Catalog()
+    assert "tng300-3/dm" in cat.names() and cat.info("tng300-3/dm")["box_size"] == 205.0

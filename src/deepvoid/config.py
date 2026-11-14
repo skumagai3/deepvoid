@@ -17,6 +17,7 @@ import yaml
 DEFAULTS: dict[str, Any] = {
     "name": None,
     "output": "runs",
+    "catalog": None,       # path of a catalog.yaml; None uses the packaged catalog
     "seed": 12,
     "data": {
         "inputs": [],

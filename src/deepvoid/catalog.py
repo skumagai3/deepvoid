@@ -7,7 +7,12 @@ records what the file is, so the right metadata travels with every volume.
 
 The data root defaults to the ``root`` entry in the catalog and can be
 overridden with the ``DEEPVOID_DATA`` environment variable, which is how the
-same catalog works on Colab, a cluster and a laptop.
+same catalog works on Colab, a cluster and a laptop. A catalog with no
+``root`` entry (such as the one :class:`deepvoid.Project` writes) uses the
+folder it sits in, so a project folder can be moved or copied as a whole.
+
+A config names its catalog with the ``catalog`` setting; without it the
+packaged catalog is used.
 """
 
 from __future__ import annotations
@@ -29,11 +34,15 @@ class Catalog:
     """A set of named datasets read from a YAML file."""
 
     def __init__(self, path: str | os.PathLike = DEFAULT_CATALOG, root: str | None = None):
+        self.file = Path(path)
         with open(path) as f:
-            spec = yaml.safe_load(f)
-        self.root = Path(root or os.environ.get("DEEPVOID_DATA") or spec["root"])
-        self.sims: dict[str, dict[str, Any]] = spec.get("simulations", {})
-        self.entries: dict[str, dict[str, Any]] = spec["datasets"]
+            spec = yaml.safe_load(f) or {}
+        if "root" in spec:
+            self.root = Path(root or os.environ.get("DEEPVOID_DATA") or spec["root"])
+        else:
+            self.root = Path(root) if root else self.file.resolve().parent
+        self.sims: dict[str, dict[str, Any]] = spec.get("simulations") or {}
+        self.entries: dict[str, dict[str, Any]] = spec.get("datasets") or {}
 
     def names(self, prefix: str = "") -> list[str]:
         """List dataset names, optionally only those starting with ``prefix``."""
@@ -46,7 +55,7 @@ class Catalog:
     def info(self, name: str) -> dict[str, Any]:
         """Metadata for a dataset: its own entry merged over its simulation's."""
         entry = self._entry(name)
-        sim = dict(self.sims.get(entry["sim"], {}))
+        sim = dict(self.sims.get(entry.get("sim"), {}))
         sim.update({k: v for k, v in entry.items() if k not in ("file", "sim")})
         return sim
 
@@ -63,6 +72,14 @@ class Catalog:
             data = data.astype(np.uint8)
         box_size = info.pop("box_size")
         return Volume(data=data, box_size=box_size, meta={"name": name, **info})
+
+    @classmethod
+    def for_config(cls, cfg: dict, catalog: "Catalog | None" = None) -> "Catalog":
+        """The catalog a config asks for: ``catalog`` if given, else the file
+        named by the config's ``catalog`` setting, else the packaged one."""
+        if catalog is not None:
+            return catalog
+        return cls(cfg["catalog"]) if cfg.get("catalog") else cls()
 
     def _entry(self, name: str) -> dict[str, Any]:
         try:
