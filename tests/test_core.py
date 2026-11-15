@@ -816,3 +816,46 @@ def test_fetch_downloads_checks_and_writes_a_catalog(tmp_path):
         data.fetch("tng300-3/mask", out, url=url)
     with pytest.raises(KeyError):
         data.fetch("tng300-3/subhalos/L4", out, url=url)
+
+
+def _fake_pretrained(tmp_path):
+    from deepvoid.pretrained import Pretrained
+    norms = {s: {"raw": {"mean": -3.0, "std": 0.1 * float(s), "floor": 1e-3},
+                 "smooth": {"mean": -0.5, "std": 0.5, "floor": 1e-3}}
+             for s in ("3", "5", "7", "10")}
+    info = {"cell_size": 0.4, "smoothing": {"sigma_spacing": 0.5, "keep_raw": True},
+            "floor": 1e-3, "normalization": norms,
+            "evaluate": {"crop": 8, "margin": 2, "batch_size": 2}}
+    return Pretrained(tmp_path, info)
+
+
+def test_pretrained_inputs_match_training_inputs(tmp_path):
+    from scipy import ndimage
+    from deepvoid.preprocess import normalizer
+    model = _fake_pretrained(tmp_path)
+    field = np.random.default_rng(1).random((16, 16, 16)).astype(np.float32)
+    x = model.inputs(field, box_size=6.4, spacing=6.0)       # nearest trained spacing: 5
+    assert x.shape == (16, 16, 16, 2)
+    norms = model.info["normalization"]["5"]
+    smooth = ndimage.gaussian_filter(field, 0.5 * 6.0 / 0.4, mode="wrap", truncate=4.0)
+    np.testing.assert_allclose(x[..., 0], normalizer(norms["raw"])(field), atol=1e-6)
+    np.testing.assert_allclose(x[..., 1], normalizer(norms["smooth"])(smooth), atol=1e-6)
+    # Refit: each channel standardized on this box.
+    xr = model.inputs(field, box_size=6.4, spacing=6.0, stats="refit")
+    assert abs(xr[..., 0].mean()) < 1e-4 and abs(xr[..., 0].std() - 1) < 1e-4
+
+
+def test_pretrained_refuses_what_it_was_not_trained_on(tmp_path):
+    from deepvoid import pretrained
+    model = _fake_pretrained(tmp_path)
+    field = np.ones((16, 16, 16), np.float32)
+    with pytest.raises(ValueError, match="cell size"):
+        model.inputs(field, box_size=8.0, spacing=5.0)        # 0.5 cells, not 0.4
+    model.inputs(field, box_size=16 * 0.39, spacing=5.0)      # 2.5% off: accepted
+    with pytest.raises(ValueError, match="trained range"):
+        model.inputs(field, box_size=6.4, spacing=12.0)
+    model.inputs(field, box_size=6.4, spacing=12.0, stats="refit")
+    with pytest.raises(ValueError, match="cube"):
+        model.inputs(np.ones((16, 16, 8)), box_size=6.4, spacing=5.0)
+    with pytest.raises(RuntimeError, match="not published"):
+        pretrained.load()

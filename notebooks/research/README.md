@@ -20,11 +20,13 @@ in `configs/research/`.
 | `08_interpretability.ipynb` | Activation maps, centered kernel alignment (CKA) across spacings, a probe for $\lambda$, effective receptive field, error and score-entropy maps, accuracy vs distance to the nearest tracer, reliability of the class scores |
 | `09_figures.ipynb` | Figures from data, finished runs and trained models, including the README summary figure |
 | `10_pointclouds.ipynb` | 3D views for Potree: the subhalo samples colored by T-web (tidal-tensor) class, and a $\lambda = 10$ slab with void/wall errors, void surfaces and dark matter |
+| `11_package_model.ipynb` | Packages the run behind the README results as a model release, checking it predicts exactly as the run does |
+| `12_cross_simulation.ipynb` | The packaged TNG subhalo model on Bolshoi halos, scored against Bolshoi's own T-web labels |
 
 Planned:
 
 | Notebook | Purpose |
 |---|---|
-| `11_redshift_space.ipynb` | Redshift-space inputs with real-space labels |
-| `12_survey.ipynb` | Survey masks and radial selection |
-| `13_calibration.ipynb` | Reliability of the class scores and temperature scaling |
+| `13_redshift_space.ipynb` | Redshift-space inputs with real-space labels |
+| `14_survey.ipynb` | Survey masks and radial selection |
+| `15_calibration.ipynb` | Reliability of the class scores and temperature scaling |

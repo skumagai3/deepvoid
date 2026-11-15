@@ -43,7 +43,9 @@ training, for choosing the model or for tuning anything.
 | All four classes, MCC | 0.885 | 0.842 | 0.781 | 0.683 |
 
 MCC is the Matthews correlation coefficient: 1 is perfect, 0 is no better
-than chance, and $-1$ is complete disagreement with the truth. The
+than chance, and $-1$ is complete disagreement with the truth. Runs with
+different random seeds are very consistent: two retrainings match these scores
+to within 0.002. The
 config is `configs/research/subhalo/C_mixed_smooth2ch_depth5.yaml`. At a
 separation of 10, about 27% of wall cells are still labelled void; that is
 the main remaining error.
@@ -151,6 +153,7 @@ src/deepvoid/
   volume.py, io.py      a periodic grid with its metadata; reading and writing
   catalog.py            datasets by name
   data.py               downloading the published grids
+  pretrained.py         trained models: download, check, predict on a new box
   grid.py               cloud-in-cell gridding of point tracers
   labels/               T-web classification
   observe/              tracer selection, redshift space
