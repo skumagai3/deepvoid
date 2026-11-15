@@ -220,7 +220,8 @@ The IllustrisTNG simulations are provided by the IllustrisTNG collaboration
 - Marinacci et al. 2018, MNRAS 480, 5113
 - Nelson et al. 2019, Computational Astrophysics and Cosmology 6, 2 (data release), doi:10.1186/s40668-019-0028-x
 
-The Bolshoi simulation is distributed through CosmoSim. Please cite:
+The Bolshoi simulation is distributed through CosmoSim
+(https://www.cosmosim.org). Please cite:
 
 - Klypin, Trujillo-Gomez & Primack 2011, ApJ 740, 102
 - CosmoSim Bolshoi dataset, doi:10.17876/cosmosim/bolshoi
