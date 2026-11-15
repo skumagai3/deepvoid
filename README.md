@@ -234,9 +234,8 @@ cluster of the Drexel University Research Computing Facility, and on the
 Nautilus cluster of the National Research Platform. Nautilus is supported by
 NSF awards CNS-1730158, ACI-1540112, ACI-1541349, OAC-1826967, OAC-2112167,
 CNS-2100237 and CNS-2120019, the University of California Office of the
-President, and and the University of California San Diego's Qualcomm
-Institute. Thanks
-to CENIC for the 100 Gbps networks.
+President, and the University of California San Diego's Qualcomm Institute.
+Thanks to CENIC for the 100 Gbps networks.
 
 ## Data and credits
 
