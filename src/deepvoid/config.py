@@ -75,6 +75,8 @@ def load_config(source: str | Path | dict) -> dict[str, Any]:
         raise ValueError("the config needs a 'name'")
     if not cfg["data"]["inputs"] or not cfg["data"]["labels"]:
         raise ValueError("the config needs data.inputs and data.labels")
+    if cfg["training"]["rotate"] not in (True, False, "z"):
+        raise ValueError("training.rotate must be true, false or 'z'")
     return cfg
 
 
@@ -98,3 +100,23 @@ def merge(base: dict, override: dict) -> dict:
 def save_config(cfg: dict, path: str | Path) -> None:
     with open(path, "w") as f:
         yaml.safe_dump(cfg, f, sort_keys=False)
+
+def check_line_of_sight(cfg: dict, catalog) -> None:
+    """Refuse augmentation that would turn a redshift-space line of sight.
+
+    Inputs marked ``rsd: true`` in the catalog are stretched along their
+    line of sight (``los_axis``, default 2). Rotating them would put that
+    stretch along other axes, which no real survey shows, so they need
+    ``training.rotate: z`` (or no rotation) and a line of sight along z.
+    """
+    rsd = [n for n in cfg["data"]["inputs"] if catalog.info(n).get("rsd")]
+    if not rsd:
+        return
+    if cfg["training"]["rotate"] is True:
+        raise ValueError(f"{rsd} are in redshift space; set training.rotate to 'z' so "
+                         "rotations keep the line of sight along z")
+    axes = {catalog.info(n).get("los_axis", 2) for n in rsd}
+    if cfg["training"]["rotate"] == "z" and axes != {2}:
+        raise ValueError(f"rotate 'z' needs the line of sight along z; these inputs have "
+                         f"los_axis {sorted(axes)}")
+

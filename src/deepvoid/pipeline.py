@@ -35,6 +35,7 @@ from .split import Region
 # these give the 48 symmetries of a cube.
 PERMUTATIONS = tf.constant([[0, 1, 2], [1, 2, 0], [2, 0, 1],
                             [0, 2, 1], [2, 1, 0], [1, 0, 2]], dtype=tf.int32)
+Z_PERMUTATIONS = tf.constant([0, 5], dtype=tf.int32)   # indices of the two that keep z
 
 
 class CropSampler(keras.utils.PyDataset):
@@ -51,7 +52,10 @@ class CropSampler(keras.utils.PyDataset):
     crop, batch_size, steps_per_epoch:
         Crop side in cells, crops per batch, batches per epoch.
     rotate:
-        Apply a random cube symmetry to each batch.
+        ``True``: apply one of the 48 symmetries of a cube to each batch.
+        ``"z"``: only the 16 that keep the z axis as z (swapping x and y,
+        and flipping any axis), for redshift-space inputs whose line of sight
+        is z. ``False``: none.
     seed:
         Base seed; with the epoch and batch index it fixes every batch.
     spacings:
@@ -123,7 +127,11 @@ class CropSampler(keras.utils.PyDataset):
         x = _gather_crops(self.x, v, origins, self.offsets)
         y = _gather_crops(self.y, tf.gather(self.label_of, v), origins, self.offsets)
         if self.rotate:
-            p = tf.random.stateless_uniform([], keys[2], 0, 6, dtype=tf.int32)
+            if self.rotate == "z":           # permutations 0 and 5 leave axis 2 in place
+                p = tf.gather(Z_PERMUTATIONS,
+                              tf.random.stateless_uniform([], keys[2], 0, 2, dtype=tf.int32))
+            else:
+                p = tf.random.stateless_uniform([], keys[2], 0, 6, dtype=tf.int32)
             flips = tf.random.stateless_uniform([3], keys[3], 0, 2, dtype=tf.int32)
             x, y = _symmetry(x, p, flips), _symmetry(y, p, flips)
         x, y = tf.cast(x, tf.float32), tf.cast(y, tf.int32)

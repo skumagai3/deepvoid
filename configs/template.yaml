@@ -84,7 +84,7 @@ training:
   val_crop: 64                     # side of a validation crop; must fit in the validation slab
   val_batches: 16                  # validation batches per input, the same crops every epoch (default 32)
   epochs: 60                       # upper limit, and the length of the learning-rate schedule (default 80)
-  rotate: true                     # apply one of the 48 rotations/reflections of a cube to each batch
+  rotate: true                     # one of the 48 rotations/reflections of a cube per batch; z: only those keeping z (redshift space)
   init_from: null                  # start from a trained model: a .keras file or a run folder
   curriculum: null                 # change how often each input is drawn as training goes on
 

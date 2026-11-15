@@ -37,7 +37,7 @@ import numpy as np
 
 from .callbacks import EMA, RunState, Validation, read_log
 from .catalog import Catalog
-from .config import load_config, save_config
+from .config import check_line_of_sight, load_config, save_config
 from .evaluate import (best_void_threshold, confusion_matrix, decide, scores,
                        void_reliability, void_threshold_curve)
 from .inputs import build as build_input
@@ -60,6 +60,7 @@ def run(config, seed: int | None = None, catalog: Catalog | None = None) -> Path
         cfg["name"] = f"{cfg['name']}_seed{seed}"
     tr = cfg["training"]
     catalog = Catalog.for_config(cfg, catalog)
+    check_line_of_sight(cfg, catalog)
     out = Path(cfg["output"]) / cfg["name"]
     out.mkdir(parents=True, exist_ok=True)
 
@@ -458,3 +459,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+

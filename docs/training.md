@@ -38,7 +38,7 @@ as `config.yaml` in the run folder.
 | `training.val_crop` | 64 | Validation crop side; must fit inside the validation slab (70 cells for a $512^3$ box with the default split) |
 | `training.val_batches` | 32 | Fixed validation crops per input, in batches |
 | `training.epochs` | 80 | Length of the learning-rate schedule and upper limit on training |
-| `training.rotate` | true | Random cube symmetry per batch (48 rotations and reflections) |
+| `training.rotate` | true | Random cube symmetry per batch (48 rotations and reflections); `z` keeps the z axis fixed (16 symmetries), required for redshift-space inputs |
 | `training.init_from` | null | Start from a trained model: a `.keras` file or a run folder (its `best.keras`), relative to `output` |
 | `training.curriculum` | null | Sampling weights over inputs that change with the epoch; see below |
 | `training.optimizer` | AdamW, lr 1e-3, weight decay 1e-4, clipnorm 1.0 | `name` is `adamw` or `adam`; `clipnorm` clips the gradient norm |

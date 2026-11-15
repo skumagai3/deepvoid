@@ -122,6 +122,41 @@ datasets:
     spacing: 10.0
     rsd: true
 
+  # Redshift space along z, made by notebooks/research/13_redshift_space.ipynb
+  # from the TNG300-1 subhalo catalog (SubhaloVel), same selection and CIC as above.
+  tng300-3/subhalos/L3/rsd-z:
+    file: TNG/rsd/subhalos_L3_rsd_z.npz
+    sim: tng300-3
+    field: density
+    tracer: subhalos
+    spacing: 3.0
+    rsd: true
+    los_axis: 2
+  tng300-3/subhalos/L5/rsd-z:
+    file: TNG/rsd/subhalos_L5_rsd_z.npz
+    sim: tng300-3
+    field: density
+    tracer: subhalos
+    spacing: 5.0
+    rsd: true
+    los_axis: 2
+  tng300-3/subhalos/L7/rsd-z:
+    file: TNG/rsd/subhalos_L7_rsd_z.npz
+    sim: tng300-3
+    field: density
+    tracer: subhalos
+    spacing: 7.0
+    rsd: true
+    los_axis: 2
+  tng300-3/subhalos/L10/rsd-z:
+    file: TNG/rsd/subhalos_L10_rsd_z.npz
+    sim: tng300-3
+    field: density
+    tracer: subhalos
+    spacing: 10.0
+    rsd: true
+    los_axis: 2
+
   # ---- Bolshoi, 640^3 (0.39 h^-1 Mpc cells) ----
   bolshoi/dm:
     file: Bolshoi/Bolshoi_halo_CIC_640_L=0.122.fvol

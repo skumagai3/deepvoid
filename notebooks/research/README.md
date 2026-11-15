@@ -22,11 +22,11 @@ in `configs/research/`.
 | `10_pointclouds.ipynb` | 3D views for Potree: the subhalo samples colored by T-web (tidal-tensor) class, and a $\lambda = 10$ slab with void/wall errors, void surfaces and dark matter |
 | `11_package_model.ipynb` | Packages the run behind the README results as a model release, checking it predicts exactly as the run does |
 | `12_cross_simulation.ipynb` | The packaged TNG subhalo model on Bolshoi halos, scored against Bolshoi's own T-web labels |
+| `13_redshift_space.ipynb` | Redshift-space subhalo grids (z as line of sight) from the TNG300-1 catalog, checks against the older grids, and the real-space model scored on redshift-space inputs |
 
 Planned:
 
 | Notebook | Purpose |
 |---|---|
-| `13_redshift_space.ipynb` | Redshift-space inputs with real-space labels |
 | `14_survey.ipynb` | Survey masks and radial selection |
 | `15_calibration.ipynb` | Reliability of the class scores and temperature scaling |

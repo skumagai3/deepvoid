@@ -859,3 +859,41 @@ def test_pretrained_refuses_what_it_was_not_trained_on(tmp_path):
         model.inputs(np.ones((16, 16, 8)), box_size=6.4, spacing=5.0)
     with pytest.raises(RuntimeError, match="not published"):
         pretrained.load()
+
+
+def test_rotate_setting_and_line_of_sight():
+    from deepvoid.config import check_line_of_sight, load_config
+    base = {"name": "x", "data": {"inputs": ["a/rsd"], "labels": "m"}}
+    with pytest.raises(ValueError, match="rotate"):
+        load_config({**base, "training": {"rotate": "xy"}})
+
+    class FakeCatalog:
+        def __init__(self, info): self._info = info
+        def info(self, name): return self._info
+
+    rsd = FakeCatalog({"rsd": True})
+    with pytest.raises(ValueError, match="redshift space"):
+        check_line_of_sight(load_config(base), rsd)
+    check_line_of_sight(load_config({**base, "training": {"rotate": "z"}}), rsd)
+    check_line_of_sight(load_config({**base, "training": {"rotate": False}}), rsd)
+    with pytest.raises(ValueError, match="los_axis"):
+        check_line_of_sight(load_config({**base, "training": {"rotate": "z"}}),
+                            FakeCatalog({"rsd": True, "los_axis": 0}))
+    check_line_of_sight(load_config(base), FakeCatalog({}))     # real space: anything goes
+
+
+def test_redshift_space_keeps_columns_along_line_of_sight():
+    from deepvoid.grid import cic
+    from deepvoid.observe import to_redshift_space
+    from deepvoid.sources import Cosmology, Tracers
+    rng = np.random.default_rng(3)
+    t = Tracers(pos=rng.random((5000, 3)) * 50.0, box_size=50.0, mass=rng.random(5000) + 0.5,
+                vel=rng.normal(0, 400, (5000, 3)),
+                meta={"cosmology": Cosmology(omega_m=0.3, h=0.7), "redshift": 0.0})
+    real, rsd = cic(t, 32).data, cic(to_redshift_space(t, axis=2), 32).data
+    np.testing.assert_allclose(real.sum(axis=2), rsd.sum(axis=2), rtol=1e-5, atol=1e-6)
+    assert not np.allclose(real.sum(axis=0), rsd.sum(axis=0))
+    # At z = 0 the shift is v / (100 km/s) in h^-1 Mpc.
+    moved = to_redshift_space(t, axis=2)
+    np.testing.assert_allclose((moved.pos[:, 2] - t.pos[:, 2] - t.vel[:, 2] / 100.0 + 25.0) % 50.0,
+                               25.0, atol=1e-9)
