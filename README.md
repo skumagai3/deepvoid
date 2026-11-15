@@ -212,6 +212,32 @@ archivePrefix = {arXiv},
 
 and the simulation your data come from.
 
+## Acknowledgments
+
+DeepVoid was developed by Sam Kumagai as part of his PhD at Drexel University,
+with the DeepVoid collaboration: Michael Vogeley, Miguel Aragon-Calvo, Kelly
+Douglass, Segev BenZvi and Mark Neyrinck. Michael Vogeley was Sam's PhD
+advisor and brought his knowledge of galaxy surveys and extragalactic physics
+to the project. Miguel Aragon-Calvo was effectively a co-advisor; his
+background in deep learning shaped the approach, he helped substantially with
+the code, and his earlier work on deep networks for the cosmic web
+(Aragon-Calvo 2019) is where DeepVoid started.
+
+This work was supported by the John Templeton Foundation through grant 62177.
+The opinions expressed here are those of the authors and do not necessarily
+reflect the views of the Foundation. Support also came from CONAHCyT Ciencia
+de Frontera grant CF-2023-1-1971 and UNAM PAPIIT grant IN115224.
+
+The code does not depend on any particular computing platform. The models in
+the first DeepVoid paper were developed, trained and tested on Picotte, the
+cluster of the Drexel University Research Computing Facility, and on the
+Nautilus cluster of the National Research Platform. Nautilus is supported by
+NSF awards CNS-1730158, ACI-1540112, ACI-1541349, OAC-1826967, OAC-2112167,
+CNS-2100237 and CNS-2120019, the University of California Office of the
+President, and and the University of California San Diego's Qualcomm
+Institute. Thanks
+to CENIC for the 100 Gbps networks.
+
 ## Data and credits
 
 The IllustrisTNG simulations are provided by the IllustrisTNG collaboration
