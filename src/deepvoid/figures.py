@@ -45,7 +45,7 @@ def log_density(slice2d: np.ndarray, floor: float = 1e-2) -> np.ndarray:
 
 
 def show_density(ax, slice2d, box_size=None, title=None, vmin=None, vmax=None):
-    """Plot log10(rho / rho_mean + 0.01); colour range from the non-empty cells."""
+    """Plot log10(rho / rho_mean + 0.01); color range from the non-empty cells."""
     img = log_density(slice2d)
     filled = img[img > np.log10(1e-2) + 1e-6]
     lo = np.log10(1e-2) if vmin is None else vmin
@@ -58,7 +58,7 @@ def show_density(ax, slice2d, box_size=None, title=None, vmin=None, vmax=None):
 
 
 def show_mask(ax, slice2d, box_size=None, title=None):
-    """Plot T-web classes (or predicted classes) with the standard colours."""
+    """Plot T-web classes (or predicted classes) with the standard colors."""
     from matplotlib.colors import ListedColormap
     ext = [0, box_size, 0, box_size] if box_size else None
     im = ax.imshow(slice2d.T, origin="lower", extent=ext, cmap=ListedColormap(MASK_COLORS),
@@ -69,7 +69,7 @@ def show_mask(ax, slice2d, box_size=None, title=None):
 
 
 def mask_legend(fig_or_ax, **kwargs):
-    """A legend naming the four classes by colour."""
+    """A legend naming the four classes by color."""
     from matplotlib.patches import Patch
     handles = [Patch(color=c, label=n) for c, n in zip(MASK_COLORS, CLASS_NAMES)]
     return fig_or_ax.legend(handles=handles, **kwargs)
@@ -106,7 +106,7 @@ def fields_figure(fields: dict[str, np.ndarray], mask: np.ndarray | None, index:
         _label_axes(axes[0, -1], box_size)
         mask_legend(axes[0, -1], loc="upper right", fontsize=8, framealpha=0.9)
     where = f"slice {'xyz'[axis]} = {index}" + (f", {thickness} cells thick" if thickness > 1 else "")
-    fig.suptitle(title or f"Density fields and T-web classes ({where}; colour: log10(ρ/ρ̄ + 0.01))",
+    fig.suptitle(title or f"Density fields and T-web classes ({where}; color: log10(ρ/ρ̄ + 0.01))",
                  y=0.99)
     fig.tight_layout(rect=(0, 0, 1, 0.93))
     return fig
@@ -166,7 +166,7 @@ def prediction_figure(inp: np.ndarray, truth: np.ndarray, scores: np.ndarray, in
     axes[3].set_title("void score")
     fig.colorbar(im, ax=axes[3], fraction=0.046)
     show_mask(axes[4], np.where(pred != tru, tru, np.nan), box_size,
-              "misclassified voxels, coloured by true class")
+              "misclassified voxels, colored by true class")
     axes[4].set_facecolor("#eeeeee")
     for ax in axes:
         _label_axes(ax, box_size)
@@ -272,7 +272,7 @@ def evaluation_figure(rows: list[dict], title: str, box_size: float | None = Non
         axes[r, 3].imshow(wrong.T, origin="lower", extent=ext, cmap=cmap, vmin=-0.5, vmax=3.5,
                           interpolation="nearest")
         axes[r, 3].set_facecolor("#eeeeee")
-        axes[r, 3].set_title("misclassified voxels, coloured by true class")
+        axes[r, 3].set_title("misclassified voxels, colored by true class")
         f1 = "  ".join(f"{k[0]} {res[f'{k}_f1']:.2f}" for k in CLASS_NAMES)
         axes[r, 2].set_xlabel(f"void MCC {res['void_mcc']:.3f}   MCC {res['mcc']:.3f}\n"
                               f"F1: {f1}", fontsize=10)
