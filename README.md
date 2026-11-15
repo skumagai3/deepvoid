@@ -218,7 +218,9 @@ comparable.
 
 ## Citing
 
-If you use DeepVoid in your research, please cite:
+If you use DeepVoid in your research, please cite the paper
+([ApJ version](https://doi.org/10.3847/1538-4357/ae2c80),
+[arXiv version](https://arxiv.org/abs/2504.21134)):
 
 ```bibtex
 @ARTICLE{2026ApJ...998...85K,
