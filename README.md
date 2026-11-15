@@ -211,13 +211,19 @@ and the simulation your data come from.
 ## Data and credits
 
 The IllustrisTNG simulations are provided by the IllustrisTNG collaboration
-(https://www.tng-project.org): Springel et al. 2018, MNRAS 475, 676;
-Pillepich et al. 2018, MNRAS 475, 648; Nelson et al. 2018, MNRAS 475, 624;
-Naiman et al. 2018, MNRAS 477, 1206; Marinacci et al. 2018, MNRAS 480, 5113.
-Data release: Nelson et al. 2019, ComAC 6, 2, doi:10.1186/s40668-019-0028-x.
+(https://www.tng-project.org). Please cite:
 
-The Bolshoi simulation (Klypin, Trujillo-Gomez & Primack 2011, ApJ 740, 102)
-is distributed through CosmoSim and Skies & Universes.
+- Springel et al. 2018, MNRAS 475, 676
+- Pillepich et al. 2018, MNRAS 475, 648
+- Nelson et al. 2018, MNRAS 475, 624
+- Naiman et al. 2018, MNRAS 477, 1206
+- Marinacci et al. 2018, MNRAS 480, 5113
+- Nelson et al. 2019, Computational Astrophysics and Cosmology 6, 2 (data release), doi:10.1186/s40668-019-0028-x
+
+The Bolshoi simulation is distributed through CosmoSim. Please cite:
+
+- Klypin, Trujillo-Gomez & Primack 2011, ApJ 740, 102
+- CosmoSim Bolshoi dataset, doi:10.17876/cosmosim/bolshoi
 
 ## License
 
