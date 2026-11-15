@@ -1,5 +1,9 @@
 # DeepVoid
 
+[![Software DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.24236527.svg)](https://doi.org/10.5281/zenodo.24236527)
+[![Data DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.24233069.svg)](https://doi.org/10.5281/zenodo.24233069)
+[![Tests](https://github.com/skumagai3/deepvoid/actions/workflows/tests.yml/badge.svg)](https://github.com/skumagai3/deepvoid/actions/workflows/tests.yml)
+
 DeepVoid labels every cell of a simulated universe as void, wall, filament or
 halo with a 3D U-Net. The labels it learns are the tidal-tensor (T-web)
 classification of the full matter field. The point is to recover them from
