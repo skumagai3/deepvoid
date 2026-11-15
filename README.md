@@ -218,15 +218,16 @@ DeepVoid was developed by Sam Kumagai as part of his PhD at Drexel University,
 with the DeepVoid collaboration: Michael Vogeley, Miguel Aragon-Calvo, Kelly
 Douglass, Segev BenZvi and Mark Neyrinck. Michael Vogeley was Sam's PhD
 advisor and brought his knowledge of galaxy surveys and extragalactic physics
-to the project. Miguel Aragon-Calvo was effectively a co-advisor; his
+to the project. Miguel Aragon-Calvo was Sam's PhD co-advisor; his
 background in deep learning shaped the approach, he helped substantially with
 the code, and his earlier work on deep networks for the cosmic web
 (Aragon-Calvo 2019) is where DeepVoid started.
 
 This work was supported by the John Templeton Foundation through grant 62177.
 The opinions expressed here are those of the authors and do not necessarily
-reflect the views of the Foundation. Support also came from CONAHCyT Ciencia
-de Frontera grant CF-2023-1-1971 and UNAM PAPIIT grant IN115224.
+reflect the views of the Foundation. The first DeepVoid paper also acknowledges
+CONAHCyT Ciencia de Frontera grant CF-2023-1-1971 and UNAM PAPIIT grant
+IN115224.
 
 The code does not depend on any particular computing platform. The models in
 the first DeepVoid paper were developed, trained and tested on Picotte, the
