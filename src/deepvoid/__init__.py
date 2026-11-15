@@ -10,5 +10,5 @@ from .io import load_volume, read_fvol, save_volume, write_fvol
 from .project import Project
 from .volume import Volume
 
-__version__ = "0.1.0.dev0"
+__version__ = "0.1.0"
 __all__ = ["Catalog", "Project", "Volume", "load_volume", "save_volume", "read_fvol", "write_fvol"]

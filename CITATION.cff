@@ -2,6 +2,15 @@ cff-version: 1.2.0
 message: "If you use this software, please cite the DeepVoid paper."
 title: "DeepVoid"
 type: software
+version: "0.1.0"
+date-released: "2026-11-14"
+abstract: "A 3D U-Net that labels the cosmic web (void, wall, filament, halo) in cosmological simulations, from the full matter density or from sparse tracers such as halos and galaxies."
+keywords:
+  - cosmic web
+  - cosmic voids
+  - large-scale structure
+  - deep learning
+  - 3D segmentation
 license: MIT
 repository-code: "https://github.com/skumagai3/deepvoid"
 authors:
