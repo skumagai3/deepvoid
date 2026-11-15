@@ -50,6 +50,33 @@ config is `configs/research/subhalo/C_mixed_smooth2ch_depth5.yaml`. At a
 separation of 10, about 27% of wall cells are still labelled void; that is
 the main remaining error.
 
+**On a simulation it never saw.** The same model, with no retraining, on the
+whole Bolshoi box: Bolshoi halos selected the same way as the TNG subhalos,
+scored against T-web labels computed from Bolshoi's own dark matter. Bolshoi
+differs from TNG300-3 in cosmology, box size, mass resolution and halo
+finder.
+
+| Mean tracer separation ($h^{-1}\,\mathrm{Mpc}$) | 3 | 5 | 7 | 10 |
+|---|---|---|---|---|
+| Void against everything else, MCC | 0.913 | 0.869 | 0.813 | 0.729 |
+| All four classes, MCC | 0.881 | 0.832 | 0.769 | 0.679 |
+
+Each score in this table is within 0.012 of the TNG test slab, and the model makes the
+same kinds of mistakes in about the same proportions.
+
+<p align="center">
+  <img src="docs/figures/bolshoi_slices_L3_L10.png" width="900"
+       alt="A slice through the Bolshoi box at tracer separations 3 and 10: smoothed halo input, T-web truth, prediction and misclassified cells">
+</p>
+
+A slice through Bolshoi at separations 3 and 10: input, truth, prediction,
+and the misclassified cells colored by their true class. All four
+separations with confusion matrices are in
+[docs/figures/bolshoi_slices.png](docs/figures/bolshoi_slices.png), and the
+scores against separation in
+[docs/figures/bolshoi_scores_vs_spacing.png](docs/figures/bolshoi_scores_vs_spacing.png).
+The code is `notebooks/research/12_cross_simulation.ipynb`.
+
 ## Install
 
 ```bash
