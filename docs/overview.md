@@ -784,7 +784,9 @@ $$
 
 with $c = \sum_k C_{kk}$ (correct), $s = \sum_{kl} C_{kl}$ (total),
 $t_k = \sum_l C_{kl}$ (true count of k) and $p_k = \sum_l C_{lk}$ (predicted
-count of k).
+count of k). It is still 1 for perfect and 0 for chance, but with more than
+two classes it cannot reach $-1$: its lowest possible value lies between $-1$
+and 0 and depends on how the true classes are distributed.
 
 **Balanced accuracy** is the mean of the per-class recalls.
 

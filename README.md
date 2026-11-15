@@ -42,7 +42,8 @@ training, for choosing the model or for tuning anything.
 | Void against everything else, MCC | 0.918 | 0.880 | 0.825 | 0.736 |
 | All four classes, MCC | 0.885 | 0.842 | 0.781 | 0.683 |
 
-MCC is the Matthews correlation coefficient: 1 is perfect, 0 is chance. The
+MCC is the Matthews correlation coefficient: 1 is perfect, 0 is no better
+than chance, and $-1$ is complete disagreement with the truth. The
 config is `configs/research/subhalo/C_mixed_smooth2ch_depth5.yaml`. At a
 separation of 10, about 27% of wall cells are still labelled void; that is
 the main remaining error.
