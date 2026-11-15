@@ -2,6 +2,7 @@
 
 [![Software DOI](https://zenodo.org/badge/1453375583.svg)](https://doi.org/10.5281/zenodo.24236525)
 [![Data DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.24233069.svg)](https://doi.org/10.5281/zenodo.24233069)
+[![Model DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.24261832.svg)](https://doi.org/10.5281/zenodo.24261832)
 [![Tests](https://github.com/skumagai3/deepvoid/actions/workflows/tests.yml/badge.svg)](https://github.com/skumagai3/deepvoid/actions/workflows/tests.yml)
 
 DeepVoid labels every cell of a simulated universe as void, wall, filament or
@@ -19,14 +20,17 @@ explains the whole problem from the physics up.
 
 ## Status
 
-- **Ready:** training on your own simulation, scoring, figures.
-- **Not yet published:** trained weights. They will follow the final training
-  run.
+- **Ready:** training on your own simulation, scoring, figures, and a trained
+  model you can use without training
+  ([doi:10.5281/zenodo.24261832](https://doi.org/10.5281/zenodo.24261832);
+  `notebooks/03_use_trained_model.ipynb`).
 - **Tested on:** IllustrisTNG TNG300-3-Dark at redshift 0, in real space,
-  with subhalos as tracers.
-- **Not tested on:** other simulations or cosmologies, redshift space, survey
-  masks and selection, or real galaxy surveys. A model trained here should
-  not be assumed to carry over to those without checking.
+  with subhalos as tracers; and, without retraining, Bolshoi halos.
+- **Not tested on:** other simulations or cosmologies, survey masks and
+  selection, or real galaxy surveys. In redshift space the trained model's
+  scores drop sharply; training on redshift-space inputs is in progress. A
+  model trained here should not be assumed to carry over to new data without
+  checking.
 - **Not included:** a void catalog. The output is a class for each cell;
   turning void cells into a list of voids with centers and sizes is future
   work.

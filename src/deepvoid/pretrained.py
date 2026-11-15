@@ -52,7 +52,7 @@ CELL_TOLERANCE = 0.05
 MODELS: dict[str, dict] = {
     "tng300-3-subhalos": {
         "record": "24261833",
-        "doi": "10.5281/zenodo.24261833",
+        "doi": "10.5281/zenodo.24261832",   # all versions; record 24261833 is v1.0
         "description": "Trained on TNG300-3-Dark subhalos at mean separations "
                        "3, 5, 7 and 10 h^-1 Mpc at once (512^3 grid).",
     },
