@@ -1,6 +1,6 @@
 # DeepVoid
 
-[![Software DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.24236527.svg)](https://doi.org/10.5281/zenodo.24236527)
+[![Software DOI](https://zenodo.org/badge/1453375583.svg)](https://doi.org/10.5281/zenodo.24236525)
 [![Data DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.24233069.svg)](https://doi.org/10.5281/zenodo.24233069)
 [![Tests](https://github.com/skumagai3/deepvoid/actions/workflows/tests.yml/badge.svg)](https://github.com/skumagai3/deepvoid/actions/workflows/tests.yml)
 
