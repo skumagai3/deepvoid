@@ -7,9 +7,6 @@ runs there, so they will not run elsewhere as they are. The same grids are on Ze
 config's `catalog` to that file runs it on the downloaded copies. Configs are
 in `configs/research/`.
 
-Each notebook needs a Colab secret `GITHUB_TOKEN` with read access to the
-repo while it is private.
-
 | Notebook | Purpose |
 |---|---|
 | `00_data_check.ipynb` | Load the IllustrisTNG (TNG) and Bolshoi simulations, check alignment and class fractions, recompute the masks |
