@@ -857,8 +857,8 @@ def test_pretrained_refuses_what_it_was_not_trained_on(tmp_path):
     model.inputs(field, box_size=6.4, spacing=12.0, stats="refit")
     with pytest.raises(ValueError, match="cube"):
         model.inputs(np.ones((16, 16, 8)), box_size=6.4, spacing=5.0)
-    with pytest.raises(RuntimeError, match="not published"):
-        pretrained.load()
+    with pytest.raises(KeyError, match="unknown model"):
+        pretrained.load("no-such-model")
 
 
 def test_rotate_setting_and_line_of_sight():
@@ -897,3 +897,25 @@ def test_redshift_space_keeps_columns_along_line_of_sight():
     moved = to_redshift_space(t, axis=2)
     np.testing.assert_allclose((moved.pos[:, 2] - t.pos[:, 2] - t.vel[:, 2] / 100.0 + 25.0) % 50.0,
                                25.0, atol=1e-9)
+
+
+def test_pretrained_load_downloads_and_checks(tmp_path):
+    import hashlib
+    import json as _json
+    from deepvoid import pretrained
+    record = tmp_path / "record"
+    record.mkdir()
+    (record / "model.json").write_text(_json.dumps({"cell_size": 0.4, "normalization": {}}))
+    (record / "model.keras").write_bytes(b"weights")
+    lines = ["# file  bytes  sha256"] + [
+        f"{f.name}  {f.stat().st_size}  {hashlib.sha256(f.read_bytes()).hexdigest()}"
+        for f in sorted(record.iterdir())]
+    (record / "MANIFEST.txt").write_text("\n".join(lines) + "\n")
+    url = record.as_uri() + "/{file}"
+    model = pretrained.load(folder=tmp_path / "models", url=url)
+    assert model.info["cell_size"] == 0.4
+    assert (tmp_path / "models" / pretrained.DEFAULT / "model.keras").read_bytes() == b"weights"
+    (record / "model.keras").write_bytes(b"tampered")              # differs from MANIFEST
+    (tmp_path / "models" / pretrained.DEFAULT / "model.keras").unlink()
+    with pytest.raises(OSError, match="checksum"):
+        pretrained.load(folder=tmp_path / "models", url=url)

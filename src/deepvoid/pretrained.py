@@ -51,8 +51,8 @@ CELL_TOLERANCE = 0.05
 # Published models. Each entry: Zenodo record, all-versions DOI, files.
 MODELS: dict[str, dict] = {
     "tng300-3-subhalos": {
-        "record": None,   # set when the record is published
-        "doi": None,
+        "record": "24261833",
+        "doi": "10.5281/zenodo.24261833",
         "description": "Trained on TNG300-3-Dark subhalos at mean separations "
                        "3, 5, 7 and 10 h^-1 Mpc at once (512^3 grid).",
     },
