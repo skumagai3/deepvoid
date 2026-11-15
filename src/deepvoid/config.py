@@ -9,6 +9,7 @@ so a run folder always records every setting that produced it. See
 from __future__ import annotations
 
 import copy
+import re
 from pathlib import Path
 from typing import Any
 
@@ -119,4 +120,24 @@ def check_line_of_sight(cfg: dict, catalog) -> None:
     if cfg["training"]["rotate"] == "z" and axes != {2}:
         raise ValueError(f"rotate 'z' needs the line of sight along z; these inputs have "
                          f"los_axis {sorted(axes)}")
+
+
+def input_label(name: str) -> str:
+    """Short label for a dataset name, used in metric names and plot titles.
+
+    'tng300-3/subhalos/L10' -> 'L10'; a variant such as
+    'tng300-3/subhalos/L10/rsd-z' keeps its spacing: 'L10_rsd-z'.
+    """
+    parts = name.split("/")
+    if len(parts) > 1 and not re.fullmatch(r"L[\d.]+", parts[-1]) and re.fullmatch(r"L[\d.]+", parts[-2]):
+        return f"{parts[-2]}_{parts[-1]}"
+    return parts[-1]
+
+
+def check_unique_labels(names: list[str]) -> None:
+    """Refuse inputs whose short labels collide, so no metric overwrites another."""
+    labels = [input_label(n) for n in names]
+    dupes = sorted({l for l in labels if labels.count(l) > 1})
+    if dupes:
+        raise ValueError(f"inputs share the labels {dupes}; rename them in the catalog")
 

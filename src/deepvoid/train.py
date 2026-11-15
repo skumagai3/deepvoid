@@ -37,7 +37,7 @@ import numpy as np
 
 from .callbacks import EMA, RunState, Validation, read_log
 from .catalog import Catalog
-from .config import check_line_of_sight, load_config, save_config
+from .config import check_line_of_sight, check_unique_labels, input_label, load_config, save_config
 from .evaluate import (best_void_threshold, confusion_matrix, decide, scores,
                        void_reliability, void_threshold_curve)
 from .inputs import build as build_input
@@ -61,6 +61,7 @@ def run(config, seed: int | None = None, catalog: Catalog | None = None) -> Path
     tr = cfg["training"]
     catalog = Catalog.for_config(cfg, catalog)
     check_line_of_sight(cfg, catalog)
+    check_unique_labels(cfg["data"]["inputs"])
     out = Path(cfg["output"]) / cfg["name"]
     out.mkdir(parents=True, exist_ok=True)
 
@@ -389,8 +390,7 @@ def _spacing(catalog, name):
 
 
 def _label(name):
-    """Short label for a dataset name, e.g. 'tng300-3/subhalos/L10' -> 'L10'."""
-    return name.rsplit("/", 1)[-1]
+    return input_label(name)
 
 
 def _to_numpy(x):

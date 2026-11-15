@@ -256,7 +256,8 @@ def evaluation_figure(rows: list[dict], title: str, box_size: float | None = Non
         tuned = res.get("tuned", {}).get("void_threshold")
         n = row["truth"].shape[0]
         ext = [0, box_size, 0, box_size] if box_size else [0, n, 0, n]
-        label = row["name"].rsplit("/", 1)[-1]
+        from .config import input_label
+        label = input_label(row["name"])
         img = row["input"]
         lo, hi = np.percentile(img, [1, 99.7])
         if hi <= lo:                                  # a sparse raw field is mostly one value

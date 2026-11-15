@@ -919,3 +919,13 @@ def test_pretrained_load_downloads_and_checks(tmp_path):
     (tmp_path / "models" / pretrained.DEFAULT / "model.keras").unlink()
     with pytest.raises(OSError, match="checksum"):
         pretrained.load(folder=tmp_path / "models", url=url)
+
+
+def test_input_labels_keep_variants_apart():
+    from deepvoid.config import check_unique_labels, input_label
+    assert input_label("tng300-3/subhalos/L10") == "L10"
+    assert input_label("tng300-3/subhalos/L10/rsd-z") == "L10_rsd-z"
+    rsd = [f"tng300-3/subhalos/L{s}/rsd-z" for s in (3, 5, 7, 10)]
+    check_unique_labels(rsd)
+    with pytest.raises(ValueError, match="share the labels"):
+        check_unique_labels(["a/L10", "b/L10"])
