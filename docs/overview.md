@@ -24,7 +24,7 @@ a computer simulation of the universe, where the right answer is known.
 Top: the dark matter in one slice of the simulation and the true classes
 computed from it (blue is void). A survey cannot see either of these. Bottom
 left: what a survey does see, a sparse set of galaxy-like objects (subhalos,
-mean spacing 10 h⁻¹ Mpc; the panel shows those within a slab 10 h⁻¹ Mpc
+mean spacing $10\,h^{-1}\,\mathrm{Mpc}$; the panel shows those within a slab $10\,h^{-1}\,\mathrm{Mpc}$
 thick). Bottom right: the classes DeepVoid predicts from those points alone.
 The large voids are recovered; thin walls that cross them are often missed.*
 
@@ -58,7 +58,7 @@ in the universe is not spread evenly. Galaxies sit in a network called the
 - **halos**: dense, roughly spherical clumps where galaxies and clusters live;
 - **filaments**: long threads connecting halos;
 - **walls** (or sheets): thin, flat structures between filaments;
-- **voids**: large underdense regions, typically 10–50 h⁻¹ Mpc across, that
+- **voids**: large underdense regions, typically $10\text{–}50\,h^{-1}\,\mathrm{Mpc}$ across, that
   fill most of the volume.
 
 ![Map of galaxies observed by the Sloan Digital Sky Survey, in two wedges out to redshift 0.14.](figures/sdss_galaxy_map.jpg)
@@ -101,9 +101,9 @@ $$
 \delta(\mathbf{x}) = \frac{\rho(\mathbf{x}) - \bar\rho}{\bar\rho}.
 $$
 
-Since ρ ≥ 0, δ ≥ −1, and δ = −1 is perfect emptiness. In linear theory a
-perturbation grows in place as δ ∝ D(t), where D(t) is the linear growth
-factor, so an initial underdensity (δ < 0) simply becomes more negative.
+Since $\rho \ge 0$, $\delta \ge -1$, and $\delta = -1$ is perfect emptiness. In linear theory a
+perturbation grows in place as $\delta \propto D(t)$, where $D(t)$ is the linear growth
+factor, so an initial underdensity ($\delta < 0$) simply becomes more negative.
 The Zel'dovich approximation (Zel'dovich 1970) extends this past the linear
 regime. It maps the initial (Lagrangian) position **q** to the later
 (Eulerian) position
@@ -119,10 +119,10 @@ $$
 = \frac{1}{(1 - D\lambda_1)(1 - D\lambda_2)(1 - D\lambda_3)},
 $$
 
-where λ₁ ≥ λ₂ ≥ λ₃ are the eigenvalues of the deformation tensor
-$d_{ij} = \partial_i \partial_j \Phi_0$ (these λ's are unrelated to the
-tracer spacing λ of Section 2). A caustic (shell-crossing) forms when
-det J = 0, that is, when D = 1/λᵢ for some eigenvalue λᵢ > 0. In a void all
+where $\lambda_1 \ge \lambda_2 \ge \lambda_3$ are the eigenvalues of the deformation tensor
+$d_{ij} = \partial_i \partial_j \Phi_0$ (these $\lambda$'s are unrelated to the
+tracer spacing $\lambda$ of Section 2). A caustic (shell-crossing) forms when
+$\det J = 0$, that is, when $D = 1/\lambda_i$ for some eigenvalue $\lambda_i > 0$. In a void all
 three eigenvalues are negative, so with $|\lambda_i| = -\lambda_i$,
 
 $$
@@ -130,8 +130,8 @@ $$
 $$
 
 Every factor is below 1 and decreases as D grows. The density falls
-monotonically, tends to δ = −1 only asymptotically, and no caustic forms in
-the interior. Overdense regions are the opposite: some λᵢ > 0, the
+monotonically, tends to $\delta = -1$ only asymptotically, and no caustic forms in
+the interior. Overdense regions are the opposite: some $\lambda_i > 0$, the
 denominator reaches zero at a finite time, and the region collapses. The
 spherical model gives the same picture with numbers: matter in a void's
 interior streams outward, the interior flattens toward a uniform low
@@ -164,7 +164,7 @@ $$
 \frac{\ddot r}{r} = -\frac{4\pi G}{3}\left[\rho_m + (1 + 3w)\,\rho_\Lambda\right],
 $$
 
-where ρ_m is the mean matter density inside r, ρ_Λ the dark energy density
+where $\rho_m$ is the mean matter density inside $r$, $\rho_\Lambda$ the dark energy density
 and w its equation of state (Cai & Neyrinck 2025). Both the strength of
 gravity and the properties of dark energy enter.
 
@@ -208,11 +208,11 @@ All of these tests need a catalog of voids.
   crossing it, so the photon does not regain the energy it lost on the way
   in. The result is a cold spot on the CMB. Granett, Neyrinck & Szapudi
   (2008) detected this by stacking the CMB on large voids and superclusters,
-  with an amplitude several times the prediction of ΛCDM, the standard
-  cosmological model (a cosmological constant Λ as the dark energy, plus
+  with an amplitude several times the prediction of $\Lambda\mathrm{CDM}$, the standard
+  cosmological model (a cosmological constant $\Lambda$ as the dark energy, plus
   cold dark matter). Later work is mixed:
   some analyses confirm an excess (Kovács 2018), others agree with
-  ΛCDM (Nadathur & Crittenden 2016). All agree on the sign.
+  $\Lambda\mathrm{CDM}$ (Nadathur & Crittenden 2016). All agree on the sign.
 - **Gravitational lensing.** Voids deflect light slightly outward. The
   lensing shear of background galaxies (Melchior et al. 2014; Clampitt &
   Jain 2015) and the lensing of the CMB (Cai et al. 2017) measure the total
@@ -286,13 +286,13 @@ upcoming surveys will map voids to much greater depth:
 data, so redshift space and survey effects are outside what the models here
 have been tested on.
 
-**Units.** Distances are in h⁻¹ Mpc. Here h is the Hubble constant in units
-of 100 km s⁻¹ Mpc⁻¹. Its value depends on the cosmological model you adopt,
-so writing distances in h⁻¹ Mpc keeps results independent of that choice.
+**Units.** Distances are in $h^{-1}\,\mathrm{Mpc}$. Here $h$ is the Hubble constant in units
+of 100 $\mathrm{km\,s^{-1}\,Mpc^{-1}}$. Its value depends on the cosmological model you adopt,
+so writing distances in $h^{-1}\,\mathrm{Mpc}$ keeps results independent of that choice.
 IllustrisTNG uses h = 0.6774, from a cosmology consistent with the Planck
-2015 results (Planck Collaboration 2016): Ω_m = 0.3089, Ω_Λ = 0.6911,
-Ω_b = 0.0486, σ₈ = 0.8159, n_s = 0.9667. With that h, the TNG300 box of
-205 h⁻¹ Mpc is about 303 Mpc on a side.
+2015 results (Planck Collaboration 2016): $\Omega_m = 0.3089$, $\Omega_\Lambda = 0.6911$,
+$\Omega_b = 0.0486$, $\sigma_8 = 0.8159$, $n_s = 0.9667$. With that $h$, the TNG300 box of
+$205\,h^{-1}\,\mathrm{Mpc}$ is about 303 Mpc on a side.
 
 ## 2. Simulations, tracers and tracer spacing
 
@@ -305,10 +305,10 @@ today.
 DeepVoid uses **IllustrisTNG** (Marinacci et al. 2018; Naiman et al. 2018;
 Nelson et al. 2018; Pillepich et al. 2018; Springel et al. 2018; data
 release: Nelson et al. 2019), specifically its largest box, TNG300: a periodic box of side
-L = 205 h⁻¹ Mpc.
+$L = 205\,h^{-1}\,\mathrm{Mpc}$.
 
 - **Dark matter (DM)** particles sample the matter field densely. Their mean
-  spacing is about 0.33 h⁻¹ Mpc.
+  spacing is about $0.33\,h^{-1}\,\mathrm{Mpc}$.
 - **Subhalos** are gravitationally bound clumps found in the simulation.
   Each one is roughly where a galaxy would be. In a real survey we only see
   galaxies, so subhalos stand in for them.
@@ -321,13 +321,13 @@ $$
 $$
 
 where n is the number of tracers per unit volume. To build a sample with a
-given λ, we keep the N most massive subhalos, with
+given $\lambda$, we keep the $N$ most massive subhalos, with
 
 $$
 N = \left(\frac{L}{\lambda}\right)^3 .
 $$
 
-| λ (h⁻¹ Mpc) | N subhalos in TNG300 |
+| $\lambda$ ($h^{-1}\,\mathrm{Mpc}$) | $N$ subhalos in TNG300 |
 |---|---|
 | 3 | 319,079 |
 | 5 | 68,921 |
@@ -335,7 +335,7 @@ $$
 | 10 | 8,615 |
 
 For comparison, DESI's luminous red galaxies (Zhou et al. 2023) and
-emission-line galaxies (Raichoor et al. 2023) have λ ≈ 11–13 h⁻¹ Mpc. λ = 10 is the regime that matters for real surveys, and
+emission-line galaxies (Raichoor et al. 2023) have $\lambda \approx 11\text{–}13\,h^{-1}\,\mathrm{Mpc}$. $\lambda = 10$ is the regime that matters for real surveys, and
 the hardest one.
 
 ## 3. From points to a density field
@@ -370,10 +370,10 @@ $$
 \delta(\mathbf{x}) = \frac{\rho(\mathbf{x})}{\bar\rho} - 1 .
 $$
 
-δ = 0 is average density, δ = −1 is empty space, and halos reach δ of
+$\delta = 0$ is average density, $\delta = -1$ is empty space, and halos reach $\delta$ of
 hundreds or more.
 
-At λ = 10, 8,615 points on 512³ ≈ 1.3 × 10⁸ cells means 99.95% of cells are
+At $\lambda = 10$, 8,615 points on $512^3 \approx 1.3 \times 10^8$ cells means 99.95% of cells are
 empty. This is the central difficulty: most of the input is zeros.
 
 ## 4. The labels: the tidal tensor (T-web)
@@ -384,7 +384,7 @@ ask, at each point, in how many directions gravity is squeezing matter
 together.
 
 **Gravitational potential.** In comoving coordinates (coordinates that
-expand with the universe), the peculiar gravitational potential φ obeys
+expand with the universe), the peculiar gravitational potential $\phi$ obeys
 Poisson's equation
 
 $$
@@ -398,16 +398,16 @@ $$
 \nabla^2 \phi = \delta .
 $$
 
-**Smoothing.** The field is first smoothed with a Gaussian of width σ, so the
+**Smoothing.** The field is first smoothed with a Gaussian of width $\sigma$, so the
 classification reflects structure on a chosen scale rather than grid noise.
-The grid itself acts as a smoothing of about one cell, σ_G = Δ, so we fix
+The grid itself acts as a smoothing of about one cell, $\sigma_G = \Delta$, so we fix
 the **effective** smoothing
 
 $$
 \sigma_\mathrm{eff}^2 = \sigma^2 + \sigma_G^2 = (1\ h^{-1}\,\mathrm{Mpc})^2 .
 $$
 
-For TNG300 at 512³ this gives σ = 2.4 cells.
+For TNG300 at $512^3$ this gives $\sigma = 2.4$ cells.
 
 **Tidal tensor.** The tidal tensor is the Hessian of the potential:
 
@@ -416,7 +416,7 @@ T_{ij}(\mathbf{x}) = \frac{\partial^2 \phi}{\partial x_i\, \partial x_j} .
 $$
 
 On a periodic grid this is computed with Fourier transforms. With
-$\hat\delta(\mathbf{k})$ the transform of δ and the Gaussian filter
+$\hat\delta(\mathbf{k})$ the transform of $\delta$ and the Gaussian filter
 $\hat W(k) = e^{-k^2\sigma^2/2}$,
 
 $$
@@ -435,35 +435,35 @@ $$
 ![Three panels of the same slice: matter density, gravitational potential, and the four-class labels.](figures/density_potential_labels.png)
 
 *From matter to labels, for one slice through the TNG300 box. Left: the dark
-matter density contrast, log10(δ + 1). Middle: the gravitational potential Φ
+matter density contrast, $\log_{10}(\delta + 1)$. Middle: the gravitational potential $\Phi$
 it produces. The potential is shifted and rescaled before the logarithm is
-taken (log10 of Φ/10⁵ + 5.75, in the simulation's units), so its color scale
+taken ($\log_{10}(\Phi/10^5 + 5.75)$, in the simulation's units), so its color scale
 is for display only; bright regions are highs of the potential, where voids
 form. Right: the T-web labels ("tidal mask") computed from the potential's
 second derivatives. Figure from Kumagai et al. (2026).*
 
 **Eigenvalues and classes.** T is a real symmetric 3 × 3 matrix at every
-point, with eigenvalues λ₁ ≥ λ₂ ≥ λ₃ (these λ's are unrelated to the tracer
-spacing λ; the notation clash is standard, unfortunately). A positive
+point, with eigenvalues $\lambda_1 \ge \lambda_2 \ge \lambda_3$ (these $\lambda$'s are unrelated to the tracer
+spacing $\lambda$; the notation clash is standard, unfortunately). A positive
 eigenvalue means matter is being compressed along that eigenvector; a
 negative one means it is being stretched. Counting compressed directions
 gives the structure type:
 
-| Eigenvalues above λ_th | Class | Picture |
+| Eigenvalues above $\lambda_\mathrm{th}$ | Class | Picture |
 |---|---|---|
 | 0 | void | expanding in all three directions |
 | 1 | wall | collapsing along one direction: a sheet |
 | 2 | filament | collapsing along two directions: a thread |
 | 3 | halo | collapsing along all three: a knot |
 
-The threshold λ_th = 0.65 is a choice. With λ_th = 0 almost everything is
+The threshold $\lambda_\mathrm{th} = 0.65$ is a choice. With $\lambda_\mathrm{th} = 0$ almost everything is
 wall and voids are tiny; a modest positive threshold gives a web that looks
-like the observed one. Every DeepVoid label uses λ_th = 0.65 and
-σ_eff = 1 h⁻¹ Mpc.
+like the observed one. Every DeepVoid label uses $\lambda_\mathrm{th} = 0.65$ and
+$\sigma_\mathrm{eff} = 1\,h^{-1}\,\mathrm{Mpc}$.
 
 ![Nine panels showing the labels for eigenvalue thresholds from -0.2 to 2.6.](figures/threshold_comparison.png)
 
-*The same slice labeled with nine different thresholds λ_th, from −0.2 (top
+*The same slice labeled with nine different thresholds $\lambda_\mathrm{th}$, from $-0.2$ (top
 left) to 2.6 (bottom right). Dark purple is void, blue is wall, green is
 filament, yellow is halo. Axes are in grid cells. At 0 the voids are small
 isolated pockets; at 0.65 (middle right) they connect into the large empty
@@ -488,11 +488,11 @@ separate voids is a later step (Section 13).
 
 Why it is hard:
 
-- **Sparse input.** At λ = 10 a typical void voxel is 5–10 h⁻¹ Mpc from the
-  nearest subhalo. Walls are thin (about 1–2 h⁻¹ Mpc) and often contain no
+- **Sparse input.** At $\lambda = 10$ a typical void voxel is $5\text{–}10\,h^{-1}\,\mathrm{Mpc}$ from the
+  nearest subhalo. Walls are thin (about $1\text{–}2\,h^{-1}\,\mathrm{Mpc}$) and often contain no
   subhalo at all. The input simply does not contain enough information to
   locate every wall, so some error is unavoidable.
-- **Non-local labels.** φ depends on δ everywhere through Poisson's equation,
+- **Non-local labels.** $\phi$ depends on $\delta$ everywhere through Poisson's equation,
   so the label at a point depends on matter well away from it. The network
   needs to see a large neighborhood.
 - **Imbalance.** Halo voxels are 0.5% of the volume.
@@ -506,7 +506,7 @@ The left half (orange) repeatedly halves the resolution to see larger
 structures; the right half (green) builds the resolution back up; the grey
 arrows carry fine detail straight across. The output (c) is a label for every
 voxel. Figure by M. A. Aragon-Calvo for Kumagai et al. (2026), adapted from
-Aragon-Calvo (2019). It shows 3 levels and 128³ inputs; the current default
+Aragon-Calvo (2019). It shows 3 levels and $128^3$ inputs; the current default
 is 4 or 5 levels.*
 
 A **convolutional neural network (CNN)** applies the same small filter at
@@ -531,8 +531,8 @@ $$
 \mathrm{ReLU}(\tilde z) = \max(0, \tilde z),
 $$
 
-where μ_B and σ_B² are the mean and variance over the current batch and γ,
-β are learned. At prediction time, running averages of μ and σ² collected
+where $\mu_B$ and $\sigma_B^2$ are the mean and variance over the current batch and $\gamma$,
+$\beta$ are learned. At prediction time, running averages of $\mu$ and $\sigma^2$ collected
 during training are used instead (momentum 0.99).
 
 **U-Net structure** (Ronneberger et al. 2015, 3D version by Çiçek et al.
@@ -547,7 +547,7 @@ during training are used instead (momentum 0.99).
   resolution (**skip connections**). These carry back the fine detail that
   pooling discarded.
 - A final 1 × 1 × 1 convolution gives four numbers per voxel, the logits
-  z_c, and a **softmax** turns them into class scores:
+  $z_c$, and a **softmax** turns them into class scores:
 
 $$
 s_c = \frac{e^{z_c}}{\sum_{c'} e^{z_{c'}}}, \qquad s_c \ge 0, \quad \sum_c s_c = 1 .
@@ -559,11 +559,11 @@ is something we measure (calibration, Section 11). The predicted class is
 the one with the highest score, $\hat y = \arg\max_c s_c$.
 
 **Receptive field.** The output at one voxel depends only on inputs within
-some distance, its receptive field. Each 3³ convolution adds one cell on each
+some distance, its receptive field. Each $3^3$ convolution adds one cell on each
 side, and each pooling doubles the size of everything after it. Each extra
 level of depth therefore roughly doubles how far the network can see. In
 practice the network relies mostly on a smaller region, the *effective*
-receptive field; we measured about 12–15 h⁻¹ Mpc. That is comparable to
+receptive field; we measured about $12\text{–}15\,h^{-1}\,\mathrm{Mpc}$. That is comparable to
 void sizes, which is why more depth helped.
 
 ## 7. Data splits
@@ -578,12 +578,12 @@ The box is cut along x into three **slabs**, before anything else happens:
 
 | Part | x cells | Thickness | Used for |
 |---|---|---|---|
-| Training | [0, 324) | 129.7 h⁻¹ Mpc | fitting the weights; normalization; class weights |
-| Buffer | [324, 340) | 6.4 h⁻¹ Mpc | nothing |
-| Validation | [340, 410) | 28.0 h⁻¹ Mpc | choosing the best epoch; early stopping |
-| Buffer | [410, 426) | 6.4 h⁻¹ Mpc | nothing |
-| Test | [426, 496) | 28.0 h⁻¹ Mpc | final scores only |
-| Buffer | [496, 512) | 6.4 h⁻¹ Mpc | nothing (it borders the training slab through the periodic wrap) |
+| Training | [0, 324) | $129.7\,h^{-1}\,\mathrm{Mpc}$ | fitting the weights; normalization; class weights |
+| Buffer | [324, 340) | $6.4\,h^{-1}\,\mathrm{Mpc}$ | nothing |
+| Validation | [340, 410) | $28.0\,h^{-1}\,\mathrm{Mpc}$ | choosing the best epoch; early stopping |
+| Buffer | [410, 426) | $6.4\,h^{-1}\,\mathrm{Mpc}$ | nothing |
+| Test | [426, 496) | $28.0\,h^{-1}\,\mathrm{Mpc}$ | final scores only |
+| Buffer | [496, 512) | $6.4\,h^{-1}\,\mathrm{Mpc}$ | nothing (it borders the training slab through the periodic wrap) |
 
 Training crops are drawn only from inside the training slab, and
 validation crops only from inside the validation slab. No test voxel is ever
@@ -594,7 +594,7 @@ slabs, so the test set is unseen but not statistically independent of the
 training set. A second simulation is the real independence test.
 
 **How the first DeepVoid paper split the data.** The paper cut the box into
-128³ subcubes, stored each with three rotated copies (90°, 180°, 270° about
+$128^3$ subcubes, stored each with three rotated copies (90°, 180°, 270° about
 one axis), and split all copies 80/20 at random into training and
 validation. Rotated copies of the same region therefore usually ended up on
 both sides. The paper treated a rotated subcube as a new example, because a
@@ -602,7 +602,7 @@ convolutional network is not rotation-invariant, and reported its scores on
 that validation set, saying so.
 
 I tested whether the rotated copies in training help the model on the
-validation regions. I trained a model on subhalos at λ = 10 h⁻¹ Mpc with
+validation regions. I trained a model on subhalos at $\lambda = 10\,h^{-1}\,\mathrm{Mpc}$ with
 the paper's split (64 non-overlapping subcubes, four rotations each, 80/20
 over copies), after first setting aside 16 subcubes that the model never
 saw in any orientation. Every validation subcube had a rotated copy of its
@@ -611,32 +611,32 @@ than the 16 unseen subcubes. It does not:
 
 | Mean over regions | Validation (29 regions) | Unseen test (16 regions) | Difference |
 |---|---|---|---|
-| Four-class MCC | 0.543 ± 0.005 | 0.548 ± 0.006 | −0.005 ± 0.008 |
-| Void MCC | 0.597 ± 0.005 | 0.603 ± 0.007 | −0.007 ± 0.009 |
+| Four-class MCC | $0.543 \pm 0.005$ | $0.548 \pm 0.006$ | $-0.005 \pm 0.008$ |
+| Void MCC | $0.597 \pm 0.005$ | $0.603 \pm 0.007$ | $-0.007 \pm 0.009$ |
 
 Errors are standard errors over regions; the error on the difference adds
 them in quadrature. The difference is consistent with zero, and an advantage
-larger than about 0.01 in MCC is excluded at 2σ. For this model, a rotated
+larger than about 0.01 in MCC is excluded at $2\sigma$. For this model, a rotated
 copy of a training region is as good as a new region. The test covers one
-model (depth 3, 32 filters, trained directly at λ = 10 with the new
+model (depth 3, 32 filters, trained directly at $\lambda = 10$ with the new
 optimizer settings); I did not repeat it for the dense dark-matter model or
 the curriculum models.
 
 ## 8. Inputs: normalization and the smoothed channel
 
 **Normalization.** Densities span many orders of magnitude, and most cells
-at large λ are empty. We use
+at large $\lambda$ are empty. We use
 
 $$
 x = \frac{\log_{10}(\rho/\bar\rho + 10^{-3}) - \mu}{s},
 $$
 
-where the 10⁻³ keeps empty cells finite, and μ and s are the mean and
+where the $10^{-3}$ keeps empty cells finite, and $\mu$ and $s$ are the mean and
 standard deviation of $\log_{10}(\rho/\bar\rho + 10^{-3})$ over the training
-slab only. The same μ and s are saved with the model and used at prediction
+slab only. The same $\mu$ and $s$ are saved with the model and used at prediction
 time.
 
-**Smoothed second channel.** A sparse field is mostly zeros, so a 3³ filter
+**Smoothed second channel.** A sparse field is mostly zeros, so a $3^3$ filter
 almost never sees a tracer. We add a second channel: the same tracer field
 smoothed with a Gaussian of width proportional to the spacing,
 
@@ -645,15 +645,15 @@ $$
 $$
 
 computed on the grid with periodic boundaries. It is normalized the same way
-with its own μ and s. The raw channel is kept, so no information is lost;
+with its own $\mu$ and $s$. The raw channel is kept, so no information is lost;
 the smoothed channel gives every voxel an estimate of the local tracer
 density at a scale matched to the sampling. This was the largest single
-improvement at λ = 10.
+improvement at $\lambda = 10$.
 
 ## 9. Training
 
-**Crops and batches.** Each step draws B = 8 crops of 96³ cells
-(38 h⁻¹ Mpc) at random positions in the training slab. For each crop, the
+**Crops and batches.** Each step draws $B = 8$ crops of $96^3$ cells
+($38\,h^{-1}\,\mathrm{Mpc}$) at random positions in the training slab. For each crop, the
 tracer spacing is drawn at random from {3, 5, 7, 10}, so one model learns
 all spacings. Mixing spacings within a batch matters: batch normalization
 statistics computed on a batch of a single spacing would not match the
@@ -673,7 +673,7 @@ $$
 w_c \propto f_c^{-1/2}, \qquad \sum_c f_c\, w_c = 1,
 $$
 
-where f_c is the fraction of training voxels in class c. Rare classes count
+where $f_c$ is the fraction of training voxels in class $c$. Rare classes count
 more, but less extremely than with full inverse-frequency weights, and the
 average voxel weight is 1. The loss over a batch of voxels V is
 
@@ -687,12 +687,12 @@ Two optional terms exist:
   void score: $-[\,\mathbb{1}(y = \mathrm{void}) \log s_\mathrm{void} + (1 - \mathbb{1}(y = \mathrm{void})) \log(1 - s_\mathrm{void})\,]$.
   In practice it shifted the void boundary rather than improving it.
 - **Deep supervision.** Extra outputs at 1/2, 1/4, … resolution, trained
-  against the labels averaged over 2^ℓ × 2^ℓ × 2^ℓ blocks (so a block that
+  against the labels averaged over $2^\ell \times 2^\ell \times 2^\ell$ blocks (so a block that
   straddles a boundary has fractional targets), with weights proportional
-  to 2^(−ℓ). This gives the deep layers a direct training signal.
+  to $2^{-\ell}$. This gives the deep layers a direct training signal.
 
-**Optimizer.** Weights θ are updated by AdamW (the Adam optimizer with
-decoupled weight decay; Loshchilov & Hutter 2019). With gradient g_t at step t:
+**Optimizer.** Weights $\theta$ are updated by AdamW (the Adam optimizer with
+decoupled weight decay; Loshchilov & Hutter 2019). With gradient $g_t$ at step $t$:
 
 $$
 \begin{aligned}
@@ -704,9 +704,9 @@ v_t &= \beta_2 v_{t-1} + (1-\beta_2) g_t^2, \\
 \end{aligned}
 $$
 
-with β₁ = 0.9, β₂ = 0.999, weight decay w_d = 10⁻³, and gradients clipped to
-norm at most 1. The learning rate η_t rises linearly for 3 epochs, then
-follows a cosine decay to 1% of its peak (10⁻³):
+with $\beta_1 = 0.9$, $\beta_2 = 0.999$, weight decay $w_d = 10^{-3}$, and gradients clipped to
+norm at most 1. The learning rate $\eta_t$ rises linearly for 3 epochs, then
+follows a cosine decay to 1% of its peak ($10^{-3}$):
 
 $$
 \eta(t) = \eta_\mathrm{min} + \tfrac12 (\eta_\mathrm{max} - \eta_\mathrm{min}) \left[ 1 + \cos\left( \pi\, \frac{t - t_w}{T - t_w} \right) \right] .
@@ -723,22 +723,22 @@ which smooths out step-to-step noise. The averaged weights are the ones
 validated, saved and used for prediction.
 
 **Model selection and early stopping.** An epoch is 200 steps. After each
-epoch the averaged weights are scored on fixed 64³ crops from the validation
+epoch the averaged weights are scored on fixed $64^3$ crops from the validation
 slab. The best epoch is saved. Training stops when the score has not
 improved by at least 0.002 for 15 epochs.
 
 ## 10. Predicting a whole box
 
 The network is fully convolutional, so it can predict on crops of any size
-divisible by 2^(depth−1). Near the edge of a crop it sees less context, so
-those predictions are worse. To predict the whole 512³ box we:
+divisible by $2^{\mathrm{depth}-1}$. Near the edge of a crop it sees less context, so
+those predictions are worse. To predict the whole $512^3$ box we:
 
-1. cover it with 128³ crops whose centers are 64 cells apart, wrapping
+1. cover it with $128^3$ crops whose centers are 64 cells apart, wrapping
    around the periodic faces;
-2. keep only the central 64³ of each crop, discarding a 32-cell margin;
+2. keep only the central $64^3$ of each crop, discarding a 32-cell margin;
 3. assemble the kept pieces, which tile the box exactly once.
 
-The 32-cell margin (12.8 h⁻¹ Mpc) matches the effective receptive field;
+The 32-cell margin ($12.8\,h^{-1}\,\mathrm{Mpc}$) matches the effective receptive field;
 with 16 cells, seams between tiles were visible.
 
 ## 11. Evaluation
@@ -762,7 +762,7 @@ $$
 Precision is purity (of the voxels called void, how many are void); recall
 is completeness (of the true void voxels, how many were found). IoU is the intersection over union: the overlap between predicted and true
 void voxels divided by their union. F1 is the harmonic mean of precision and
-recall. The two are related by IoU = F1/(2 − F1).
+recall. The two are related by $\mathrm{IoU} = F_1/(2 - F_1)$.
 
 **Matthews correlation coefficient (MCC).** For a two-class problem,
 
@@ -771,7 +771,7 @@ $$
 $$
 
 It is the Pearson correlation between the true and predicted binary labels:
-1 for perfect, 0 for no better than chance, −1 for perfectly wrong. Unlike
+1 for perfect, 0 for no better than chance, $-1$ for perfectly wrong. Unlike
 accuracy, it is not fooled by imbalance. A model that calls everything void
 gets 65% accuracy here but MCC 0. **Void MCC** treats void against
 everything else and is our headline score.
@@ -808,7 +808,7 @@ $$
 \mathrm{ECE} = \sum_b \frac{n_b}{N}\, \left| \bar f_b - \bar s_b \right| ,
 $$
 
-where n_b is the number of voxels in bin b. Small ECE means the void score
+where $n_b$ is the number of voxels in bin $b$. Small ECE means the void score
 can be read as a void frequency, for this data.
 
 ## 12. Results so far
@@ -816,7 +816,7 @@ can be read as a void frequency, for this data.
 Test slab, argmax predictions, one model for all four spacings (depth 5,
 smoothed channel):
 
-| λ (h⁻¹ Mpc) | Void MCC | Four-class MCC |
+| $\lambda$ ($h^{-1}\,\mathrm{Mpc}$) | Void MCC | Four-class MCC |
 |---|---|---|
 | 3 | 0.918 | 0.885 |
 | 5 | 0.880 | 0.842 |
@@ -825,7 +825,7 @@ smoothed channel):
 
 ![Five panels for tracer spacing 10: the smoothed input, the true classes, the predicted classes, the void score, and the misclassified voxels.](figures/prediction_L10.png)
 
-*The hardest case, tracer spacing 10 h⁻¹ Mpc, on one slice of the test slab
+*The hardest case, tracer spacing $10\,h^{-1}\,\mathrm{Mpc}$, on one slice of the test slab
 (depth 5 with deep supervision). From left: the smoothed tracer field the
 network is given, the true classes, the predicted classes, the void score,
 and the voxels the model got wrong, colored by their true class. Most errors
@@ -836,7 +836,7 @@ are true wall (green) predicted as void: thin walls far from any tracer.*
 *Void MCC on the test slab against tracer spacing. Depth 4 is the mean of
 three seeds, which differ by at most 0.002; depth 5 is a single run.*
 
-At λ = 10, about 27% of true wall voxels are predicted void, and the model's
+At $\lambda = 10$, about 27% of true wall voxels are predicted void, and the model's
 void scores depend mostly on distance to the nearest tracer. Thin walls far
 from any tracer are effectively invisible in the input. Retraining with
 different random seeds changes the scores by at most 0.002.
@@ -868,20 +868,20 @@ planned remedies.
 
 | Term | Meaning |
 |---|---|
-| h | the Hubble constant divided by 100 km s⁻¹ Mpc⁻¹; its value depends on the assumed cosmology (0.6774 in IllustrisTNG) |
-| h⁻¹ Mpc | distance unit that leaves h unspecified; 1 Mpc ≈ 3.26 million light years, so 1 h⁻¹ Mpc ≈ 1.48 Mpc for h = 0.6774 |
-| TNG300 cosmology | Planck 2015: Ω_m = 0.3089, Ω_Λ = 0.6911, Ω_b = 0.0486, σ₈ = 0.8159, n_s = 0.9667, h = 0.6774 |
+| $h$ | the Hubble constant divided by 100 $\mathrm{km\,s^{-1}\,Mpc^{-1}}$; its value depends on the assumed cosmology (0.6774 in IllustrisTNG) |
+| $h^{-1}\,\mathrm{Mpc}$ | distance unit that leaves $h$ unspecified; 1 Mpc ≈ 3.26 million light years, so $1\,h^{-1}\,\mathrm{Mpc} \approx 1.48\,\mathrm{Mpc}$ for $h = 0.6774$ |
+| TNG300 cosmology | Planck 2015: $\Omega_m = 0.3089$, $\Omega_\Lambda = 0.6911$, $\Omega_b = 0.0486$, $\sigma_8 = 0.8159$, $n_s = 0.9667$, $h = 0.6774$ |
 | Comoving coordinates | coordinates that expand with the universe |
 | N-body simulation | a simulation following many particles under gravity |
 | Dark matter (DM) | matter that interacts only by gravity; most of the mass |
 | Subhalo | a bound clump in a simulation; stands in for a galaxy |
 | Tracer | any point sample of the matter field (particles, subhalos, galaxies) |
-| λ (spacing) | mean distance between tracers, n^(−1/3) |
-| δ | overdensity, ρ/ρ̄ − 1 |
+| $\lambda$ (spacing) | mean distance between tracers, $n^{-1/3}$ |
+| $\delta$ | overdensity, $\rho/\bar\rho - 1$ |
 | CIC | cloud-in-cell, a way of spreading points onto a grid |
 | Tidal tensor | Hessian of the gravitational potential; its eigenvalues give the T-web class |
-| λ_th | eigenvalue threshold for the T-web (0.65) |
-| σ_eff | effective smoothing scale of the labels (1 h⁻¹ Mpc) |
+| $\lambda_\mathrm{th}$ | eigenvalue threshold for the T-web (0.65) |
+| $\sigma_\mathrm{eff}$ | effective smoothing scale of the labels ($1\,h^{-1}\,\mathrm{Mpc}$) |
 | Voxel | a 3D grid cell |
 | Semantic segmentation | assigning a class to every voxel |
 | Class score | the softmax output for a class; not a probability unless shown calibrated |

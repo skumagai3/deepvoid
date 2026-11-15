@@ -35,7 +35,7 @@ as `config.yaml` in the run folder.
 | `training.crop` | 96 | Training crop side in cells |
 | `training.batch_size` | 8 | Crops per step |
 | `training.steps_per_epoch` | 200 | Steps between validation passes |
-| `training.val_crop` | 64 | Validation crop side; must fit inside the validation slab (70 cells for a 512^3 box with the default split) |
+| `training.val_crop` | 64 | Validation crop side; must fit inside the validation slab (70 cells for a $512^3$ box with the default split) |
 | `training.val_batches` | 32 | Fixed validation crops per input, in batches |
 | `training.epochs` | 80 | Length of the learning-rate schedule and upper limit on training |
 | `training.rotate` | true | Random cube symmetry per batch (48 rotations and reflections) |
@@ -52,7 +52,7 @@ as `config.yaml` in the run folder.
 | `training.mixed_precision` | true | float16 compute, float32 weights |
 | `training.xla` | true | Compile the training step with XLA (TensorFlow's Accelerated Linear Algebra compiler) |
 | `training.resume` | true | Continue an interrupted run in the same folder |
-| `evaluate.crop`, `evaluate.margin` | 128, 32 | Crop size and discarded edge for full-box prediction. The margin should cover the model's effective receptive field: with 16 cells, tile seams showed in the λ = 10 predictions (notebook 08). Re-score an older run with `evaluate_run(out, margin=32)` |
+| `evaluate.crop`, `evaluate.margin` | 128, 32 | Crop size and discarded edge for full-box prediction. The margin should cover the model's effective receptive field: with 16 cells, tile seams showed in the $\lambda = 10$ predictions (notebook 08). Re-score an older run with `evaluate_run(out, margin=32)` |
 | `evaluate.tta` | `none` | Test-time augmentation: `none`, `flips` (8x) or `full` (48x) |
 | `evaluate.inputs` | null | Inputs to score on the test slab; null means the training inputs |
 | `evaluate.labels` | null | Mask on a finer grid to score against; predictions are upsampled to it (see below) |
@@ -63,7 +63,7 @@ as `config.yaml` in the run folder.
 
 1. The labels are split into slabs, and input normalization is fit on the
    training slab.
-2. With `class_weights: auto`, weights proportional to f^(-1/2) are computed
+2. With `class_weights: auto`, weights proportional to $f^{-1/2}$ are computed
    from the training slab's class fractions f and scaled so the average
    voxel weight is 1.
 3. Each step draws `batch_size` crops from the training slab on the GPU and
@@ -71,7 +71,7 @@ as `config.yaml` in the run folder.
    epoch and step are always the same.
 4. After each step the exponential moving average (EMA) of the weights is updated.
 5. After each epoch the averaged weights score the fixed validation crops
-   (loss, accuracy, Matthews correlation coefficient (MCC), void F1, halo F1). These are 64^3 by default,
+   (loss, accuracy, Matthews correlation coefficient (MCC), void F1, halo F1). These are $64^3$ by default,
    smaller than the training crops, because the validation slab is thinner
    than the training slab. The best epoch by the monitored
    score is saved as `best.keras` (any gain counts). Training stops after
@@ -94,7 +94,7 @@ resuming changes when training ends but not the schedule.
 ## Several inputs, spacing and curriculum
 
 `data.inputs` can list several fields that share one label set, such as
-subhalo fields at tracer spacings 3, 5, 7 and 10 h^-1 Mpc
+subhalo fields at tracer spacings 3, 5, 7 and $10\,h^{-1}\,\mathrm{Mpc}$
 (`configs/research/subhalo/`). Each crop in a training batch comes from its own
 randomly chosen input, with equal probability unless a curriculum says
 otherwise. Mixing within the batch matters with batch normalization:
@@ -113,16 +113,17 @@ learning rate than from scratch (`configs/research/subhalo/B_finetune_L10.yaml` 
 2e-4 with one warmup epoch).
 
 **Spacing conditioning (FiLM, feature-wise linear modulation; Perez et al. 2018).** With `model.conditioning`, the model also
-takes the tracer spacing lambda = n^(-1/3), read from each input's
-`spacing` in the catalog. log(lambda) goes through a two-layer network
+takes the tracer spacing $\lambda = n^{-1/3}$, read from each input's
+`spacing` in the catalog. $\log\lambda$ goes through a two-layer network
 with `units` outputs, and after every normalization layer the features are
 scaled and shifted by amounts computed from it (`models/film.py`). Those
 layers start at zero, so the conditioned model starts out identical to the
 plain one, and a plain model's weights can be loaded into it with
-`init_from`. During training lambda is multiplied by exp(N(0, `noise`)),
-so the model cannot rely on its exact value.
+`init_from`. During training $\lambda$ is multiplied by $e^{\epsilon}$, with
+$\epsilon$ drawn from a normal distribution of mean 0 and standard deviation
+`noise`, so the model cannot rely on its exact value.
 
-To check the model uses lambda, `spacing_sweep(out, name, spacings)`
+To check the model uses $\lambda$, `spacing_sweep(out, name, spacings)`
 scores one input while telling the model each of the given spacings, and
 writes `spacing_sweep_<label>.json`. If the scores barely change when the
 spacing is wrong, the conditioning is doing nothing.
@@ -174,8 +175,8 @@ this reliability curve.
 ## Void-vs-rest loss and deep supervision
 
 **Void-vs-rest loss.** With `training.loss.void_weight: w`, every voxel's
-loss gains w times the binary cross-entropy of its void score s_v against
-its void label: -[1(void) log s_v + (1 - 1(void)) log(1 - s_v)]. The
+loss gains $w$ times the binary cross-entropy of its void score $s_v$ against
+its void label $y_v$ (1 for void, 0 otherwise): $-[\,y_v \log s_v + (1 - y_v) \log(1 - s_v)\,]$. The
 four-class loss is unchanged; the added term trains the void score directly
 for the two-class decision voids are judged on.
 
@@ -184,13 +185,13 @@ one extra output per level below full resolution: after each decoder block
 at 1/2, 1/4, ... resolution and after the bottleneck, so depth d gives d - 1
 extra outputs (a depth-4 model has them at 1/2, 1/4 and 1/8; depth 5 adds
 1/16). Each is trained against the class fractions in the blocks of the
-full-resolution labels it covers (the one-hot labels averaged over 2^3,
-4^3, ... voxels), so blocks that straddle a boundary keep both classes. The
+full-resolution labels it covers (the one-hot labels averaged over $2^3$,
+$4^3$, … voxels), so blocks that straddle a boundary keep both classes. The
 losses are weighted 1, 1/2, 1/4, ... from full resolution down, normalized
 to sum to 1. The coarse outputs exist only during training: validation,
 `best.keras` and everything downstream use the full-resolution output
 alone. The training crop and validation crop must be divisible by
-2^(depth - 1), as for any U-Net of that depth.
+$2^{\mathrm{depth}-1}$, as for any U-Net of that depth.
 
 Planned, not yet implemented: weighting the loss by distance to the
 void boundary.
@@ -199,18 +200,18 @@ void boundary.
 
 A model can train on a coarser grid, so a crop of the same cell count
 covers more of the box, and still be scored at full resolution.
-`scripts/make_coarse.py` (notebook 07) writes 256^3 inputs and a 256^3
-mask recomputed from the dark matter with the same sigma_eff. A config
-then sets `evaluate.labels` to the 512^3 mask: each 256^3 prediction fills
-its 2x2x2 fine cells and is scored on the same test slab at 512^3.
-Halving `data.split.buffer` (8 instead of 16) makes the 256^3 slabs exactly
-half the 512^3 ones. See `configs/research/subhalo/A256_scratch_L10.yaml`.
+`scripts/make_coarse.py` (notebook 07) writes $256^3$ inputs and a $256^3$
+mask recomputed from the dark matter with the same $\sigma_\mathrm{eff}$. A config
+then sets `evaluate.labels` to the $512^3$ mask: each $256^3$ prediction fills
+its $2 \times 2 \times 2$ fine cells and is scored on the same test slab at $512^3$.
+Halving `data.split.buffer` (8 instead of 16) makes the $256^3$ slabs exactly
+half the $512^3$ ones. See `configs/research/subhalo/A256_scratch_L10.yaml`.
 
 ## The first paper's split (split test)
 
 `data.subcubes` replaces the slab split with the first paper's protocol, to
 test whether that protocol affects the scores (`src/deepvoid/subcubes.py`,
-configs in `configs/research/papersplit/`). The box is cut into non-overlapping 128^3
+configs in `configs/research/papersplit/`). The box is cut into non-overlapping $128^3$
 subcubes, each stored with copies rotated by 90, 180 and 270 degrees about
 one axis, and the examples are split 80/20 at random. One layer of subcubes
 (x in [384, 512) by default) is held out entirely and used only for the
@@ -231,7 +232,7 @@ from predicting each subcube whole, and the fraction of validation examples
 whose region also has a copy in training, plus per-region scores with their
 mean and standard error. If rotated copies in training helped, a `copy` run
 would score higher on validation than on test; a `region` run is the
-control. At spacing 10 h^-1 Mpc the two agree within the errors
+control. At spacing $10\,h^{-1}\,\mathrm{Mpc}$ the two agree within the errors
 ([overview](overview.md), section 7).
 
 ## Watching a run

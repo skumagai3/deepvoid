@@ -7,7 +7,7 @@ commented config to start from, use `configs/template.yaml`.
 | Config | What it is |
 |---|---|
 | `tng_dm_baseline.yaml` | Full dark-matter density in, T-web classes out (TNG300-3) |
-| `subhalo/A_*` | One model at subhalo spacing 10 h⁻¹ Mpc, from scratch; `smooth2ch` adds the smoothed channel, `smoothonly` uses only it, `A256` is on a 256³ grid |
+| `subhalo/A_*` | One model at subhalo spacing $10\,h^{-1}\,\mathrm{Mpc}$, from scratch; `smooth2ch` adds the smoothed channel, `smoothonly` uses only it, `A256` is on a $256^3$ grid |
 | `subhalo/B_*` | The dark-matter baseline fine-tuned at spacing 10 |
 | `subhalo/C_mixed*` | One model on spacings 3, 5, 7 and 10 at once; suffixes add the smoothed channel (`smooth2ch`), a fifth U-Net level (`depth5`), a void-vs-rest loss term (`voidloss`) or deep supervision (`deepsup`) |
 | `subhalo/C_film*` | As `C_mixed`, with the model told the spacing (FiLM), with or without a dense-to-sparse curriculum |

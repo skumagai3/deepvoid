@@ -34,10 +34,10 @@ explains the whole problem from the physics up.
 ## Results so far
 
 One model, trained on TNG300-3 subhalos at four mean separations at once, on
-a 512³ grid. Scores are on a slab of the box that was never used for
+a $512^3$ grid. Scores are on a slab of the box that was never used for
 training, for choosing the model or for tuning anything.
 
-| Mean tracer separation (h⁻¹ Mpc) | 3 | 5 | 7 | 10 |
+| Mean tracer separation ($h^{-1}\,\mathrm{Mpc}$) | 3 | 5 | 7 | 10 |
 |---|---|---|---|---|
 | Void against everything else, MCC | 0.918 | 0.880 | 0.825 | 0.736 |
 | All four classes, MCC | 0.885 | 0.842 | 0.781 | 0.683 |
@@ -95,13 +95,13 @@ Two notebooks walk through this on Google Colab:
   is a template for your own data.
 
 Grids are arrays of shape (n, n, n) with axis order (x, y, z), covering a
-periodic box, with lengths in h⁻¹ Mpc. The default labels need cells smaller
-than 1 h⁻¹ Mpc.
+periodic box, with lengths in $h^{-1}\,\mathrm{Mpc}$. The default labels need cells smaller
+than $1\,h^{-1}\,\mathrm{Mpc}$.
 
 ## The data behind the results
 
 The TNG300-3-Dark and Bolshoi grids used here (dark matter, T-web labels,
-and subhalos or halos at mean separations of 3, 5, 7 and 10 h⁻¹ Mpc) are on
+and subhalos or halos at mean separations of 3, 5, 7 and $10\,h^{-1}\,\mathrm{Mpc}$) are on
 Zenodo: [doi:10.5281/zenodo.24233069](https://doi.org/10.5281/zenodo.24233069).
 They are derived from IllustrisTNG and Bolshoi data, so please credit those
 simulations as the record describes.
@@ -125,9 +125,9 @@ comment on each. The ones that matter most:
 
 | Choice | Default | What it means |
 |---|---|---|
-| Labels | T-web, smoothing 1 h⁻¹ Mpc, eigenvalue threshold 0.65 | What counts as a void. Set in `Project.add_labels`; [docs/conventions.md](docs/conventions.md) |
+| Labels | T-web, smoothing $1\,h^{-1}\,\mathrm{Mpc}$, eigenvalue threshold 0.65 | What counts as a void. Set in `Project.add_labels`; [docs/conventions.md](docs/conventions.md) |
 | Split | 70 / 15 / 15% slabs with buffers | Which part of the box trains the model, which picks the best epoch, and which is scored once at the end |
-| Input scaling | log₁₀(ρ/ρ̄ + 10⁻³), standardized on the training slab | How density becomes the network input |
+| Input scaling | $\log_{10}(\rho/\bar\rho + 10^{-3})$, standardized on the training slab | How density becomes the network input |
 | Smoothed channel | off | A second input channel with the tracer field smoothed, for sparse tracers |
 | Network depth | 4 levels | How far apart two tracers can be and still be related |
 | Several spacings in one model | one input | List several inputs and each training crop is drawn from one of them |
@@ -170,17 +170,17 @@ tests/                  tests of everything that does not need TensorFlow
 The code released with the first paper is in
 [deepvoid_misc](https://github.com/skumagai3/deepvoid_misc). This package is
 a rewrite with the same scientific target (T-web classes, eigenvalue
-threshold 0.65, effective smoothing 1 h^-1 Mpc) but a different data
+threshold 0.65, effective smoothing $1\,h^{-1}\,\mathrm{Mpc}$) but a different data
 pipeline and evaluation, so scores from the two are not directly
 comparable.
 
 | | First paper (`deepvoid_misc`) | This package |
 |---|---|---|
-| Training data | 128³ subcubes cut from the box in advance, stored with rotated copies | No pre-cut subcubes: random 96³ crops drawn from the training region on every step |
+| Training data | $128^3$ subcubes cut from the box in advance, stored with rotated copies | No pre-cut subcubes: random $96^3$ crops drawn from the training region on every step |
 | Train / validation / test | Subcubes divided into training and validation sets | The box is divided first into training, validation and test slabs (70/15/15%) separated by buffer slabs; crops never leave their slab |
 | Final scores | Validation subcubes | A separate test slab that is never used for choosing models, early stopping or thresholds |
 | Augmentation | Rotated copies stored with the data | The 48 rotations and reflections of a cube, applied on the fly to each training batch |
-| Normalization | Min–max, refit on each volume | log10(ρ/ρ̄ + 10⁻³), standardized with statistics from the training slab and saved with the model |
+| Normalization | Min–max, refit on each volume | $\log_{10}(\rho/\bar\rho + 10^{-3})$, standardized with statistics from the training slab and saved with the model |
 | Sparse tracers | Curriculum from dense to sparse inputs, freezing encoder blocks | One model trained on several tracer spacings at once, optionally with a smoothed copy of the input as a second channel; curricula and spacing conditioning (FiLM, feature-wise linear modulation) remain options |
 | Full-box prediction | Overlapping patches, keeping their central regions | The same, with the kept region and overlap set in the config |
 | Scores | Per-class F1, MCC | The same, plus void-vs-rest scores, a void-score threshold chosen on the validation slab, and calibration of the class scores |
