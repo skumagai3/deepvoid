@@ -24,10 +24,11 @@ in `configs/research/`.
 | `12_cross_simulation.ipynb` | The packaged TNG subhalo model on Bolshoi halos, scored against Bolshoi's own T-web labels |
 | `13_redshift_space.ipynb` | Redshift-space subhalo grids (z as line of sight) from the TNG300-1 catalog, checks against the older grids, and the real-space model scored on redshift-space inputs |
 | `14_information_limit.ipynb` | How much of the depth-5 models' error is in voxels far from any tracer: class shares by distance, the model against a distance-only classifier, MCC if far voxels were right, and training vs test slab scores (real and redshift space) |
+| `15_smdpl.ipynb` | SMDPL density grid from CosmoSim's TAP service in 27 chunks (needs a `COSMOSIM_TOKEN` Colab secret), checked and assembled to 512³ |
 
 Planned:
 
 | Notebook | Purpose |
 |---|---|
-| `15_survey.ipynb` | Survey masks and radial selection |
-| `16_calibration.ipynb` | Reliability of the class scores and temperature scaling |
+| `16_survey.ipynb` | Survey masks and radial selection |
+| `17_calibration.ipynb` | Reliability of the class scores and temperature scaling |
