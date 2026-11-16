@@ -29,5 +29,5 @@ Planned:
 
 | Notebook | Purpose |
 |---|---|
-| `14_survey.ipynb` | Survey masks and radial selection |
-| `15_calibration.ipynb` | Reliability of the class scores and temperature scaling |
+| `15_survey.ipynb` | Survey masks and radial selection |
+| `16_calibration.ipynb` | Reliability of the class scores and temperature scaling |
