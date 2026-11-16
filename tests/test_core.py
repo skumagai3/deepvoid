@@ -988,3 +988,26 @@ def test_strip_pool_starts_as_identity_and_reaches_further_along_z():
 
     assert extent(strip, 2) > extent(plain, 2)    # reaches further along z
     assert extent(strip, 0) == extent(plain, 0)   # but not across it
+
+
+# ---------------------------------------------------------------- information limit
+
+def test_majority_by_distance_and_ceiling():
+    from deepvoid.interpret import (majority_by_distance, mcc_if_fixed_beyond,
+                                    predict_by_distance, region_slice)
+    dist = np.array([0.5, 0.6, 1.5, 1.6, 1.7, 9.0, 12.0])
+    labels = np.array([3, 3, 2, 2, 1, 0, 0])
+    edges = np.array([0.0, 1.0, 2.0, 4.0, 8.0])
+    table = majority_by_distance(dist, labels, edges)
+    assert table.tolist() == [3, 2, 2, 0]           # empty 2-4 bin takes the bin below
+    assert predict_by_distance(np.array([0.1, 3.0, 50.0]), table, edges).tolist() == [3, 2, 0]
+
+    pred = np.array([3, 3, 2, 2, 2, 1, 1])          # wrong at 1.7, 9 and 12
+    exact = mcc_if_fixed_beyond(pred, labels, dist, [100.0, 8.0, 1.0])
+    from deepvoid.evaluate import confusion_matrix, scores
+    assert exact[0] == pytest.approx(scores(confusion_matrix(labels, pred))["mcc"])
+    assert exact[0] < exact[1] < exact[2] == pytest.approx(1.0)
+
+    r = Region("test", 1, 2, 5)
+    a = np.arange(6 ** 3).reshape(6, 6, 6)
+    assert a[region_slice(r)].shape == (6, 3, 6)

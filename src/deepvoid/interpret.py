@@ -158,6 +158,57 @@ def binned_scores(dist: np.ndarray, pred: np.ndarray, labels: np.ndarray,
     return out
 
 
+def region_slice(region: Region) -> tuple[slice, slice, slice]:
+    """Index that cuts a region's slab out of a whole-box array."""
+    sl = [slice(None)] * 3
+    sl[region.axis] = slice(region.start, region.stop)
+    return tuple(sl)
+
+
+def majority_by_distance(dist: np.ndarray, labels: np.ndarray, edges: np.ndarray,
+                         n_classes: int = 4) -> np.ndarray:
+    """The most common class in each bin of ``dist``: a classifier that sees only distance.
+
+    Returns one class per bin (len(edges) - 1). Distances beyond the last
+    edge count in the last bin. A bin with no voxels takes the class of the
+    nearest non-empty bin below it (or above, for leading empty bins).
+    """
+    nb = len(edges) - 1
+    which = np.clip(np.digitize(dist.ravel(), edges) - 1, 0, nb - 1)
+    counts = np.zeros((nb, n_classes))
+    np.add.at(counts, (which, labels.ravel()), 1)
+    table = counts.argmax(1)
+    filled = counts.sum(1) > 0
+    if not filled.any():
+        raise ValueError("no voxels to fit")
+    for i in range(nb):
+        if not filled[i]:
+            below = np.nonzero(filled[:i])[0]
+            table[i] = table[below[-1]] if len(below) else table[np.nonzero(filled)[0][0]]
+    return table
+
+
+def predict_by_distance(dist: np.ndarray, table: np.ndarray, edges: np.ndarray) -> np.ndarray:
+    """Apply a :func:`majority_by_distance` table to distances."""
+    which = np.clip(np.digitize(dist, edges) - 1, 0, len(table) - 1)
+    return table[which].astype(np.uint8)
+
+
+def mcc_if_fixed_beyond(pred: np.ndarray, labels: np.ndarray, dist: np.ndarray,
+                        cutoffs, n_classes: int = 4) -> list[float]:
+    """Four-class MCC if every voxel farther than each cutoff were classified correctly.
+
+    Not an achievable score: it shows how much of the MCC is lost in voxels
+    far from any tracer, where the input says little about the class.
+    """
+    from .evaluate import confusion_matrix, scores
+    out = []
+    for d in cutoffs:
+        fixed = np.where(dist > d, labels, pred)
+        out.append(scores(confusion_matrix(labels.ravel(), fixed.ravel(), n_classes))["mcc"])
+    return out
+
+
 def entropy(probs: np.ndarray) -> np.ndarray:
     """Entropy in bits, -sum_c s_c log2 s_c, of the class scores along the last axis.
 

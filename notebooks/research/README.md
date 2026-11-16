@@ -23,6 +23,7 @@ in `configs/research/`.
 | `11_package_model.ipynb` | Packages the run behind the README results as a model release, checking it predicts exactly as the run does |
 | `12_cross_simulation.ipynb` | The packaged TNG subhalo model on Bolshoi halos, scored against Bolshoi's own T-web labels |
 | `13_redshift_space.ipynb` | Redshift-space subhalo grids (z as line of sight) from the TNG300-1 catalog, checks against the older grids, and the real-space model scored on redshift-space inputs |
+| `14_information_limit.ipynb` | How much of the depth-5 models' error is in voxels far from any tracer: class shares by distance, the model against a distance-only classifier, MCC if far voxels were right, and training vs test slab scores (real and redshift space) |
 
 Planned:
 
