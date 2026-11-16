@@ -14,10 +14,10 @@ in `configs/research/`.
 | `02_tng_baseline.ipynb` | Dark-matter baseline on TNG300-3 |
 | `03_bolshoi_transfer.ipynb` | The TNG baseline applied to Bolshoi without retraining |
 | `04_subhalo_smoke_test.ipynb` | Tiny run checking FiLM (feature-wise linear modulation, the spacing conditioning), curriculum and `init_from` before the subhalo runs |
-| `05_subhalo_train.ipynb` | Trains one config from `configs/research/subhalo/` per session |
+| `05_subhalo_train.ipynb` | Trains one config from `configs/research/subhalo/` (or `rsd/`, `papersplit/`) per session |
 | `06_subhalo_compare.ipynb` | Re-scores finished runs; four-class and void scores by run and spacing, void precision–recall curves, and the FiLM spacing sweep |
 | `07_coarse_grid.ipynb` | $256^3$ inputs and mask for coarse-grid runs, and the score ceiling of a $256^3$ grid |
-| `08_interpretability.ipynb` | Activation maps, centered kernel alignment (CKA) across spacings, a probe for $\lambda$, effective receptive field, error and score-entropy maps, accuracy vs distance to the nearest tracer, reliability of the class scores |
+| `08_interpretability.ipynb` | Activation maps, centered kernel alignment (CKA) across spacings, a probe for $\lambda$, effective receptive field, error and score-entropy maps, accuracy vs distance to the nearest tracer, reliability of the class scores; receptive field along and across the line of sight for the real- and redshift-space models |
 | `09_figures.ipynb` | Figures from data, finished runs and trained models, including the README summary figure |
 | `10_pointclouds.ipynb` | 3D views for Potree: the subhalo samples colored by T-web (tidal-tensor) class, and a $\lambda = 10$ slab with void/wall errors, void surfaces and dark matter |
 | `11_package_model.ipynb` | Packages the run behind the README results as a model release, checking it predicts exactly as the run does |

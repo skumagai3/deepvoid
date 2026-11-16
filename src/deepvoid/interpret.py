@@ -76,6 +76,48 @@ def radial_profile(field: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     return np.arange(len(sums))[keep], sums[keep] / counts[keep]
 
 
+def axis_radii(field: np.ndarray, fractions=(0.5, 0.9)) -> dict[str, list[int]]:
+    """How far the mass of a cube extends along each axis from its centre.
+
+    For each axis, the smallest k (cells) such that the slab within k cells
+    of the centre along that axis holds the given fraction of the total.
+    An isotropic field gives the same k on all three axes; one stretched
+    along z gives a larger k for z. Returns {"x": [...], "y": [...], "z": [...]}.
+    """
+    total = field.sum()
+    if not total > 0:
+        raise ValueError("the field is zero everywhere (or not finite); nothing to measure")
+    out = {}
+    for axis, label in enumerate("xyz"):
+        other = tuple(a for a in range(3) if a != axis)
+        line = field.sum(axis=other)
+        c = field.shape[axis] // 2
+        offset = np.abs(np.arange(field.shape[axis]) - c)
+        cum = np.cumsum(np.bincount(offset, weights=line)) / total
+        out[label] = [int(np.searchsorted(cum, f)) for f in fractions]
+    return out
+
+
+def cylinder_map(field: np.ndarray, size: int) -> np.ndarray:
+    """Mean of a cube in bins of (|z offset|, distance across z), each 0..size-1 cells.
+
+    Returns an array (size, size): rows are |z - z_c|, columns are
+    sqrt((x - x_c)^2 + (y - y_c)^2), both rounded down to whole cells
+    (NaN where a bin is empty). Shows whether a dependence is longer along
+    the line of sight (z) than across it.
+    """
+    c = np.array(field.shape) // 2
+    idx = np.indices(field.shape)
+    rz = np.abs(idx[2] - c[2])
+    rp = np.sqrt((idx[0] - c[0]) ** 2 + (idx[1] - c[1]) ** 2).astype(int)
+    keep = (rz < size) & (rp < size)
+    flat = rz[keep] * size + rp[keep]
+    sums = np.bincount(flat, weights=field[keep], minlength=size * size)
+    counts = np.bincount(flat, minlength=size * size)
+    with np.errstate(invalid="ignore"):
+        return (sums / counts).reshape(size, size)
+
+
 def distance_to_tracer(raw: np.ndarray, region: Region, pad: int = 40) -> np.ndarray:
     """Distance in cells from each voxel of ``region`` to the nearest non-empty cell.
 

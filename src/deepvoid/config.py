@@ -36,6 +36,7 @@ DEFAULTS: dict[str, Any] = {
         "dropout": 0.0,
         "conditioning": None,
         "deep_supervision": False,
+        "strip_pool": None,    # e.g. {axes: [z], length: 5}; see models.unet._strip_context
     },
     "training": {
         "crop": 96,
@@ -78,7 +79,23 @@ def load_config(source: str | Path | dict) -> dict[str, Any]:
         raise ValueError("the config needs data.inputs and data.labels")
     if cfg["training"]["rotate"] not in (True, False, "z"):
         raise ValueError("training.rotate must be true, false or 'z'")
+    check_strip_pool(cfg["model"]["strip_pool"])
     return cfg
+
+
+def check_strip_pool(strip: dict | None) -> None:
+    """Validate ``model.strip_pool``: None, or {axes: [x|y|z, ...], length: odd int >= 3}."""
+    if strip is None:
+        return
+    if not isinstance(strip, dict) or set(strip) != {"axes", "length"}:
+        raise ValueError("model.strip_pool must be null or {axes: [...], length: n}")
+    axes = strip["axes"]
+    if not axes or len(set(axes)) != len(axes) or not set(axes) <= {"x", "y", "z"}:
+        raise ValueError("model.strip_pool.axes must be distinct axes from x, y, z")
+    n = strip["length"]
+    if not isinstance(n, int) or isinstance(n, bool) or n < 3 or n % 2 == 0:
+        raise ValueError("model.strip_pool.length must be an odd integer >= 3 "
+                         "(bottleneck cells, centered on each voxel)")
 
 
 def merge(base: dict, override: dict) -> dict:

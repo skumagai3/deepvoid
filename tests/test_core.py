@@ -929,3 +929,62 @@ def test_input_labels_keep_variants_apart():
     check_unique_labels(rsd)
     with pytest.raises(ValueError, match="share the labels"):
         check_unique_labels(["a/L10", "b/L10"])
+
+
+# ---------------------------------------------------------------- strip pooling
+
+def test_strip_pool_config_is_validated():
+    from deepvoid.config import load_config
+    base = {"name": "x", "data": {"inputs": ["a"], "labels": "b"}}
+    assert load_config(base)["model"]["strip_pool"] is None
+    ok = load_config({**base, "model": {"strip_pool": {"axes": ["z"], "length": 5}}})
+    assert ok["model"]["strip_pool"] == {"axes": ["z"], "length": 5}
+    for bad in ({"axes": ["z"], "length": 4}, {"axes": ["w"], "length": 5},
+                {"axes": ["z", "z"], "length": 5}, {"axes": [], "length": 5},
+                {"axes": ["z"]}, {"axes": ["z"], "length": True}):
+        with pytest.raises(ValueError):
+            load_config({**base, "model": {"strip_pool": bad}})
+
+
+def test_axis_radii_and_cylinder_map_see_a_stretch_along_z():
+    from deepvoid.interpret import axis_radii, cylinder_map
+    idx = np.indices((33, 33, 33)) - 16
+    blob = np.exp(-0.5 * ((idx[0] / 2) ** 2 + (idx[1] / 2) ** 2 + (idx[2] / 6) ** 2))
+    r = axis_radii(blob)
+    assert r["x"] == r["y"] and r["z"][0] > 2 * r["x"][0] and r["z"][1] > 2 * r["x"][1]
+    iso = np.exp(-0.5 * (idx ** 2).sum(0) / 9)
+    ri = axis_radii(iso)
+    assert ri["x"] == ri["y"] == ri["z"]
+    m = cylinder_map(blob, 10)
+    assert m.shape == (10, 10)
+    assert m[0, 0] == pytest.approx(1.0)
+    assert m[6, 0] > m[0, 6]                    # falls off slower along z than across
+
+
+def test_strip_pool_starts_as_identity_and_reaches_further_along_z():
+    pytest.importorskip("tensorflow")
+    import tensorflow as tf
+    from deepvoid.models import copy_weights, unet3d
+    tf.keras.utils.set_random_seed(0)
+    plain = unet3d(depth=3, base_filters=4)
+    strip = unet3d(depth=3, base_filters=4, strip_pool={"axes": ["z"], "length": 7})
+    copied, skipped = copy_weights(plain, strip)
+    assert all(n.startswith("bottom_strip_") for n in skipped)
+    x = tf.random.normal((1, 32, 32, 64, 1))
+    np.testing.assert_allclose(plain(x), strip(x), atol=1e-5)    # zero-initialized output
+
+    out = strip.get_layer("bottom_strip_out")
+    out.set_weights([w + 0.1 * rng.normal(size=w.shape) for w in out.get_weights()])
+
+    def extent(model, axis):
+        with tf.GradientTape() as tape:
+            tape.watch(x)
+            y = tf.reduce_sum(model(x)[0, 16, 16, 32] * tf.constant([1.0, -1, 2, -2]))
+        g = np.abs(tape.gradient(y, x)[0, ..., 0].numpy())
+        line = g.sum(axis=tuple(a for a in range(3) if a != axis))
+        nz = np.nonzero(line > 1e-12 * line.max())[0]
+        c = x.shape[1 + axis] // 2
+        return max(c - nz.min(), nz.max() - c)
+
+    assert extent(strip, 2) > extent(plain, 2)    # reaches further along z
+    assert extent(strip, 0) == extent(plain, 0)   # but not across it

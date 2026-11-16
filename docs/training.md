@@ -32,6 +32,7 @@ as `config.yaml` in the run folder.
 | `model.dropout` | 0 | Dropout at the bottom of the U-Net |
 | `model.conditioning` | null | Condition on tracer spacing (FiLM, feature-wise linear modulation), e.g. `{units: 32, noise: 0.1}`; see below |
 | `model.deep_supervision` | false | Extra training outputs at each coarser level; see below |
+| `model.strip_pool` | null | Strip pooling after the bottleneck, e.g. `{axes: [z], length: 5}`; see below |
 | `training.crop` | 96 | Training crop side in cells |
 | `training.batch_size` | 8 | Crops per step |
 | `training.steps_per_epoch` | 200 | Steps between validation passes |
@@ -192,6 +193,32 @@ to sum to 1. The coarse outputs exist only during training: validation,
 `best.keras` and everything downstream use the full-resolution output
 alone. The training crop and validation crop must be divisible by
 $2^{\mathrm{depth}-1}$, as for any U-Net of that depth.
+
+**Strip pooling.** With `model.strip_pool: {axes: [z], length: n}`, a
+block after the bottleneck adds context averaged along long, narrow
+strips, adapted to 3D from Hou et al. (2020,
+[CVPR](https://openaccess.thecvf.com/content_CVPR_2020/html/Hou_Strip_Pooling_Rethinking_Spatial_Pooling_for_Scene_Parsing_CVPR_2020_paper.html)).
+For each listed axis, the bottleneck features are averaged over $n$ cells
+along that axis and 1 cell across it, then mixed across the other two
+axes by a $3\times3$ convolution. The strips are summed, passed through a
+ReLU and a $1\times1\times1$ convolution, and added to the bottleneck
+output. It is meant for redshift-space inputs, where fingers of God
+stretch structure along the line of sight (z). Two differences from Hou et
+al.:
+
+- The block is added to the features rather than multiplying them by a
+  sigmoid gate, and its last convolution starts at zero. A model with the
+  block therefore starts out computing exactly what the same model without
+  it computes, and `training.init_from` can start it from a trained model
+  without changing that model's predictions.
+- The window has a fixed length instead of spanning the whole crop, so
+  96-cell training crops and 128-cell prediction crops see the same
+  context.
+
+`length` counts bottleneck cells, each $2^{\mathrm{depth}-1}$ grid cells
+wide, and must be odd so the window is centered. At depth 5 on the
+$0.4\,h^{-1}$ Mpc TNG grid, `length: 5` spans 80 grid cells,
+$32\,h^{-1}$ Mpc.
 
 Planned, not yet implemented: weighting the loss by distance to the
 void boundary.

@@ -21,10 +21,47 @@ def _conv_block(x, filters: int, batch_norm: bool, bn_momentum: float, name: str
     return x
 
 
+STRIP_SHAPES = {  # (pooling window, in-plane convolution) for a strip along each axis
+    "x": (lambda n: (n, 1, 1), (1, 3, 3)),
+    "y": (lambda n: (1, n, 1), (3, 1, 3)),
+    "z": (lambda n: (1, 1, n), (3, 3, 1)),
+}
+
+
+def _strip_context(x, axes, length: int, name: str):
+    """Add context averaged along long, narrow strips (Hou et al. 2020, 3D).
+
+    For each axis in ``axes``, the features are averaged over a window of
+    ``length`` cells along that axis (1 cell across the others), then mixed
+    across the other two axes by a 3x3 convolution. The strips are summed,
+    passed through a ReLU and a 1x1x1 convolution, and added to the input.
+    That last convolution starts at zero, so the block starts as the
+    identity: a model built with it computes the same thing as one without,
+    until training changes it. (Hou et al. multiply the input by a sigmoid
+    gate instead; the residual form is used here so a trained model can be
+    copied in unchanged.) The window has a fixed length rather than spanning
+    the whole crop, so training and prediction crops of different sizes see
+    the same context.
+    """
+    channels = x.shape[-1]
+    strips = []
+    for axis in axes:
+        window, kernel = STRIP_SHAPES[axis]
+        s = layers.AveragePooling3D(window(length), strides=1, padding="same",
+                                    name=f"{name}_strip_{axis}_pool")(x)
+        strips.append(layers.Conv3D(channels, kernel, padding="same",
+                                    name=f"{name}_strip_{axis}_conv")(s))
+    s = strips[0] if len(strips) == 1 else layers.Add(name=f"{name}_strip_sum")(strips)
+    s = layers.Activation("relu", name=f"{name}_strip_relu")(s)
+    s = layers.Conv3D(channels, 1, kernel_initializer="zeros", name=f"{name}_strip_out")(s)
+    return layers.Add(name=f"{name}_strip_add")([x, s])
+
+
 def unet3d(depth: int = 4, base_filters: int = 16, n_classes: int = 4,
            in_channels: int = 1, batch_norm: bool = True, bn_momentum: float = 0.99,
            dropout: float = 0.0, conditioning: dict | None = None,
-           deep_supervision: bool = False, name: str = "unet3d") -> keras.Model:
+           deep_supervision: bool = False, strip_pool: dict | None = None,
+           name: str = "unet3d") -> keras.Model:
     """Build a 3D U-Net.
 
     The input side length is left open, so a model trained on 64^3 crops can
@@ -48,6 +85,10 @@ def unet3d(depth: int = 4, base_filters: int = 16, n_classes: int = 4,
     extra outputs are only for training (see ``losses.DeepSupervisionLoss``),
     and :func:`main_output` gives the model with the full-resolution output
     alone, which is what gets saved for prediction.
+
+    With ``strip_pool`` (e.g. ``{"axes": ["z"], "length": 5}``), a strip
+    pooling block (:func:`_strip_context`) follows the bottleneck. ``length``
+    counts bottleneck cells, each 2^(depth-1) grid cells wide.
     """
     inputs = keras.Input(shape=(None, None, None, in_channels), name="density")
     emb = None
@@ -64,6 +105,8 @@ def unet3d(depth: int = 4, base_filters: int = 16, n_classes: int = 4,
         x = layers.MaxPooling3D(2, name=f"enc{level}_pool")(x)
 
     x = _conv_block(x, base_filters * 2 ** (depth - 1), name="bottom", **block)
+    if strip_pool:
+        x = _strip_context(x, strip_pool["axes"], strip_pool["length"], name="bottom")
     if dropout:
         x = layers.Dropout(dropout, name="bottom_dropout")(x)
     coarse = {depth - 1: x}

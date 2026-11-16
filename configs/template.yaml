@@ -75,6 +75,10 @@ model:
   # Extra training outputs at each coarser level. Default false; it changed
   # test scores by 0.004 or less in our runs.
   deep_supervision: false
+  # Strip pooling after the bottleneck: context averaged along narrow strips,
+  # e.g. {axes: [z], length: 5} along the line of sight. Length counts
+  # bottleneck cells (2^(depth-1) grid cells each). Default null (off).
+  strip_pool: null
 
 # ----------------------------------------------------------------- training
 training:
