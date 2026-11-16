@@ -81,6 +81,32 @@ scores against separation in
 [docs/figures/bolshoi_scores_vs_spacing.png](docs/figures/bolshoi_scores_vs_spacing.png).
 The code is `notebooks/research/12_cross_simulation.ipynb`.
 
+**In redshift space.** A survey sees galaxies at their redshift-space
+positions, shifted along the line of sight by their peculiar velocities. The
+same model, trained on subhalo positions moved along z by their velocities
+(`SubhaloVel`, $s = x + v_z / 100\ \mathrm{km\,s^{-1}}$ in
+$h^{-1}\,\mathrm{Mpc}$ at $z = 0$), with z kept as the line of sight in every
+augmentation and the real-space T-web labels as the target:
+
+| Mean tracer separation ($h^{-1}\,\mathrm{Mpc}$) | 3 | 5 | 7 | 10 |
+|---|---|---|---|---|
+| Void against everything else, MCC | 0.796 | 0.777 | 0.753 | 0.690 |
+| All four classes, MCC | 0.698 | 0.677 | 0.653 | 0.595 |
+
+Voids hold up best: void F1 is 0.90 at $\lambda = 10$ (0.92 in real space).
+Halos are the hardest class (F1 about 0.41), because fingers of God stretch
+them along the line of sight.
+
+<p align="center">
+  <img src="docs/figures/rsd_slices_L3_L10.png" width="900"
+       alt="A slice through the TNG test slab with the line of sight vertical, at tracer separations 3 and 10: redshift-space input, real-space T-web truth, prediction and misclassified cells">
+</p>
+
+The configuration is
+`configs/research/rsd/C_mixed_smooth2ch_depth5_rsd.yaml`, and
+`notebooks/research/13_redshift_space.ipynb` builds the redshift-space grids
+and checks them.
+
 ## Install
 
 ```bash
