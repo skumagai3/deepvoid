@@ -25,6 +25,8 @@ import numpy as np
 from scipy import ndimage
 
 from .catalog import Catalog
+from .config import los_swap
+from .observe import los_to_z
 from .preprocess import MinMax, Normalizer, normalizer
 
 
@@ -83,3 +85,27 @@ def n_channels(smoothing: dict | None) -> int:
     if not smoothing:
         return 1
     return 2 if smoothing.get("keep_raw", True) else 1
+
+
+def align_line_of_sight(cfg, catalog, names, inputs, labels):
+    """Inputs and per-input labels with every line of sight along z.
+
+    Real-space inputs and inputs already seen along z are returned as they
+    are, sharing one label array. An input seen along x or y is swapped with
+    z (a contiguous copy), and gets a swapped copy of the labels, made once
+    per axis. ``check_line_of_sight`` has already refused swaps that would
+    move the split axis, so the slabs are the same in every frame.
+    """
+    swapped_labels = {}
+    out_x, out_y = [], []
+    for name, x in zip(names, inputs):
+        swap = los_swap(cfg, catalog, name)
+        if swap is None:
+            out_x.append(x)
+            out_y.append(labels)
+            continue
+        if swap not in swapped_labels:
+            swapped_labels[swap] = np.ascontiguousarray(los_to_z(labels, swap))
+        out_x.append(np.ascontiguousarray(los_to_z(x, swap)))
+        out_y.append(swapped_labels[swap])
+    return out_x, out_y

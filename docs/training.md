@@ -39,7 +39,7 @@ as `config.yaml` in the run folder.
 | `training.val_crop` | 64 | Validation crop side; must fit inside the validation slab (70 cells for a $512^3$ box with the default split) |
 | `training.val_batches` | 32 | Fixed validation crops per input, in batches |
 | `training.epochs` | 80 | Length of the learning-rate schedule and upper limit on training |
-| `training.rotate` | true | Random cube symmetry per batch (48 rotations and reflections); `z` keeps the z axis fixed (16 symmetries), required for redshift-space inputs |
+| `training.rotate` | true | Random cube symmetry per batch (48 rotations and reflections); `z` keeps the z axis fixed (16 symmetries), required for redshift-space inputs; see "Redshift-space inputs" below |
 | `training.init_from` | null | Start from a trained model: a `.keras` file or a run folder (its `best.keras`), relative to `output` |
 | `training.curriculum` | null | Sampling weights over inputs that change with the epoch; see below |
 | `training.optimizer` | AdamW, lr 1e-3, weight decay 1e-4, clipnorm 1.0 | `name` is `adamw` or `adam`; `clipnorm` clips the gradient norm |
@@ -219,6 +219,20 @@ al.:
 wide, and must be odd so the window is centered. At depth 5 on the
 $0.4\,h^{-1}$ Mpc TNG grid, `length: 5` spans 80 grid cells,
 $32\,h^{-1}$ Mpc.
+
+**Redshift-space inputs.** Inputs marked `rsd: true` in the catalog have
+their tracers moved along one axis, the line of sight (`los_axis`), by
+their peculiar velocities; the labels stay the real-space T-web. Rotating
+such an input freely would put the line of sight along other axes, so
+these runs use `training.rotate: z`, which keeps 16 of the cube's 48
+orientations. An input whose line of sight is x or y is turned so it lies
+along z: the input and its labels are swapped (y with z, say) when loaded,
+for training, validation and test scoring alike (`config.los_swap`,
+`observe.los_to_z`). A line of sight along the split axis (x by default)
+is refused, because tracers would move between the training, validation
+and test slabs; so is a swap that would move the split axis. With the
+default split, z and y lines of sight together give 32 of the 48
+orientations, each paired with the distortions it would really show.
 
 Planned, not yet implemented: weighting the loss by distance to the
 void boundary.

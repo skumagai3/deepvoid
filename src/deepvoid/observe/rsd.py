@@ -34,3 +34,16 @@ def to_redshift_space(tracers: Tracers, axis: int = 2,
     out.meta["rsd"] = True
     out.meta["los_axis"] = axis
     return out
+
+
+def los_to_z(array: np.ndarray, los_axis: int) -> np.ndarray:
+    """The array with its line of sight moved to axis 2 (z), by swapping two axes.
+
+    ``los_axis`` 2 returns the array unchanged; 0 or 1 swaps that axis with
+    axis 2. Any further axes (channels) are left alone. A swap undoes itself,
+    so the same call moves a prediction made in the swapped frame back to the
+    original one. Returns a view; use ``np.ascontiguousarray`` for a copy.
+    """
+    if los_axis not in (0, 1, 2):
+        raise ValueError(f"los_axis must be 0, 1 or 2, not {los_axis}")
+    return array if los_axis == 2 else np.swapaxes(array, los_axis, 2)

@@ -37,13 +37,15 @@ import numpy as np
 
 from .callbacks import EMA, RunState, Validation, read_log
 from .catalog import Catalog
-from .config import check_line_of_sight, check_unique_labels, input_label, load_config, save_config
+from .config import (check_line_of_sight, check_unique_labels, input_label, load_config,
+                     los_swap, save_config)
 from .evaluate import (best_void_threshold, confusion_matrix, decide, scores,
                        void_reliability, void_threshold_curve)
 from .inputs import build as build_input
-from .inputs import n_channels
+from .inputs import align_line_of_sight, n_channels
 from .losses import DeepSupervisionLoss, build_loss, deep_supervision_weights
 from .models import copy_weights, is_conditioned, load_model, main_output, unet3d
+from .observe import los_to_z
 from .pipeline import CropSampler
 from .predict import predict_volume
 from .report import plain
@@ -98,7 +100,9 @@ def run(config, seed: int | None = None, catalog: Catalog | None = None) -> Path
     names = cfg["data"]["inputs"]
     conditioned = cfg["model"]["conditioning"] is not None
     spacings = [_spacing(catalog, n) for n in names] if conditioned else None
-    y = [labels.data] * len(inputs)
+    # Redshift-space inputs with the line of sight along x or y are turned so it
+    # lies along z, and their labels with them (one swapped copy per axis).
+    inputs, y = align_line_of_sight(cfg, catalog, names, inputs, labels.data)
     n_outputs = cfg["model"]["depth"] if cfg["model"]["deep_supervision"] else 1
     train_data = CropSampler(inputs, y, regions["train"], crop=tr["crop"],
                              batch_size=tr["batch_size"], steps_per_epoch=tr["steps_per_epoch"],
@@ -109,7 +113,7 @@ def run(config, seed: int | None = None, catalog: Catalog | None = None) -> Path
     # than the training slab, and the network takes any size.
     val_batches = {}
     for i, name in enumerate(names):
-        source = CropSampler([inputs[i]], [labels.data], regions["val"], crop=tr["val_crop"],
+        source = CropSampler([inputs[i]], [y[i]], regions["val"], crop=tr["val_crop"],
                              batch_size=tr["batch_size"], steps_per_epoch=tr["val_batches"],
                              rotate=False, seed=cfg["seed"] + 1,
                              spacings=[spacings[i]] if conditioned else None)
@@ -208,13 +212,19 @@ def evaluate_run(out: str | Path, catalog: Catalog | None = None, **overrides) -
     results, rows = {}, []
     for name in names:
         x = make_x(name)
+        # A line of sight along x or y is turned onto z, as in training; the
+        # labels are turned with it (the slabs are unchanged by the swap).
+        swap = los_swap(cfg, catalog, name)
+        y = labels
+        if swap is not None:
+            x, y = los_to_z(x, swap), los_to_z(labels, swap)
         spacing = _spacing(catalog, name) if is_conditioned(model) else None
-        results[name], pred = _score(model, x, labels, masks, cfg["evaluate"], spacing, factor,
+        results[name], pred = _score(model, x, y, masks, cfg["evaluate"], spacing, factor,
                                      keep=(axis, mid))
         rows.append(dict(name=name, result=results[name], pred=pred,
                          input_label=("smoothed tracer field" if cfg["data"]["smoothing"]
                                       else "tracer field"),
-                         truth=np.take(labels, mid, axis=axis),
+                         truth=np.take(y, mid, axis=axis),
                          input=np.take(x[..., -1], mid // factor, axis=axis)))
         _print_scores(name, results[name])
     # Settings that change the argmax scores get their own file; the optional void

@@ -157,6 +157,42 @@ datasets:
     rsd: true
     los_axis: 2
 
+  # The same with y as the line of sight (notebook 13). Training and scoring
+  # swap y and z (inputs and labels) so the line of sight lies along z; y is
+  # across the x split, so no tracer moves between slabs.
+  tng300-3/subhalos/L3/rsd-y:
+    file: TNG/rsd/subhalos_L3_rsd_y.npz
+    sim: tng300-3
+    field: density
+    tracer: subhalos
+    spacing: 3.0
+    rsd: true
+    los_axis: 1
+  tng300-3/subhalos/L5/rsd-y:
+    file: TNG/rsd/subhalos_L5_rsd_y.npz
+    sim: tng300-3
+    field: density
+    tracer: subhalos
+    spacing: 5.0
+    rsd: true
+    los_axis: 1
+  tng300-3/subhalos/L7/rsd-y:
+    file: TNG/rsd/subhalos_L7_rsd_y.npz
+    sim: tng300-3
+    field: density
+    tracer: subhalos
+    spacing: 7.0
+    rsd: true
+    los_axis: 1
+  tng300-3/subhalos/L10/rsd-y:
+    file: TNG/rsd/subhalos_L10_rsd_y.npz
+    sim: tng300-3
+    field: density
+    tracer: subhalos
+    spacing: 10.0
+    rsd: true
+    los_axis: 1
+
   # ---- Bolshoi, 640^3 (0.39 h^-1 Mpc cells) ----
   bolshoi/dm:
     file: Bolshoi/Bolshoi_halo_CIC_640_L=0.122.fvol

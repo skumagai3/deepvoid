@@ -876,10 +876,52 @@ def test_rotate_setting_and_line_of_sight():
         check_line_of_sight(load_config(base), rsd)
     check_line_of_sight(load_config({**base, "training": {"rotate": "z"}}), rsd)
     check_line_of_sight(load_config({**base, "training": {"rotate": False}}), rsd)
-    with pytest.raises(ValueError, match="los_axis"):
+    with pytest.raises(ValueError, match="split axis"):         # x is the default split axis
         check_line_of_sight(load_config({**base, "training": {"rotate": "z"}}),
                             FakeCatalog({"rsd": True, "los_axis": 0}))
+    check_line_of_sight(load_config({**base, "training": {"rotate": "z"}}),
+                        FakeCatalog({"rsd": True, "los_axis": 1}))     # y: swapped onto z
     check_line_of_sight(load_config(base), FakeCatalog({}))     # real space: anything goes
+
+
+def test_line_of_sight_swap():
+    from deepvoid.config import load_config, los_swap
+    from deepvoid.observe import los_to_z
+    from deepvoid.inputs import align_line_of_sight
+
+    class FakeCatalog:
+        def __init__(self, infos): self.infos = infos
+        def info(self, name): return self.infos[name]
+
+    cat = FakeCatalog({"real": {}, "z": {"rsd": True, "los_axis": 2},
+                       "y": {"rsd": True, "los_axis": 1}, "x": {"rsd": True, "los_axis": 0}})
+    cfg = load_config({"name": "t", "data": {"inputs": ["z"], "labels": "m"},
+                       "training": {"rotate": "z"}})
+    assert los_swap(cfg, cat, "real") is None and los_swap(cfg, cat, "z") is None
+    assert los_swap(cfg, cat, "y") == 1
+    with pytest.raises(ValueError, match="split axis"):
+        los_swap(cfg, cat, "x")
+    cfg_z = load_config({"name": "t", "data": {"inputs": ["z"], "labels": "m",
+                                               "split": {"axis": 2}}})
+    with pytest.raises(ValueError, match="split axis"):
+        los_swap(cfg_z, cat, "y")                    # the swap would move the z split
+
+    a = rng.normal(size=(4, 5, 6, 2))
+    b = los_to_z(a, 1)
+    assert b.shape == (4, 6, 5, 2) and b[1, 3, 2, 1] == a[1, 2, 3, 1]
+    np.testing.assert_array_equal(los_to_z(b, 1), a)            # the swap undoes itself
+    assert los_to_z(a, 2) is a
+
+    # Inputs seen along y are swapped with their labels; the x slabs stay put.
+    n = 8
+    labels = rng.integers(0, 4, (n, n, n)).astype(np.uint8)
+    xs = [rng.normal(size=(n, n, n, 1)) for _ in range(3)]
+    out_x, out_y = align_line_of_sight(cfg, cat, ["real", "z", "y"], xs, labels)
+    assert out_x[0] is xs[0] and out_y[0] is labels and out_y[1] is labels
+    np.testing.assert_array_equal(out_x[2], np.swapaxes(xs[2], 1, 2))
+    np.testing.assert_array_equal(out_y[2], np.swapaxes(labels, 1, 2))
+    test = slab_split(n, buffer=0, axis=0)["test"].mask(n)
+    np.testing.assert_array_equal(los_to_z(test, 1), test)      # an x slab is unchanged
 
 
 def test_redshift_space_keeps_columns_along_line_of_sight():

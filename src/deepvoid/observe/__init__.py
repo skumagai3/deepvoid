@@ -12,7 +12,7 @@ Labels are always computed from the true real-space matter field, so a model
 trained on these inputs learns to recover the underlying structure.
 """
 
-from .rsd import to_redshift_space
+from .rsd import los_to_z, to_redshift_space
 from .tracers import select_by_spacing
 
-__all__ = ["select_by_spacing", "to_redshift_space"]
+__all__ = ["los_to_z", "select_by_spacing", "to_redshift_space"]

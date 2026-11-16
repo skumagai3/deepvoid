@@ -120,12 +120,14 @@ def save_config(cfg: dict, path: str | Path) -> None:
         yaml.safe_dump(cfg, f, sort_keys=False)
 
 def check_line_of_sight(cfg: dict, catalog) -> None:
-    """Refuse augmentation that would turn a redshift-space line of sight.
+    """Refuse augmentation or splits that would mix up a redshift-space line of sight.
 
     Inputs marked ``rsd: true`` in the catalog are stretched along their
-    line of sight (``los_axis``, default 2). Rotating them would put that
-    stretch along other axes, which no real survey shows, so they need
-    ``training.rotate: z`` (or no rotation) and a line of sight along z.
+    line of sight (``los_axis``, default 2). Rotating them freely would put
+    that stretch along other axes, which no real survey shows, so they need
+    ``training.rotate: z`` (or no rotation). An input with its line of sight
+    along x or y is turned so it lies along z (see :func:`los_swap`), which
+    the split must allow.
     """
     rsd = [n for n in cfg["data"]["inputs"] if catalog.info(n).get("rsd")]
     if not rsd:
@@ -133,10 +135,35 @@ def check_line_of_sight(cfg: dict, catalog) -> None:
     if cfg["training"]["rotate"] is True:
         raise ValueError(f"{rsd} are in redshift space; set training.rotate to 'z' so "
                          "rotations keep the line of sight along z")
-    axes = {catalog.info(n).get("los_axis", 2) for n in rsd}
-    if cfg["training"]["rotate"] == "z" and axes != {2}:
-        raise ValueError(f"rotate 'z' needs the line of sight along z; these inputs have "
-                         f"los_axis {sorted(axes)}")
+    for name in rsd:
+        los_swap(cfg, catalog, name)
+
+
+def los_swap(cfg: dict, catalog, name: str) -> int | None:
+    """The axis to swap with z so input ``name`` has its line of sight along z.
+
+    None for real-space inputs and for a line of sight already along z.
+    For a line of sight along x or y, the input and its labels are swapped
+    with z (``observe.los_to_z``) for training and scoring. Refused when the
+    line of sight is the split axis (tracers would move between the
+    training, validation and test slabs) or when the swap would move the
+    split axis (the slabs would no longer line up).
+    """
+    info = catalog.info(name)
+    if not info.get("rsd"):
+        return None
+    los = info.get("los_axis", 2)
+    split = cfg["data"]["split"]["axis"]
+    if los == split:
+        raise ValueError(f"{name} has its line of sight along the split axis "
+                         f"({'xyz'[split]}): tracers would move between the training, "
+                         "validation and test slabs")
+    if los == 2:
+        return None
+    if split == 2:
+        raise ValueError(f"{name}: turning its line of sight ({'xyz'[los]}) onto z would "
+                         "move the split axis (z)")
+    return los
 
 
 def input_label(name: str) -> str:
