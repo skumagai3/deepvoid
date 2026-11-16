@@ -148,7 +148,9 @@ def _gather_crops(volumes, which, origins, offsets):
     """Crop i of side len(offsets) from volumes[which[i]] at origins[i].
 
     Returns (batch, c, c, c) for label volumes and (batch, c, c, c, channels)
-    for input volumes.
+    for input volumes. The indices are 64-bit: with 32-bit indices the GPU
+    gather refuses stacks of 2^31 elements or more (e.g. eight two-channel
+    512^3 inputs).
     """
     b, c = tf.shape(origins)[0], tf.shape(offsets)[0]
     shape = [b, c, c, c]
@@ -161,7 +163,7 @@ def _gather_crops(volumes, which, origins, offsets):
         tf.broadcast_to(iy[:, None, :, None], shape),
         tf.broadcast_to(iz[:, None, None, :], shape),
     ], axis=-1)
-    return tf.gather_nd(volumes, idx)
+    return tf.gather_nd(volumes, tf.cast(idx, tf.int64))
 
 
 @tf.function(reduce_retracing=True)

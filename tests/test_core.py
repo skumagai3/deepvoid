@@ -1053,3 +1053,15 @@ def test_majority_by_distance_and_ceiling():
     r = Region("test", 1, 2, 5)
     a = np.arange(6 ** 3).reshape(6, 6, 6)
     assert a[region_slice(r)].shape == (6, 3, 6)
+
+
+def test_gather_crops_match_numpy_slices():
+    pytest.importorskip("tensorflow")
+    import tensorflow as tf
+    from deepvoid.pipeline import _gather_crops
+    vols = rng.normal(size=(3, 10, 10, 10, 2)).astype(np.float32)
+    which = tf.constant([2, 0], tf.int32)
+    origins = tf.constant([[1, 2, 3], [4, 0, 5]], tf.int32)
+    out = _gather_crops(tf.constant(vols), which, origins, tf.range(4, dtype=tf.int32)).numpy()
+    np.testing.assert_array_equal(out[0], vols[2, 1:5, 2:6, 3:7])
+    np.testing.assert_array_equal(out[1], vols[0, 4:8, 0:4, 5:9])
