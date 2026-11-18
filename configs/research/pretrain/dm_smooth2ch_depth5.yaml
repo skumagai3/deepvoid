@@ -1,0 +1,26 @@
+# Dark-matter model with exactly the shape of C_mixed_smooth2ch_depth5
+# (depth 5, two input channels: the field and a smoothed copy), so its
+# weights fit the subhalo model. Used to start the subhalo model from it
+# (C_mixed_smooth2ch_depth5_dmpre) and later as the teacher for distillation.
+# The smoothing follows the same rule as for subhalos (sigma = 0.5 x spacing;
+# the dark matter's spacing is 0.33 h^-1 Mpc, so about 0.4 cells). Training
+# settings follow the depth-5 subhalo model; epochs as the dark-matter
+# baseline needed (~106).
+
+name: dm_smooth2ch_depth5
+output: /content/drive/MyDrive/deepvoid_runs
+seed: 12
+
+data:
+  inputs: [tng300-3/dm]
+  labels: tng300-3/mask
+  smoothing: {sigma_spacing: 0.5, keep_raw: true}
+
+model:
+  depth: 5
+
+training:
+  epochs: 120
+  optimizer: {name: adamw, learning_rate: 1.0e-3, weight_decay: 1.0e-3, clipnorm: 1.0}
+  loss: {name: scce, class_weights: auto}
+  early_stopping: {monitor: val_mcc, patience: 15, min_delta: 0.002}

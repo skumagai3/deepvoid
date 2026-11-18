@@ -1,0 +1,30 @@
+# C_mixed_smooth2ch_depth5 started from the dark-matter model
+# dm_smooth2ch_depth5 instead of from random weights. All layers train.
+# The learning rate is the one B_finetune_L10 used when starting from the
+# dark-matter baseline (2e-4, one warmup epoch): a full 1e-3 would largely
+# undo the starting weights. That makes two differences from the
+# from-scratch run (start and learning rate); if this one scores higher,
+# the from-scratch control at 2e-4 (C_mixed_smooth2ch_depth5_lr2e-4) tells
+# them apart.
+
+name: subhalo_C_mixed_smooth2ch_depth5_dmpre
+output: /content/drive/MyDrive/deepvoid_runs
+seed: 12
+
+data:
+  inputs: [tng300-3/subhalos/L3, tng300-3/subhalos/L5, tng300-3/subhalos/L7,
+           tng300-3/subhalos/L10]
+  labels: tng300-3/mask
+  smoothing: {sigma_spacing: 0.5, keep_raw: true}
+
+model:
+  depth: 5
+
+training:
+  epochs: 60
+  init_from: dm_smooth2ch_depth5         # run folder under `output`; uses its best.keras
+  val_batches: 16                        # per spacing
+  optimizer: {name: adamw, learning_rate: 2.0e-4, weight_decay: 1.0e-3, clipnorm: 1.0}
+  schedule: {name: cosine, warmup_epochs: 1, min_lr_ratio: 0.01}
+  loss: {name: scce, class_weights: auto}
+  early_stopping: {monitor: val_mcc, patience: 15, min_delta: 0.002}
