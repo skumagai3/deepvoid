@@ -52,7 +52,8 @@ def with_tta(predict_fn: Callable[[np.ndarray], np.ndarray], kind: str = "flips"
 
 def predict_volume(predict_fn: Callable[[np.ndarray], np.ndarray], x: np.ndarray,
                    n_classes: int = 4, crop: int = 128, margin: int = 16,
-                   batch_size: int = 4, tta: str = "none") -> np.ndarray:
+                   batch_size: int = 4, tta: str = "none",
+                   out_dtype=np.float32) -> np.ndarray:
     """Class scores (softmax outputs) for every voxel of a periodic box.
 
     Parameters
@@ -66,8 +67,13 @@ def predict_volume(predict_fn: Callable[[np.ndarray], np.ndarray], x: np.ndarray
     tta:
         ``"none"``, ``"flips"`` or ``"full"``; see the module docstring.
 
-    Returns float32 class scores of shape (n, n, n, n_classes), summing to 1
-    over the last axis.
+    out_dtype:
+        Type of the returned scores. ``np.float16`` halves the memory (17 GB
+        becomes 8.6 GB for a 1024^3 box with 4 classes); scores then carry
+        about 3 significant digits.
+
+    Returns class scores of shape (n, n, n, n_classes), summing to 1 over the
+    last axis.
     """
     if tta != "none":
         predict_fn = with_tta(predict_fn, tta)
@@ -79,7 +85,7 @@ def predict_volume(predict_fn: Callable[[np.ndarray], np.ndarray], x: np.ndarray
         raise ValueError("crop must be larger than 2 * margin")
     starts = range(0, n, stride)
     tiles = [(i, j, k) for i in starts for j in starts for k in starts]
-    out = np.zeros((n, n, n, n_classes), dtype=np.float32)
+    out = np.zeros((n, n, n, n_classes), dtype=out_dtype)
 
     def window(o):  # input indices for a tile whose kept region starts at o
         return np.arange(o - margin, o - margin + crop) % n

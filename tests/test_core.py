@@ -1065,3 +1065,73 @@ def test_gather_crops_match_numpy_slices():
     out = _gather_crops(tf.constant(vols), which, origins, tf.range(4, dtype=tf.int32)).numpy()
     np.testing.assert_array_equal(out[0], vols[2, 1:5, 2:6, 3:7])
     np.testing.assert_array_equal(out[1], vols[0, 4:8, 0:4, 5:9])
+
+
+# ---------------------------------------------------------------- SMDPL helpers
+
+def test_onto_coarse_points():
+    from deepvoid.resample import onto_coarse_points
+    n = 16
+    np.testing.assert_allclose(onto_coarse_points(np.full((n, n, n), 3.0), 0), 3.0, rtol=1e-6)
+    # A periodic wave is scaled by (1 + cos(2 pi k / n)) / 2 per axis and read exactly at
+    # the coarse points: fine 2j + offset.
+    k = 2
+    x = np.arange(n)
+    wave = np.cos(2 * np.pi * k * x / n)
+    f = wave[:, None, None] * np.ones((1, n, n))
+    for offset in (0, 1):
+        got = onto_coarse_points(f, offset)
+        want = (1 + np.cos(2 * np.pi * k / n)) / 2 * wave[offset::2]
+        np.testing.assert_allclose(got[:, 3, 5], want, atol=1e-6)
+    # A spike at fine point 2j + offset lands at coarse point j with weight 1/8.
+    for offset in (0, 1):
+        spike = np.zeros((n, n, n))
+        spike[2 * 3 + offset, 2 * 5 + offset, 2 * 1 + offset] = 1.0
+        out = onto_coarse_points(spike, offset)
+        assert out[3, 5, 1] == pytest.approx(0.125) and out.argmax() == np.ravel_multi_index((3, 5, 1), out.shape)
+    two = np.stack([f, 2 * f], axis=-1)
+    np.testing.assert_allclose(onto_coarse_points(two, 1)[..., 1], 2 * onto_coarse_points(f, 1), atol=1e-6)
+
+
+def test_predict_volume_float16_output():
+    from deepvoid.predict import predict_volume
+    x = rng.normal(size=(16, 16, 16, 1)).astype(np.float32)
+    fn = lambda b: np.repeat(np.full(b.shape[:4] + (1,), 0.25, np.float32), 4, axis=-1)
+    out = predict_volume(fn, x, crop=8, margin=2, batch_size=3, out_dtype=np.float16)
+    assert out.dtype == np.float16 and out.shape == (16, 16, 16, 4)
+    np.testing.assert_allclose(out.astype(np.float32), 0.25)
+
+
+def test_describe_run_refuses_shared_spacing(tmp_path):
+    import json as _json
+    from types import SimpleNamespace
+    from deepvoid.config import load_config
+    from deepvoid.pretrained import describe_run
+    names = ["s/L3/rsd-z", "s/L3/rsd-y"]
+    cfg = load_config({"name": "r", "data": {"inputs": names, "labels": "m"},
+                       "training": {"rotate": "z"}})
+    (tmp_path / "normalization.json").write_text(_json.dumps(
+        {"s/L3/rsd-z": {"mean": 1.0, "std": 2.0, "floor": 1e-3},
+         "s/L3/rsd-y": {"mean": 1.5, "std": 2.5, "floor": 1e-3}}))
+    vol = SimpleNamespace(meta={"spacing": 3.0}, cell_size=0.4)
+    run = SimpleNamespace(config=cfg, path=tmp_path, name="r",
+                          catalog=SimpleNamespace(load=lambda name: vol))
+    with pytest.raises(ValueError, match="share spacing"):
+        describe_run(run)
+    info = describe_run(run, inputs=["s/L3/rsd-z"])
+    assert info["normalization"]["3"]["raw"]["mean"] == 1.0 and info["inputs"] == ["s/L3/rsd-z"]
+    with pytest.raises(ValueError, match="not inputs"):
+        describe_run(run, inputs=["s/L5/rsd-z"])
+
+
+def test_read_smdpl_halos(tmp_path):
+    pd = pytest.importorskip("pandas")
+    pytest.importorskip("pyarrow")
+    from deepvoid.sources.smdpl import read_halos
+    df = pd.DataFrame({"X": [1.0, 401.0], "Y": [2.0, -1.0], "Z": [3.0, 5.0],
+                       "VX": [10.0, 0.0], "VY": [0.0, 0.0], "VZ": [-5.0, 7.0],
+                       "MVIR": [1e12, 2e12], "UPID": [-1, 7]})
+    df.to_parquet(tmp_path / "h.parquet")
+    h = read_halos(tmp_path / "h.parquet")
+    np.testing.assert_allclose(h.pos[1], [1.0, 399.0, 5.0])
+    assert h.box_size == 400.0 and h.meta["n_subhalos"] == 1 and h.mass[1] == 2e12

@@ -49,3 +49,35 @@ def upsample(a: np.ndarray, factor: int) -> np.ndarray:
     for axis in range(3):
         a = np.repeat(a, factor, axis=axis) if factor > 1 else a
     return a
+
+
+def onto_coarse_points(data: np.ndarray, offset: int) -> np.ndarray:
+    """Values on a grid twice as coarse, averaged around each coarse point.
+
+    The fine grid has point i at position i * d. A coarse point sits on fine
+    point 2j + offset: ``offset`` 0 puts coarse point j at 2j * d (point j
+    at the corner of coarse cell j, as ``grid.cic`` does), 1 puts it at
+    (2j + 1) * d (point j at the cell's center). Each coarse value is the
+    fine values weighted 1/4, 1/2, 1/4 along each axis around that point
+    (27 fine points in all), so it is centered exactly where the coarse
+    point is. ``block_mean`` would instead center it half a fine cell off.
+
+    Works on (n, n, n) or (n, n, n, channels), periodic, one channel at a
+    time to bound memory; returns float32 of shape (n/2, n/2, n/2[, channels]).
+    """
+    if offset not in (0, 1):
+        raise ValueError("offset must be 0 or 1")
+    n = data.shape[0]
+    if n % 2 or data.shape[1] != n or data.shape[2] != n:
+        raise ValueError(f"need a cube with an even side; got {data.shape[:3]}")
+    if data.ndim == 4:
+        return np.stack([onto_coarse_points(data[..., c], offset)
+                         for c in range(data.shape[-1])], axis=-1)
+    out = np.asarray(data, dtype=np.float32)
+    for axis in range(3):
+        # centered [1/4, 1/2, 1/4] at the kept points only: x[i-1], x[i], x[i+1]
+        keep = np.arange(offset, n, 2)
+        out = (0.5 * np.take(out, keep, axis=axis)
+               + 0.25 * np.take(out, (keep - 1) % n, axis=axis)
+               + 0.25 * np.take(out, (keep + 1) % n, axis=axis))
+    return out.astype(np.float32)

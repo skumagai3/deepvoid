@@ -25,10 +25,11 @@ in `configs/research/`.
 | `13_redshift_space.ipynb` | Redshift-space subhalo grids (z as line of sight) from the TNG300-1 catalog, checks against the older grids, and the real-space model scored on redshift-space inputs |
 | `14_information_limit.ipynb` | How much of the depth-5 models' error is in voxels far from any tracer: class shares by distance, the model against a distance-only classifier, MCC if far voxels were right, and training vs test slab scores (real and redshift space) |
 | `15_smdpl.ipynb` | SMDPL density grid from CosmoSim's TAP service in 27 chunks (needs a `COSMOSIM_TOKEN` Colab secret), checked and assembled to 512³ |
+| `16_smdpl_scoring.ipynb` | The real- and redshift-space models on SMDPL (whole box; redshift space along x, y and z), scored on SMDPL's 0.78 h⁻¹ Mpc grid, with the TNG test slab scored on a 0.80 h⁻¹ Mpc grid as the reference; measures where SMDPL's grid points sit |
 
 Planned:
 
 | Notebook | Purpose |
 |---|---|
-| `16_survey.ipynb` | Survey masks and radial selection |
-| `17_calibration.ipynb` | Reliability of the class scores and temperature scaling |
+| `17_survey.ipynb` | Survey masks and radial selection |
+| `18_calibration.ipynb` | Reliability of the class scores and temperature scaling |

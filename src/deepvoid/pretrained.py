@@ -76,11 +76,16 @@ class Pretrained:
         return cls(folder, json.loads((folder / "model.json").read_text()))
 
     @classmethod
-    def from_run(cls, run_folder: str | Path, catalog=None) -> "Pretrained":
-        """A training run folder, read as if it were a package."""
+    def from_run(cls, run_folder: str | Path, catalog=None,
+                 inputs: list[str] | None = None) -> "Pretrained":
+        """A training run folder, read as if it were a package.
+
+        ``inputs`` picks which of the run's inputs supply the saved scaling,
+        needed when two inputs share a spacing (see :func:`describe_run`).
+        """
         from .runs import Run
         run = Run(run_folder, catalog)
-        info = describe_run(run)
+        info = describe_run(run, inputs)
         info["weights"] = "best.keras"
         return cls(Path(run_folder), info)
 
@@ -135,31 +140,49 @@ class Pretrained:
 
     def predict(self, field: np.ndarray, box_size: float, spacing: float,
                 stats: str = "saved", tta: str = "none",
-                batch_size: int | None = None) -> np.ndarray:
-        """Class scores (n, n, n, 4) for a periodic box; ``argmax(-1)`` gives classes."""
+                batch_size: int | None = None, out_dtype=np.float32) -> np.ndarray:
+        """Class scores (n, n, n, 4) for a periodic box; ``argmax(-1)`` gives classes.
+
+        ``out_dtype=np.float16`` halves the memory of the scores (see
+        :func:`deepvoid.predict.predict_volume`).
+        """
         from .predict import predict_volume
         ev = self.info["evaluate"]
         x = self.inputs(field, box_size, spacing, stats)
         return predict_volume(self.model.predict_on_batch, x, crop=ev["crop"],
                               margin=ev["margin"], batch_size=batch_size or ev["batch_size"],
-                              tta=tta)
+                              tta=tta, out_dtype=out_dtype)
 
 
-def describe_run(run) -> dict:
-    """``model.json`` contents for a training run: how its inputs were built."""
+def describe_run(run, inputs: list[str] | None = None) -> dict:
+    """``model.json`` contents for a training run: how its inputs were built.
+
+    The saved scaling is stored per tracer spacing. A run with two inputs at
+    one spacing (for example redshift space seen along z and along y) has
+    two scalings for it, so ``inputs`` must say which of the run's inputs to
+    take them from; otherwise this refuses rather than keep one silently.
+    """
     cfg = run.config
     if cfg["model"].get("conditioning"):
         raise ValueError("models told the spacing (FiLM) are not packaged yet")
     if cfg["data"]["normalization"] != "log_standard":
         raise ValueError("only log_standard normalization is packaged")
     saved = json.loads((run.path / "normalization.json").read_text())
-    normalization, cell_sizes = {}, set()
-    for name in cfg["data"]["inputs"]:
+    normalization, cell_sizes, source = {}, set(), {}
+    names = cfg["data"]["inputs"] if inputs is None else list(inputs)
+    unknown = set(names) - set(cfg["data"]["inputs"])
+    if unknown:
+        raise ValueError(f"{sorted(unknown)} are not inputs of run {run.name}")
+    for name in names:
         entry = {"raw": saved[name]} if name in saved else {}
         if f"{name}#smooth" in saved:
             entry["smooth"] = saved[f"{name}#smooth"]
         vol = run.catalog.load(name)          # read once for its cell size
-        normalization[_key(vol.meta["spacing"])] = entry
+        key = _key(vol.meta["spacing"])
+        if key in normalization:
+            raise ValueError(f"{source[key]} and {name} share spacing {key}; pass inputs= "
+                             "to choose which input's scaling to use")
+        normalization[key], source[key] = entry, name
         cell_sizes.add(round(vol.cell_size, 6))
         del vol
     if len(cell_sizes) != 1:
@@ -167,7 +190,7 @@ def describe_run(run) -> dict:
     floors = {v["floor"] for e in normalization.values() for v in e.values()}
     return {
         "name": run.name,
-        "inputs": cfg["data"]["inputs"],
+        "inputs": names,
         "labels": cfg["data"]["labels"],
         "cell_size": cell_sizes.pop(),
         "smoothing": cfg["data"]["smoothing"],
