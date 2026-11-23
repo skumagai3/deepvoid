@@ -1,7 +1,7 @@
 # Control for C_mixed_smooth2ch_depth5_dmpre: the same settings, learning
-# rate included, but from random weights. Run it only if the pretrained run
-# beats C_mixed_smooth2ch_depth5; then dmpre vs this one isolates what the
-# dark-matter start buys.
+# rate included, but from random weights. dmpre scored below the 1e-3
+# from-scratch run (2026-11-23); this run tells whether the lower learning
+# rate or the dark-matter start is responsible.
 
 name: subhalo_C_mixed_smooth2ch_depth5_lr2e-4
 output: /content/drive/MyDrive/deepvoid_runs
