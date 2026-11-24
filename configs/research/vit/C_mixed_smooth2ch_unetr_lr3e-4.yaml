@@ -1,0 +1,30 @@
+# C_mixed_smooth2ch_unetr with a learning rate of 3e-4 in place of 1e-4.
+# The 1e-4 run underfit (training loss 0.404 vs the U-Net's 0.343) and its
+# validation MCC was flat from about epoch 28, with no spikes; 1e-4 is the
+# UNETR paper's rate for a model 12 times larger and was not tuned here.
+# Everything else as C_mixed_smooth2ch_unetr.
+
+name: subhalo_C_mixed_smooth2ch_unetr_lr3e-4
+output: /content/drive/MyDrive/deepvoid_runs
+seed: 12
+
+data:
+  inputs: [tng300-3/subhalos/L3, tng300-3/subhalos/L5, tng300-3/subhalos/L7,
+           tng300-3/subhalos/L10]
+  labels: tng300-3/mask
+  smoothing: {sigma_spacing: 0.5, keep_raw: true}
+
+model:
+  arch: unetr
+  vit: {patch: 8, dim: 240, blocks: 9, heads: 8, mlp_ratio: 4}
+
+training:
+  epochs: 60
+  val_batches: 16                        # per spacing
+  optimizer: {name: adamw, learning_rate: 3.0e-4, weight_decay: 1.0e-3, clipnorm: 1.0}
+  loss: {name: scce, class_weights: auto}
+  early_stopping: {monitor: val_mcc, patience: 15, min_delta: 0.002}   # as C_mixed_smooth2ch_depth5
+
+evaluate:
+  crop: 96
+  margin: 24

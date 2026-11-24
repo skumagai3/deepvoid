@@ -108,3 +108,28 @@ def test_unetr_trains_one_step_with_xla():
     loss = model.train_on_batch(x, y)
     assert np.isfinite(loss)
     keras.backend.clear_session()
+
+
+def test_conv_stem_gives_the_same_token_grid():
+    pytest.importorskip('tensorflow')
+    from deepvoid.models import unetr3d
+    model = unetr3d(**{**SMALL, 'patch': 8, 'blocks': 3}, stem='conv', base_filters=4, in_channels=2)
+    assert [model.get_layer(f'stem{i}_conv').filters for i in range(3)] == [3, 6, 12]
+    x = np.random.rand(1, 16, 16, 16, 2).astype(np.float32)
+    assert tuple(model.get_layer('patch_embed').output.shape[1:]) == (None, None, None, 12)
+    y = np.asarray(model(x))
+    assert y.shape == (1, 16, 16, 16, 4)
+    with pytest.raises(ValueError):
+        unetr3d(**{**SMALL, 'patch': 8, 'blocks': 3, 'dim': 18}, stem='conv')   # 18 not divisible by 4
+    with pytest.raises(ValueError):
+        unetr3d(**SMALL, stem='strided')
+
+
+def test_conv_stem_trains_one_step_with_xla():
+    pytest.importorskip('tensorflow')
+    from deepvoid.models import unetr3d
+    model = unetr3d(**SMALL, stem='conv', base_filters=4)
+    model.compile(optimizer='adamw', loss='sparse_categorical_crossentropy', jit_compile=True)
+    x = np.random.rand(2, 8, 8, 8, 1).astype(np.float32)
+    y = np.random.randint(0, 4, size=(2, 8, 8, 8))
+    assert np.isfinite(model.train_on_batch(x, y))

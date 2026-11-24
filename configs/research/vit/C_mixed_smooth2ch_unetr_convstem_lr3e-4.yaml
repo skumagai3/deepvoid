@@ -1,0 +1,32 @@
+# C_mixed_smooth2ch_unetr_lr3e-4 with a convolutional stem: three stride-2
+# 3x3x3 convolutions (60, 120, 240 channels, each with batch normalization
+# and ReLU) and a 1x1x1 convolution, in place of the single 8^3 patch
+# convolution (Xiao et al. 2021, arXiv:2106.14881). Same 12^3 token grid for
+# a 96^3 crop. The stem is the only difference from the lr3e-4 run, which is
+# its reference; the paper also removes one transformer block to keep the
+# computation equal, which is not done here (9 blocks in both).
+
+name: subhalo_C_mixed_smooth2ch_unetr_convstem_lr3e-4
+output: /content/drive/MyDrive/deepvoid_runs
+seed: 12
+
+data:
+  inputs: [tng300-3/subhalos/L3, tng300-3/subhalos/L5, tng300-3/subhalos/L7,
+           tng300-3/subhalos/L10]
+  labels: tng300-3/mask
+  smoothing: {sigma_spacing: 0.5, keep_raw: true}
+
+model:
+  arch: unetr
+  vit: {patch: 8, dim: 240, blocks: 9, heads: 8, mlp_ratio: 4, stem: conv}
+
+training:
+  epochs: 60
+  val_batches: 16                        # per spacing
+  optimizer: {name: adamw, learning_rate: 3.0e-4, weight_decay: 1.0e-3, clipnorm: 1.0}
+  loss: {name: scce, class_weights: auto}
+  early_stopping: {monitor: val_mcc, patience: 15, min_delta: 0.002}   # as C_mixed_smooth2ch_depth5
+
+evaluate:
+  crop: 96
+  margin: 24

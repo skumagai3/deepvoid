@@ -14,6 +14,9 @@ Differences from the paper (see docs/training.md):
   so the 64^3 validation crops and the training crops use the same model
   unchanged. Prediction crops should not exceed the training crop, or the
   model meets token positions it never saw in training.
+- Stem: optionally (``stem="conv"``) a stack of stride-2 convolutions in
+  place of the single patch convolution (Xiao et al. 2021, see
+  :func:`_conv_stem`).
 - Size: by default 8^3 patches, 9 blocks of width 240 (about 6M weights in
   the transformer) in place of 16^3 patches and 12 blocks of width 768
   (92.6M weights in the whole model).
@@ -133,6 +136,34 @@ def _up_block(x, filters: int, batch_norm: bool, bn_momentum: float, name: str):
     return layers.Activation("relu", name=f"{name}_relu")(x)
 
 
+def _conv_stem(x, patch: int, dim: int, batch_norm: bool, bn_momentum: float):
+    """Tokens from a stack of stride-2 convolutions, after Xiao et al. 2021
+    ("Early Convolutions Help Transformers See Better", arXiv:2106.14881).
+
+    With patch = 2^m: m 3x3x3 convolutions of stride 2, each followed by
+    batch normalization and ReLU, with channels doubling up to ``dim``
+    (dim/4, dim/2, dim for patch 8), then a 1x1x1 convolution to ``dim``
+    with no normalization or activation, as in the paper. The token grid is
+    the same as the single patch convolution's (1/patch resolution), but
+    neighbouring patches now overlap in what each token sees, and the
+    reduction to one token is spread over m nonlinear steps.
+
+    The paper removes one transformer block to keep the computation equal;
+    that is left to ``blocks`` here.
+    """
+    m = int(round(math.log2(patch)))
+    if dim % 2 ** (m - 1):
+        raise ValueError(f"dim ({dim}) must be divisible by {2 ** (m - 1)} for the conv stem")
+    for i in range(m):
+        filters = dim // 2 ** (m - 1 - i)
+        x = layers.Conv3D(filters, 3, strides=2, padding="same", use_bias=not batch_norm,
+                          name=f"stem{i}_conv")(x)
+        if batch_norm:
+            x = layers.BatchNormalization(momentum=bn_momentum, name=f"stem{i}_bn")(x)
+        x = layers.Activation("relu", name=f"stem{i}_relu")(x)
+    return layers.Conv3D(dim, 1, name="patch_embed")(x)
+
+
 def tap_blocks(patch: int, blocks: int) -> dict[int, int]:
     """Which transformer block feeds each decoder level, as {level: block}.
 
@@ -144,7 +175,7 @@ def tap_blocks(patch: int, blocks: int) -> dict[int, int]:
 
 
 def unetr3d(patch: int = 8, dim: int = 240, blocks: int = 9, heads: int = 8,
-            mlp_ratio: int = 4, base_filters: int = 16, n_classes: int = 4,
+            mlp_ratio: int = 4, stem: str = "patch", base_filters: int = 16, n_classes: int = 4,
             in_channels: int = 1, batch_norm: bool = True, bn_momentum: float = 0.99,
             dropout: float = 0.0, name: str = "unetr3d") -> keras.Model:
     """Build a 3D UNETR.
@@ -162,7 +193,10 @@ def unetr3d(patch: int = 8, dim: int = 240, blocks: int = 9, heads: int = 8,
     patch 16 and 12 blocks this picks blocks 3, 6, 9 and 12, as in the
     paper.
 
-    Layers are named ``patch_embed``, ``position``, ``block{i}`` (from 1),
+    ``stem`` is "patch" (one convolution with kernel and stride ``patch``,
+    as in the paper) or "conv" (:func:`_conv_stem`).
+
+    Layers are named ``stem{i}_...`` (conv stem only), ``patch_embed``, ``position``, ``block{i}`` (from 1),
     ``skip{level}_...``, ``dec{level}_...``, ``logits`` and ``probs``. The
     output is a float32 softmax, as in ``unet3d``.
     """
@@ -177,7 +211,12 @@ def unetr3d(patch: int = 8, dim: int = 240, blocks: int = 9, heads: int = 8,
     inputs = keras.Input(shape=(None, None, None, in_channels), name="density")
 
     # Encoder: patches to tokens, position, transformer blocks.
-    x = layers.Conv3D(dim, patch, strides=patch, name="patch_embed")(inputs)
+    if stem == "patch":
+        x = layers.Conv3D(dim, patch, strides=patch, name="patch_embed")(inputs)
+    elif stem == "conv":
+        x = _conv_stem(inputs, patch, dim, batch_norm, bn_momentum)
+    else:
+        raise ValueError(f"stem must be 'patch' or 'conv', got {stem!r}")
     x = SinePosition3D(name="position")(x)
     tapped = {}
     for i in range(1, blocks + 1):

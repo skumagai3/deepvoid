@@ -91,6 +91,8 @@ model:
     blocks: 9                      # transformer blocks
     heads: 8                       # attention heads; must divide dim
     mlp_ratio: 4                   # width of each block's dense layers, in units of dim
+    stem: patch                    # patch: one patch-sized convolution (as in UNETR);
+                                   # conv: stride-2 3x3x3 convolutions (Xiao et al. 2021)
 
 # ----------------------------------------------------------------- training
 training:

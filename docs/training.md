@@ -309,6 +309,17 @@ Differences from the paper:
   5.6M for the depth-5 U-Net with two input channels.
 - **Learning rate.** The paper trains with AdamW at $10^{-4}$; the research
   config does the same, against $10^{-3}$ for the U-Net.
+- **Stem (optional).** With `vit.stem: conv`, the single patch convolution
+  is replaced by a stack of stride-2 $3^3$ convolutions (one per halving,
+  three for 8-cell patches; channels doubling up to `dim`, each with batch
+  normalization and ReLU) and a $1^3$ convolution to `dim`, following Xiao
+  et al. 2021 ([arXiv:2106.14881](https://arxiv.org/abs/2106.14881)), who
+  found it made ViTs less sensitive to optimizer settings and more accurate.
+  The token grid is the same; what changes is that the reduction of a patch
+  to one token is spread over several nonlinear steps that overlap
+  neighbouring patches. The paper also removes one transformer block to keep
+  the computation equal; here the number of blocks is left to `vit.blocks`.
+  The default, `patch`, is the paper's single convolution.
 
 Like the U-Net, the model is not rotation-invariant by construction (the
 patch convolution and the position embedding both change under a

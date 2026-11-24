@@ -39,7 +39,8 @@ DEFAULTS: dict[str, Any] = {
         "deep_supervision": False,
         "strip_pool": None,    # e.g. {axes: [z], length: 5}; see models.unet._strip_context
         # Read only when arch is "unetr"; depth is then set by the patch size.
-        "vit": {"patch": 8, "dim": 240, "blocks": 9, "heads": 8, "mlp_ratio": 4},
+        "vit": {"patch": 8, "dim": 240, "blocks": 9, "heads": 8, "mlp_ratio": 4,
+                "stem": "patch"},       # "patch" or "conv" (stride-2 convolutions)
     },
     "training": {
         "crop": 96,
