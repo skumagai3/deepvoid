@@ -1,0 +1,30 @@
+# C_mixed_smooth2ch_depth5 trained with distillation from the dark-matter
+# model dm_smooth2ch_depth5: at every voxel the loss also pulls the subhalo
+# model's class scores, softened by temperature T, towards the dark-matter
+# model's scores for the same voxel (losses.DistillLoss; Hinton, Vinyals &
+# Dean 2015). The teacher sees the full dark-matter density, the student only
+# the tracers. Everything else, the learning rate included, matches
+# C_mixed_smooth2ch_depth5, so the two compare directly. The teacher's
+# whole-box scores are computed once and cached in its run folder
+# (teacher_scores_dm.npy, ~1 GB).
+
+name: subhalo_C_mixed_smooth2ch_depth5_distill
+output: /content/drive/MyDrive/deepvoid_runs
+seed: 12
+
+data:
+  inputs: [tng300-3/subhalos/L3, tng300-3/subhalos/L5, tng300-3/subhalos/L7,
+           tng300-3/subhalos/L10]
+  labels: tng300-3/mask
+  smoothing: {sigma_spacing: 0.5, keep_raw: true}
+
+model:
+  depth: 5
+
+training:
+  epochs: 60
+  val_batches: 16                        # per spacing
+  optimizer: {name: adamw, learning_rate: 1.0e-3, weight_decay: 1.0e-3, clipnorm: 1.0}
+  loss: {name: scce, class_weights: auto}
+  distill: {teacher: dm_smooth2ch_depth5, alpha: 0.5, temperature: 2.0}
+  early_stopping: {monitor: val_mcc, patience: 15, min_delta: 0.002}   # as C_mixed_smooth2ch_depth5

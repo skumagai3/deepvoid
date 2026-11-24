@@ -43,7 +43,8 @@ from .evaluate import (best_void_threshold, confusion_matrix, decide, scores,
                        void_reliability, void_threshold_curve)
 from .inputs import build as build_input
 from .inputs import align_line_of_sight, n_channels
-from .losses import DeepSupervisionLoss, build_loss, deep_supervision_weights
+from .losses import (DeepSupervisionLoss, DistillLoss, build_loss, deep_supervision_weights,
+                     label_accuracy)
 from .models import copy_weights, is_conditioned, load_model, main_output, unet3d
 from .observe import los_to_z
 from .pipeline import CropSampler
@@ -104,10 +105,17 @@ def run(config, seed: int | None = None, catalog: Catalog | None = None) -> Path
     # lies along z, and their labels with them (one swapped copy per axis).
     inputs, y = align_line_of_sight(cfg, catalog, names, inputs, labels.data)
     n_outputs = cfg["model"]["depth"] if cfg["model"]["deep_supervision"] else 1
+    soft = None
+    if tr["distill"]:
+        if any(los_swap(cfg, catalog, n) is not None for n in names):
+            raise ValueError("training.distill does not handle inputs turned onto z yet")
+        soft = teacher_scores(tr["distill"]["teacher"], cfg["output"], cfg["data"]["labels"],
+                              catalog)
     train_data = CropSampler(inputs, y, regions["train"], crop=tr["crop"],
                              batch_size=tr["batch_size"], steps_per_epoch=tr["steps_per_epoch"],
                              rotate=tr["rotate"], seed=cfg["seed"], spacings=spacings,
-                             curriculum=tr["curriculum"], label_copies=n_outputs)
+                             curriculum=tr["curriculum"], label_copies=n_outputs, soft=soft)
+    del soft
     # Fixed validation crops, the same number for each input, scored per input.
     # They can be smaller than training crops: the validation slab is thinner
     # than the training slab, and the network takes any size.
@@ -122,7 +130,13 @@ def run(config, seed: int | None = None, catalog: Catalog | None = None) -> Path
         del source
 
     # Model and optimizer: restored, started from a trained model, or fresh.
-    loss = build_loss(tr["loss"], class_weights)
+    if tr["distill"]:
+        if tr["loss"]["name"] != "scce" or tr["loss"]["void_weight"]:
+            raise ValueError("training.distill builds on the plain 'scce' loss")
+        loss = DistillLoss(class_weights, alpha=tr["distill"]["alpha"],
+                           temperature=tr["distill"]["temperature"])
+    else:
+        loss = build_loss(tr["loss"], class_weights)
     if resuming:
         model = keras.models.load_model(out / "last.keras")
         optimizer = model.optimizer
@@ -132,7 +146,12 @@ def run(config, seed: int | None = None, catalog: Catalog | None = None) -> Path
             _init_from(model, tr["init_from"], cfg["output"])
         optimizer = _optimizer(tr)
     if n_outputs == 1:
-        model.compile(optimizer=optimizer, loss=loss, metrics=["sparse_categorical_accuracy"],
+        # With distillation the targets also carry the teacher's scores, so the
+        # accuracy reads the label from channel 0 (same name in the logs).
+        accuracy = (keras.metrics.MeanMetricWrapper(label_accuracy,
+                                                    name="sparse_categorical_accuracy")
+                    if tr["distill"] else "sparse_categorical_accuracy")
+        model.compile(optimizer=optimizer, loss=loss, metrics=[accuracy],
                       jit_compile=tr["xla"])
     else:
         # Deep supervision: the full-resolution loss plus one coarse loss per
@@ -235,6 +254,42 @@ def evaluate_run(out: str | Path, catalog: Catalog | None = None, **overrides) -
     (out / f"test_scores{suffix}.json").write_text(json.dumps(results, indent=2))
     _figure(out, rows, suffix, catalog.info(names[0]).get("box_size"), (axis, mid))
     return results
+
+
+def teacher_scores(teacher: str | Path, output: str | Path, labels: str,
+                   catalog: Catalog | None = None) -> np.ndarray:
+    """A trained run's class scores over its whole box, for distillation.
+
+    ``teacher`` is a run folder, or a run name under ``output``. The run
+    predicts its (first) input's full box with ``best.keras`` and its own
+    normalization and evaluation settings; the scores, (n, n, n, classes) in
+    float16, are cached in the run folder as ``teacher_scores_<label>.npy``
+    and reused. ``labels`` must be the teacher's labels too, so both models
+    learn the same classes on the same grid.
+    """
+    folder = Path(teacher)
+    if not folder.is_absolute() and not folder.exists():
+        folder = Path(output) / teacher
+    tcfg = load_config(folder / "config.yaml")
+    if tcfg["data"]["labels"] != labels:
+        raise ValueError(f"teacher {folder.name} was trained on {tcfg['data']['labels']}, "
+                         f"not {labels}")
+    name = tcfg["data"]["inputs"][0]
+    cache = folder / f"teacher_scores_{_label(name)}.npy"
+    if cache.exists():
+        return np.load(cache)
+    catalog = Catalog.for_config(tcfg, catalog)
+    model = load_model(folder / "best.keras")
+    if is_conditioned(model):
+        raise ValueError("a teacher conditioned on spacing is not supported")
+    _, _, make_x, _ = _test_setup(folder, tcfg, catalog)
+    ev = tcfg["evaluate"]
+    scores_ = predict_volume(model.predict_on_batch, make_x(name), crop=ev["crop"],
+                             margin=ev["margin"], batch_size=ev["batch_size"], tta=ev["tta"],
+                             out_dtype=np.float16)
+    np.save(cache, scores_)
+    print(f"teacher scores from {folder.name} ({name}) saved to {cache.name}")
+    return scores_
 
 
 def spacing_sweep(out: str | Path, name: str, spacings: list[float],

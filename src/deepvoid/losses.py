@@ -12,6 +12,9 @@ models reload without extra bookkeeping.
 - :class:`DeepSupervisionLoss`: cross-entropy for an extra output at a
   coarser resolution, against the class fractions in each block of the
   full-resolution labels (see ``models.unet``).
+- :class:`DistillLoss`: knowledge distillation (Hinton, Vinyals & Dean 2015):
+  the weighted cross-entropy against the labels plus a term pulling the
+  student's softened class scores towards a teacher's.
 """
 
 from __future__ import annotations
@@ -111,6 +114,61 @@ class DeepSupervisionLoss(keras.losses.Loss):
     def get_config(self):
         return {**super().get_config(), "factor": self.factor,
                 "class_weights": self.class_weights, "n_classes": self.n_classes}
+
+
+@keras.saving.register_keras_serializable(package="deepvoid")
+class DistillLoss(keras.losses.Loss):
+    """Labels and a teacher's class scores together.
+
+    ``y_true`` packs both, as the crop sampler serves them: channel 0 is the
+    class label, channels 1.. the teacher's class scores at that voxel. Per
+    voxel,
+
+        w_y [ alpha * CE(y, p) + (1 - alpha) * T^2 * KL(q_T || p_T) ]
+
+    where p are the student's scores, q the teacher's, x_T = softmax(log x / T)
+    (the scores softened by temperature T; log x equals the logits up to a
+    constant, which the softmax removes, so this is exact), and w_y the class
+    weight of the label. T^2 keeps the soft term's gradients on the same scale
+    as T changes (Hinton et al. 2015). Weighting both terms by w_y keeps the
+    class balance of the plain loss. alpha = 1 is the plain weighted
+    cross-entropy.
+    """
+
+    def __init__(self, class_weights=None, alpha=0.5, temperature=2.0, n_classes=4,
+                 name="distill", **kwargs):
+        super().__init__(name=name, **kwargs)
+        self.class_weights = None if class_weights is None else [float(w) for w in class_weights]
+        self.alpha, self.temperature = float(alpha), float(temperature)
+        self.n_classes = int(n_classes)
+
+    def call(self, y_true, y_pred):
+        y_true = ops.cast(y_true, "float32")
+        label = ops.cast(ops.round(y_true[..., 0]), "int32")
+        q = ops.clip(y_true[..., 1:], 1e-7, 1.0)
+        p = ops.clip(ops.cast(y_pred, "float32"), 1e-7, 1.0)
+        ce = -ops.log(ops.take_along_axis(p, label[..., None], axis=-1))[..., 0]
+        t = self.temperature
+        log_p_t = ops.log_softmax(ops.log(p) / t, axis=-1)
+        log_q_t = ops.log_softmax(ops.log(q) / t, axis=-1)
+        kl = ops.sum(ops.exp(log_q_t) * (log_q_t - log_p_t), axis=-1)
+        loss = self.alpha * ce + (1.0 - self.alpha) * t * t * kl
+        if self.class_weights is not None:
+            loss = loss * ops.take(ops.convert_to_tensor(self.class_weights), label)
+        return loss
+
+    def get_config(self):
+        return {**super().get_config(), "class_weights": self.class_weights,
+                "alpha": self.alpha, "temperature": self.temperature,
+                "n_classes": self.n_classes}
+
+
+@keras.saving.register_keras_serializable(package="deepvoid")
+def label_accuracy(y_true, y_pred):
+    """Voxel accuracy when ``y_true`` packs the label with a teacher's scores
+    (channel 0 is the label), as for :class:`DistillLoss`."""
+    label = ops.cast(ops.round(ops.cast(y_true, "float32")[..., 0]), "int32")
+    return ops.cast(ops.equal(label, ops.cast(ops.argmax(y_pred, axis=-1), "int32")), "float32")
 
 
 def build_loss(cfg: dict, class_weights):

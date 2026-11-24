@@ -47,6 +47,9 @@ DEFAULTS: dict[str, Any] = {
         "epochs": 80,
         "rotate": True,
         "init_from": None,
+        # Distillation: also learn a teacher run's class scores, see losses.DistillLoss.
+        # e.g. {teacher: dm_smooth2ch_depth5, alpha: 0.5, temperature: 2.0}
+        "distill": None,
         "curriculum": None,
         "optimizer": {"name": "adamw", "learning_rate": 1.0e-3,
                       "weight_decay": 1.0e-4, "clipnorm": 1.0},
@@ -80,7 +83,29 @@ def load_config(source: str | Path | dict) -> dict[str, Any]:
     if cfg["training"]["rotate"] not in (True, False, "z"):
         raise ValueError("training.rotate must be true, false or 'z'")
     check_strip_pool(cfg["model"]["strip_pool"])
+    check_distill(cfg)
     return cfg
+
+
+def check_distill(cfg: dict) -> None:
+    """Validate ``training.distill``: None, or {teacher, alpha in [0, 1], temperature > 0}."""
+    d = cfg["training"]["distill"]
+    if d is None:
+        return
+    if not isinstance(d, dict) or not d.get("teacher") or set(d) - {"teacher", "alpha",
+                                                                     "temperature"}:
+        raise ValueError("training.distill must be null or {teacher: <run>, alpha: a, "
+                         "temperature: T}")
+    d.setdefault("alpha", 0.5)
+    d.setdefault("temperature", 2.0)
+    if not 0.0 <= float(d["alpha"]) <= 1.0:
+        raise ValueError("training.distill.alpha must be between 0 and 1")
+    if not float(d["temperature"]) > 0:
+        raise ValueError("training.distill.temperature must be positive")
+    if cfg["model"]["deep_supervision"]:
+        raise ValueError("training.distill does not work with model.deep_supervision yet")
+    if cfg["data"]["subcubes"] is not None:
+        raise ValueError("training.distill does not work with data.subcubes")
 
 
 def check_strip_pool(strip: dict | None) -> None:

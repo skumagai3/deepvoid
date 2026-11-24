@@ -90,6 +90,7 @@ training:
   epochs: 60                       # upper limit, and the length of the learning-rate schedule (default 80)
   rotate: true                     # one of the 48 rotations/reflections of a cube per batch; z: only those keeping z (redshift space)
   init_from: null                  # start from a trained model: a .keras file or a run folder
+  distill: null                    # learn a teacher run's scores too: {teacher: <run>, alpha: 0.5, temperature: 2.0}
   curriculum: null                 # change how often each input is drawn as training goes on
 
   optimizer:

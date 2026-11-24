@@ -67,12 +67,19 @@ class CropSampler(keras.utils.PyDataset):
         For a model with several outputs (deep supervision), the labels are
         returned this many times as a tuple, one per output; each output's
         loss coarsens them as needed.
+    soft:
+        A teacher's class scores on the same grid, (n, n, n, classes), for
+        distillation. The targets are then float32 (batch, c, c, c,
+        1 + classes): the label, then the teacher's scores, cut from the same
+        place and turned the same way (see ``losses.DistillLoss``). The
+        crops drawn are the same as without it.
     """
 
     def __init__(self, inputs: list[np.ndarray], labels: list[np.ndarray], region: Region,
                  crop: int = 96, batch_size: int = 8, steps_per_epoch: int = 200,
                  rotate: bool = True, seed: int = 0, spacings: list[float] | None = None,
-                 curriculum: dict | None = None, label_copies: int = 1, **kwargs):
+                 curriculum: dict | None = None, label_copies: int = 1,
+                 soft: np.ndarray | None = None, **kwargs):
         super().__init__(**kwargs)
         if len(inputs) != len(labels):
             raise ValueError("need one label array per input array")
@@ -92,6 +99,14 @@ class CropSampler(keras.utils.PyDataset):
                                                        for a in inputs])))
             self.y = tf.identity(tf.constant(np.stack([np.asarray(by_id[i], np.uint8)
                                                        for i in label_ids])))
+            self.soft = None
+            if soft is not None:
+                if soft.shape[:3] != np.shape(labels[0]):
+                    raise ValueError(f"teacher scores {soft.shape} do not match the labels "
+                                     f"{np.shape(labels[0])}")
+                self.soft = tf.identity(tf.constant(np.asarray(soft, np.float16)[None]))
+        if soft is not None and len(label_ids) != 1:
+            raise ValueError("distillation needs one label array shared by all inputs")
         self.label_of = tf.constant([label_ids.index(id(a)) for a in labels], tf.int32)
         self.spacing_of = tf.constant(spacings if spacings is not None else [0.0] * len(inputs),
                                       tf.float32)
@@ -126,6 +141,8 @@ class CropSampler(keras.utils.PyDataset):
         origins = self.low + tf.cast(u * tf.cast(self.count, tf.float32), tf.int32)
         x = _gather_crops(self.x, v, origins, self.offsets)
         y = _gather_crops(self.y, tf.gather(self.label_of, v), origins, self.offsets)
+        if self.soft is not None:
+            q = _gather_crops(self.soft, tf.zeros_like(v), origins, self.offsets)
         if self.rotate:
             if self.rotate == "z":           # permutations 0 and 5 leave axis 2 in place
                 p = tf.gather(Z_PERMUTATIONS,
@@ -134,7 +151,11 @@ class CropSampler(keras.utils.PyDataset):
                 p = tf.random.stateless_uniform([], keys[2], 0, 6, dtype=tf.int32)
             flips = tf.random.stateless_uniform([3], keys[3], 0, 2, dtype=tf.int32)
             x, y = _symmetry(x, p, flips), _symmetry(y, p, flips)
+            if self.soft is not None:
+                q = _symmetry(q, p, flips)
         x, y = tf.cast(x, tf.float32), tf.cast(y, tf.int32)
+        if self.soft is not None:
+            y = tf.concat([tf.cast(y, tf.float32)[..., None], tf.cast(q, tf.float32)], axis=-1)
         if self.label_copies > 1:
             y = (y,) * self.label_copies
         if self.spacings is None:

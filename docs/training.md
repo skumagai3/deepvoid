@@ -41,6 +41,7 @@ as `config.yaml` in the run folder.
 | `training.epochs` | 80 | Length of the learning-rate schedule and upper limit on training |
 | `training.rotate` | true | Random cube symmetry per batch (48 rotations and reflections); `z` keeps the z axis fixed (16 symmetries), required for redshift-space inputs; see "Redshift-space inputs" below |
 | `training.init_from` | null | Start from a trained model: a `.keras` file or a run folder (its `best.keras`), relative to `output` |
+| `training.distill` | null | Also learn a teacher run's class scores: `{teacher: <run>, alpha: 0.5, temperature: 2.0}` |
 | `training.curriculum` | null | Sampling weights over inputs that change with the epoch; see below |
 | `training.optimizer` | AdamW, lr 1e-3, weight decay 1e-4, clipnorm 1.0 | `name` is `adamw` or `adam`; `clipnorm` clips the gradient norm |
 | `training.schedule` | cosine, 3 warmup epochs, min 1% of lr | `cosine` (linear warmup, then cosine decay), `constant`, or, for `data.subcubes` runs only, `plateau` (multiply the rate by `factor` when the validation loss has not improved for `patience` epochs, as in the first paper) |
@@ -111,7 +112,28 @@ over all inputs. `test_scores.json` has one entry per input scored.
 a saved model, layer by layer, matching names and shapes; the run log says
 how many layers were copied. Every layer stays trainable. Use a lower
 learning rate than from scratch (`configs/research/subhalo/B_finetune_L10.yaml` uses
-2e-4 with one warmup epoch).
+2e-4 with one warmup epoch). Started from the dark-matter model, the
+four-spacing subhalo model scored about 0.01 MCC below the same model
+trained from scratch at 1e-3; a from-scratch run at 2e-4 scored the same as
+the pretrained one, so the lower rate, not the start, cost the 0.01.
+
+**Distillation (Hinton, Vinyals & Dean 2015).** `training.distill` names a
+trained teacher run (a run folder, or a name under `output`) whose labels
+are the same mask. The teacher predicts its own input's whole box once; the
+class scores are cached in its folder as `teacher_scores_<label>.npy` and
+cut from the same place as each training crop, turned the same way. The
+loss per voxel is
+
+$$w_y\,[\,\alpha\,\mathrm{CE}(y, p) + (1-\alpha)\,T^2\,\mathrm{KL}(q_T \,\|\, p_T)\,]$$
+
+with $p$ the student's scores, $q$ the teacher's, $x_T = \mathrm{softmax}(\log x / T)$
+(the scores softened by the temperature $T$) and $w_y$ the class weight of
+the label. $\alpha = 1$ is the plain loss. The teacher can see more than the
+student: `configs/research/distill/` uses the dark-matter model as the
+teacher of the tracer model, which sees only the tracers. The crops drawn
+are the same as without distillation, the validation scores still use the
+labels only, and the accuracy in the log reads the label from the targets.
+Not available with deep supervision, subcubes, or inputs turned onto z.
 
 **Spacing conditioning (FiLM, feature-wise linear modulation; Perez et al. 2018).** With `model.conditioning`, the model also
 takes the tracer spacing $\lambda = n^{-1/3}$, read from each input's
