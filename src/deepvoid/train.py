@@ -45,7 +45,7 @@ from .inputs import build as build_input
 from .inputs import align_line_of_sight, n_channels
 from .losses import (DeepSupervisionLoss, DistillLoss, build_loss, deep_supervision_weights,
                      label_accuracy)
-from .models import copy_weights, is_conditioned, load_model, main_output, unet3d
+from .models import build_model, copy_weights, is_conditioned, load_model, main_output
 from .observe import los_to_z
 from .pipeline import CropSampler
 from .predict import predict_volume
@@ -141,7 +141,7 @@ def run(config, seed: int | None = None, catalog: Catalog | None = None) -> Path
         model = keras.models.load_model(out / "last.keras")
         optimizer = model.optimizer
     else:
-        model = unet3d(**cfg["model"], in_channels=n_channels(cfg["data"]["smoothing"]))
+        model = build_model(cfg["model"], in_channels=n_channels(cfg["data"]["smoothing"]))
         if tr["init_from"]:
             _init_from(model, tr["init_from"], cfg["output"])
         optimizer = _optimizer(tr)

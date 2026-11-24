@@ -29,6 +29,7 @@ DEFAULTS: dict[str, Any] = {
         "subcubes": None,
     },
     "model": {
+        "arch": "unet",        # "unet" or "unetr" (vision transformer encoder, see models.unetr)
         "depth": 4,
         "base_filters": 16,
         "batch_norm": True,
@@ -37,6 +38,8 @@ DEFAULTS: dict[str, Any] = {
         "conditioning": None,
         "deep_supervision": False,
         "strip_pool": None,    # e.g. {axes: [z], length: 5}; see models.unet._strip_context
+        # Read only when arch is "unetr"; depth is then set by the patch size.
+        "vit": {"patch": 8, "dim": 240, "blocks": 9, "heads": 8, "mlp_ratio": 4},
     },
     "training": {
         "crop": 96,
@@ -83,6 +86,7 @@ def load_config(source: str | Path | dict) -> dict[str, Any]:
     if cfg["training"]["rotate"] not in (True, False, "z"):
         raise ValueError("training.rotate must be true, false or 'z'")
     check_strip_pool(cfg["model"]["strip_pool"])
+    check_arch(cfg)
     check_distill(cfg)
     return cfg
 
@@ -106,6 +110,35 @@ def check_distill(cfg: dict) -> None:
         raise ValueError("training.distill does not work with model.deep_supervision yet")
     if cfg["data"]["subcubes"] is not None:
         raise ValueError("training.distill does not work with data.subcubes")
+
+
+def check_arch(cfg: dict) -> None:
+    """Validate ``model.arch`` and, for "unetr", the crop sizes and the U-Net-only options.
+
+    Every crop side must be a multiple of the patch size. The prediction crop
+    may not exceed the training crop: the position embedding is defined for
+    any grid, but the model has only learned to use the token positions of
+    the training crop.
+    """
+    model, arch = cfg["model"], cfg["model"]["arch"]
+    if arch not in ("unet", "unetr"):
+        raise ValueError("model.arch must be 'unet' or 'unetr'")
+    if arch == "unet":
+        return
+    for key in ("conditioning", "strip_pool"):
+        if model[key] is not None:
+            raise ValueError(f"model.{key} is not available with model.arch: unetr")
+    if model["deep_supervision"]:
+        raise ValueError("model.deep_supervision is not available with model.arch: unetr")
+    patch = model["vit"]["patch"]
+    tr, ev = cfg["training"], cfg["evaluate"]
+    for name, side in (("training.crop", tr["crop"]), ("training.val_crop", tr["val_crop"]),
+                       ("evaluate.crop", ev["crop"])):
+        if side % patch:
+            raise ValueError(f"{name} ({side}) must be a multiple of model.vit.patch ({patch})")
+    if ev["crop"] > tr["crop"]:
+        raise ValueError(f"evaluate.crop ({ev['crop']}) must not exceed training.crop "
+                         f"({tr['crop']}) with model.arch: unetr")
 
 
 def check_strip_pool(strip: dict | None) -> None:

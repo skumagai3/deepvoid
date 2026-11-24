@@ -259,6 +259,61 @@ orientations, each paired with the distortions it would really show.
 Planned, not yet implemented: weighting the loss by distance to the
 void boundary.
 
+## Vision transformer encoder (UNETR, experimental)
+
+With `model.arch: unetr`, the U-Net's encoder is replaced by a vision
+transformer, following UNETR (Hatamizadeh et al. 2022,
+[arXiv:2103.10504](https://arxiv.org/abs/2103.10504)); see
+`models/unetr.py`. The crop is cut into cubic patches of `vit.patch` cells
+a side, and a strided convolution turns each patch into a token, a vector
+of `vit.dim` numbers. A stack of `vit.blocks` transformer blocks follows.
+In each block every token is compared with every other token in the crop
+(multi-head self-attention), then passed through two dense layers; both
+steps are added to the block's input and preceded by layer normalization.
+The token grids after several blocks are upsampled by transposed
+convolutions and merged into a decoder built from the U-Net's convolution
+blocks, which also takes the input at full resolution. With patch
+$2^m$, the decoder has $m + 1$ levels, and level $j$ ($1/2^j$ resolution)
+takes block round$(j \cdot \mathrm{blocks}/m)$; the last block is the
+bottleneck. With 16-cell patches and 12 blocks this picks blocks 3, 6, 9
+and 12, as in the paper. `model.depth`, `conditioning`,
+`deep_supervision` and `strip_pool` do not apply.
+
+Differences from the paper:
+
+- **Position embedding.** Attention compares tokens by their contents
+  only, so each token gets a vector added that encodes where it sits in
+  the crop. The paper learns one vector per token position, which ties the
+  model to one crop size. Here the vector is fixed: along each axis, token
+  index $n$ gets $\sin(n\omega_k)$ and $\cos(n\omega_k)$ for
+  $\omega_k = 10000^{-k/K}$, $k = 0 \ldots K-1$, $K = \mathrm{dim}/6$
+  (Vaswani et al. 2017, [arXiv:1706.03762](https://arxiv.org/abs/1706.03762)),
+  the three axes taking a third of the channels each. It is defined for
+  any grid, so the 64-cell validation crops (the validation slab is 70
+  cells thick) use the model unchanged, and the dot product of two
+  tokens' vectors depends only on their offset. This is a choice, not the
+  only reasonable one: a learned embedding interpolated to other grid
+  sizes, or a learned bias on the attention scores that depends on the
+  offset between tokens (as in Swin), are the main alternatives and have
+  not been tried.
+- **Prediction crop.** The model has only seen the token positions of a
+  training crop, so `evaluate.crop` may not exceed `training.crop`.
+  `configs/research/vit/C_mixed_smooth2ch_unetr.yaml` predicts on 96-cell
+  crops with a 24-cell margin, a 48-cell core per crop
+  ($11^3 = 1331$ crops for a 512-cell box, against $8^3 = 512$ for the
+  default 128-cell crops with a 32-cell margin).
+- **Size.** The paper uses 16-cell patches and 12 blocks of width 768
+  (92.6M weights in total). The default here is 8-cell patches ($3.2\,h^{-1}$
+  Mpc on the TNG grid; a 96-cell crop is 1728 tokens) and 9 blocks of width
+  240 with 8 heads: 7.4M weights, 6.2M of them in the transformer, against
+  5.6M for the depth-5 U-Net with two input channels.
+- **Learning rate.** The paper trains with AdamW at $10^{-4}$; the research
+  config does the same, against $10^{-3}$ for the U-Net.
+
+Like the U-Net, the model is not rotation-invariant by construction (the
+patch convolution and the position embedding both change under a
+rotation), so the rotation augmentation applies as before.
+
 ## Training on a coarser grid
 
 A model can train on a coarser grid, so a crop of the same cell count

@@ -127,7 +127,7 @@ def run_subcubes(cfg: dict, catalog, out: Path, resuming: bool) -> Path:
     from .callbacks import EMA, RunState, Validation, read_log
     from .inputs import n_channels
     from .losses import build_loss
-    from .models import unet3d
+    from .models import build_model
     from .preprocess import auto_class_weights
     from .train import _normalized_inputs, _optimizer, _label
 
@@ -165,7 +165,7 @@ def run_subcubes(cfg: dict, catalog, out: Path, resuming: bool) -> Path:
         model = keras.models.load_model(out / "last.keras")
         optimizer = model.optimizer
     else:
-        model = unet3d(**cfg["model"], in_channels=n_channels(cfg["data"]["smoothing"]))
+        model = build_model(cfg["model"], in_channels=n_channels(cfg["data"]["smoothing"]))
         optimizer = _optimizer({**tr, "steps_per_epoch": len(train_data)})
     model.compile(optimizer=optimizer, loss=loss, metrics=["sparse_categorical_accuracy"],
                   jit_compile=tr["xla"])

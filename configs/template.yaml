@@ -79,6 +79,18 @@ model:
   # e.g. {axes: [z], length: 5} along the line of sight. Length counts
   # bottleneck cells (2^(depth-1) grid cells each). Default null (off).
   strip_pool: null
+  # Network: unet, or unetr (a vision transformer encoder with a convolutional
+  # decoder; experimental, see docs/training.md). With unetr, depth,
+  # conditioning, deep_supervision and strip_pool are not used, every crop
+  # side must be a multiple of vit.patch, and evaluate.crop may not exceed
+  # training.crop.
+  arch: unet
+  vit:                             # read only with arch: unetr
+    patch: 8                       # side of the cubic patch that becomes one token
+    dim: 240                       # numbers per token; must be divisible by 6
+    blocks: 9                      # transformer blocks
+    heads: 8                       # attention heads; must divide dim
+    mlp_ratio: 4                   # width of each block's dense layers, in units of dim
 
 # ----------------------------------------------------------------- training
 training:
