@@ -29,10 +29,11 @@ in `configs/research/`.
 | `17_void_catalogs.ipynb` | Void catalogs from void voxels on the whole TNG or Bolshoi box: thresholded cores, distance basins with a persistence cut, the same on a score-averaged distance, and maximal empty spheres, each run on the truth and on the predictions with the same settings; persistence diagrams, size functions, matching |
 | `18_void_definitions.ipynb` | T-web basins, DeepVoid, VIDE (pyVIDE) and VAST VoidFinder on the same box (TNG, SMDPL or Bolshoi) at λ = 3, 5, 10: size functions, slices, true T-web composition of each catalog's voids, stability across spacing, radial profiles around void centers, merge trees |
 | `19_bolshoi_halos.ipynb` | Bolshoi BDM halo positions (z = 0) from CosmoSim's TAP service; where Bolshoi's grid points sit and which halo selection matches the dissertation's halo grids; feeds notebook 18 |
+| `20_vweb.ipynb` | V-web (velocity-shear) labels on TNG300-3-Dark: dark-matter particles from the TNG API, smoothed velocity field, V-web against f × T-web eigenvalues, slices at several thresholds, class fractions and void percolation against the threshold, confusion matrix against the T-web labels |
 
 Planned:
 
 | Notebook | Purpose |
 |---|---|
-| `20_survey.ipynb` | Survey masks and radial selection |
-| `21_calibration.ipynb` | Reliability of the class scores and temperature scaling |
+| `21_survey.ipynb` | Survey masks and radial selection |
+| `22_calibration.ipynb` | Reliability of the class scores and temperature scaling |

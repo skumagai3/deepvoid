@@ -23,6 +23,7 @@ import scipy.fft as sfft
 from scipy import ndimage
 
 from ..volume import Volume
+from .tensor import symmetric_eigenvalues
 
 
 def smoothing_sigma(box_size: float, n: int, sigma_eff: float = 1.0) -> float:
@@ -62,16 +63,7 @@ def tweb_eigenvalues(density: np.ndarray, sigma_cells: float, slab: int = 32) ->
     comps = {ij: sfft.irfftn(d_k * (a * b / k2), s=(n, n, n), workers=-1).astype(np.float32, copy=False)
              for ij, (a, b) in pairs.items()}
     del d_k
-
-    # Assemble the 3x3 tensor one slab at a time to keep memory low;
-    # eigvalsh reads only the lower triangle.
-    eig = np.empty((n, n, n, 3), dtype=np.float32)
-    for s in range(0, n, slab):
-        t = np.zeros((min(slab, n - s), n, n, 3, 3), dtype=np.float32)
-        for (i, j), c in comps.items():
-            t[..., i, j] = c[s:s + slab]
-        eig[s:s + slab] = np.linalg.eigvalsh(t)
-    return eig
+    return symmetric_eigenvalues(comps, slab)
 
 
 def tweb_labels(density: Volume, sigma_eff: float = 1.0, threshold: float = 0.65,

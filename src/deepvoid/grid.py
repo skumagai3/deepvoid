@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterable
+
 import numpy as np
+from scipy import ndimage
 
 from .sources import Tracers
 from .volume import Volume
@@ -58,3 +61,79 @@ def cic(tracers: Tracers, n: int, weights: str | np.ndarray | None = "mass",
     meta.update(field="density", assignment="cic")
     return Volume(data=grid.reshape(n, n, n).astype(np.float32),
                   box_size=tracers.box_size, meta=meta)
+
+
+def velocity_field(tracers: Tracers | Iterable[Tracers], n: int, sigma_eff: float = 1.0,
+                   sigma_cells: float | None = None,
+                   return_count: bool = False) -> list[Volume] | tuple[list[Volume], Volume]:
+    """Gaussian-smoothed mean velocity on an n^3 periodic grid.
+
+    Each velocity component (the momentum per unit particle mass) and the
+    particle count are assigned with :func:`cic`, both are smoothed with the
+    same Gaussian, and the smoothed momentum is divided by the smoothed count.
+    All particles count equally (number weighting, as Hoffman et al. 2012; in
+    a dark-matter-only run all particles have the same mass).
+
+    Dividing after smoothing keeps the velocity defined in cells no particle
+    lands in, which are common in voids when there are only a few particles
+    per cell. This is not the same as dividing in each cell and then
+    smoothing the velocity (Hoffman et al. 2012, who had ~64 particles per
+    cell); the two agree where cells are well populated.
+
+    The smoothing follows the T-web convention: ``sigma_eff`` (h^-1 Mpc) sets
+    the Gaussian through sigma_eff^2 = sigma^2 + cell^2
+    (:func:`deepvoid.labels.smoothing_sigma`); ``sigma_cells`` overrides it
+    with a sigma in cells, e.g. 2.4 to match the existing TNG300-3 mask.
+
+    ``tracers`` may be one :class:`Tracers` with velocities or an iterable of
+    them (one per snapshot chunk), so a snapshot can be gridded without
+    holding all particles at once.
+
+    Returns [v_x, v_y, v_z] as float32 Volumes in km/s; with ``return_count``
+    also the smoothed count per cell. Cells where the smoothed count is not
+    positive get velocity 0; how many is recorded as ``meta["empty_cells"]``.
+    """
+    from .labels.tweb import smoothing_sigma
+
+    if isinstance(tracers, Tracers):
+        tracers = [tracers]
+    momentum = [None, None, None]
+    count = None
+    box_size, meta = None, {}
+    for t in tracers:
+        if t.vel is None:
+            raise ValueError("tracers have no velocities")
+        if box_size is None:
+            box_size, meta = t.box_size, t.meta
+        elif t.box_size != box_size:
+            raise ValueError("tracer chunks have different box sizes")
+        c = cic(t, n, weights=None).data
+        count = c if count is None else count + c
+        for i in range(3):
+            m = cic(t, n, weights=t.vel[:, i]).data
+            momentum[i] = m if momentum[i] is None else momentum[i] + m
+    if count is None:
+        raise ValueError("no tracers given")
+
+    cell = box_size / n
+    if sigma_cells is None:
+        sigma_cells = smoothing_sigma(box_size, n, sigma_eff)
+    count = ndimage.gaussian_filter(count, sigma_cells, mode="wrap")
+    filled = count > 0
+    meta = {k: v for k, v in meta.items() if k not in ("cosmology", "ids")}
+    meta.update(field="velocity", units="km/s", assignment="cic", weighting="number",
+                sigma_cells=float(sigma_cells),
+                sigma_eff=float(np.hypot(sigma_cells * cell, cell)),
+                empty_cells=int((~filled).sum()))
+    velocity = []
+    for i, axis in enumerate("xyz"):
+        m = ndimage.gaussian_filter(momentum[i], sigma_cells, mode="wrap")
+        v = np.zeros_like(m)
+        np.divide(m, count, out=v, where=filled)
+        velocity.append(Volume(data=v.astype(np.float32), box_size=box_size,
+                               meta={**meta, "component": axis}))
+    if return_count:
+        cmeta = {**meta, "field": "count"}
+        cmeta.pop("units")
+        return velocity, Volume(data=count.astype(np.float32), box_size=box_size, meta=cmeta)
+    return velocity

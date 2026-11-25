@@ -17,6 +17,7 @@ BOX_SIZE = 205.0  # h^-1 Mpc
 COSMOLOGY = Cosmology(omega_m=0.3089, h=0.6774)  # Planck 2015
 API = "https://www.tng-project.org/api"
 SUBHALO_FIELDS = ("SubhaloPos", "SubhaloMass", "SubhaloVel")
+DM_FIELDS = ("Coordinates", "Velocities")
 
 
 def fetch_subhalos(path: str | os.PathLike, api_key: str, sim: str = "TNG300-1",
@@ -102,3 +103,120 @@ def read_subhalos(path: str | os.PathLike, mass_key: str = "SubhaloMass",
     return Tracers(pos=pos % BOX_SIZE, box_size=BOX_SIZE, mass=mass, vel=vel,
                    meta={"sim": sim, "tracer": "subhalos", "redshift": 0.0,
                          "cosmology": COSMOLOGY})
+
+
+def fetch_snapshot_dm(out_dir: str | os.PathLike, api_key: str, sim: str = "TNG300-3-Dark",
+                      snapshot: int = 99, fields: tuple[str, ...] = DM_FIELDS,
+                      chunks: int | None = None, attempts: int = 15,
+                      wait: float = 60.0) -> list[Path]:
+    """Download the dark-matter fields of a TNG snapshot, one chunk file at a time.
+
+    Each chunk is requested with only ``fields`` of PartType1 (the API's
+    ``?dm=...`` subset), so only positions and velocities come down unless
+    more are asked for (``ParticleIDs`` is needed to match particles to the
+    initial conditions). Chunks already on disk are skipped, so calling again
+    resumes. A failed request is repeated every ``wait`` seconds, up to
+    ``attempts`` times. ``chunks`` defaults to ``num_files_snapshot`` from the
+    API's simulation record (4 for TNG300-3-Dark).
+
+    Returns the chunk files, which :func:`read_snapshot_dm` reads.
+    """
+    import time
+
+    import requests
+
+    out_dir = Path(out_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    headers = {"api-key": api_key}
+    if chunks is None:
+        r = requests.get(f"{API}/{sim}/", headers=headers, timeout=60)
+        r.raise_for_status()
+        chunks = int(r.json()["num_files_snapshot"])
+    files = []
+    for chunk in range(chunks):
+        path = out_dir / f"snap_{snapshot:03d}.{chunk}.hdf5"
+        files.append(path)
+        if path.exists() and _complete(path, fields):
+            continue
+        tmp = path.with_suffix(".part")
+        url = f"{API}/{sim}/files/snapshot-{snapshot}.{chunk}.hdf5"
+        for attempt in range(1, attempts + 1):
+            try:
+                with requests.get(url, headers=headers, params={"dm": ",".join(fields)},
+                                  stream=True, timeout=900) as r:
+                    r.raise_for_status()
+                    with open(tmp, "wb") as f:
+                        for block in r.iter_content(chunk_size=1 << 22):
+                            f.write(block)
+                tmp.replace(path)
+                if _complete(path, fields):
+                    break
+                message = "file incomplete"
+            except (requests.RequestException, OSError) as err:
+                message = str(err)[:200]
+            if attempt == attempts:
+                raise RuntimeError(f"{url}: gave up after {attempts} attempts ({message})")
+            print(f"chunk {chunk}: {message}; retrying in {wait:.0f} s ({attempt}/{attempts})")
+            time.sleep(wait)
+        print(f"chunk {chunk}: {path.stat().st_size / 1e9:.2f} GB")
+    return files
+
+
+def _complete(path: Path, fields: tuple[str, ...]) -> bool:
+    """True if a chunk file opens and holds every requested field in full."""
+    import h5py
+
+    try:
+        with h5py.File(path, "r") as h:
+            n = int(h["Header"].attrs["NumPart_ThisFile"][1])
+            return all(h["PartType1"][f].shape[0] == n for f in fields)
+    except (OSError, KeyError):
+        return False
+
+
+def snapshot_files(path: str | os.PathLike) -> list[Path]:
+    """The chunk files of one snapshot, in chunk order.
+
+    ``path`` is one chunk file, or a directory holding them: the TNG Lab's
+    ``.../output/snapdir_099`` or the folder :func:`fetch_snapshot_dm` wrote.
+    """
+    path = Path(path)
+    if path.is_file():
+        return [path]
+    files = sorted(path.glob("*.hdf5"), key=lambda p: int(p.suffixes[-2].lstrip(".")))
+    if not files:
+        raise FileNotFoundError(f"no .hdf5 chunk files in {path}")
+    return files
+
+
+def read_snapshot_dm(path: str | os.PathLike, sim: str = "TNG300-3-Dark",
+                     ids: bool = False) -> Tracers:
+    """Dark-matter particles of a TNG snapshot, from one chunk file or a whole directory.
+
+    Converts TNG units to the package's: Coordinates (comoving ckpc/h) to
+    h^-1 Mpc, and Velocities (km sqrt(a)/s) to peculiar velocities in km/s by
+    multiplying by sqrt(a) (TNG data specifications; a = 1 at snapshot 99).
+    Positions and velocities are float32 (about 5.9 GB for the 625^3
+    particles of TNG300-3-Dark); pass a single chunk file to read less at
+    once. With ``ids``, ``meta["ids"]`` holds the ParticleIDs (uint64).
+    """
+    import h5py
+
+    pos, vel, pid = [], [], []
+    for f in snapshot_files(path):
+        with h5py.File(f, "r") as h:
+            head = h["Header"].attrs
+            box = float(head["BoxSize"]) / 1000.0
+            a = float(head["Time"])
+            mass = float(head["MassTable"][1]) * 1e10
+            dm = h["PartType1"]
+            pos.append((dm["Coordinates"][:] / 1000.0).astype(np.float32))
+            vel.append((dm["Velocities"][:] * np.sqrt(a)).astype(np.float32))
+            if ids:
+                pid.append(dm["ParticleIDs"][:])
+    pos = np.concatenate(pos) % np.float32(box)
+    meta = {"sim": sim, "tracer": "dm", "redshift": 1.0 / a - 1.0, "cosmology": COSMOLOGY,
+            "particle_mass": mass}
+    if ids:
+        meta["ids"] = np.concatenate(pid)
+    return Tracers(pos=pos, box_size=box, mass=None, vel=np.concatenate(vel), meta=meta)
