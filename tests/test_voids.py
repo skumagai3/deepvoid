@@ -184,3 +184,49 @@ def test_size_function_and_percolation():
     void = np.ones((8, 8, 8), bool)
     void[:, :, 0] = False
     assert V.percolation(void) == {'components': 1, 'largest_share': 1.0}
+
+
+def random_void(n, seed, smooth=2.0, frac=0.6):
+    """A periodic random void mask: the lowest ``frac`` of a smoothed Gaussian field."""
+    from scipy import ndimage
+    rng = np.random.default_rng(seed)
+    f = ndimage.gaussian_filter(rng.normal(size=(n, n, n)), smooth, mode='wrap')
+    return f < np.quantile(f, frac)
+
+
+def test_merge_tree_dumbbell():
+    void = dumbbell()
+    d = V.distance_to_structure(void, margin=16)
+    basins, n = V.ascent_basins(d, void)
+    tree = V.merge_tree(basins, d)
+    # every basin but one per connected region merges exactly once
+    assert len(tree['child']) == n - 1
+    assert len(np.unique(tree['child'])) == n - 1
+    assert tree['volume'].sum() - tree['volume'][0] == void.sum()
+    # the most persistent merge: the small ball (peak ~7) into the big one (peak ~9) at the neck (~2)
+    i = np.argmax(tree['persistence'])
+    big = basins[14, 24, 24]
+    assert tree['parent'][i] == big and basins.ravel()[tree['peak_index'][tree['child'][i]]] == tree['child'][i]
+    assert 6.5 <= tree['child_peak'][i] <= 7.5 and 1.5 <= tree['pass_'][i] <= 2.5
+    assert np.isclose(tree['peak'][big], d[14, 24, 24])
+
+
+@pytest.mark.parametrize('seed', [0, 1, 2])
+def test_cut_tree_equals_distance_voids(seed):
+    void = random_void(32, seed)
+    d = V.distance_to_structure(void, margin=16)
+    basins, _ = V.ascent_basins(d, void)
+    tree = V.merge_tree(basins, d)
+    for p in (0.0, 0.5, 1.0, 2.0, 3.0, 100.0):
+        for r in (0.0, 2.0):
+            want = V.distance_voids(void, distance=d, persistence=p, min_radius=r)
+            got = V.cut_tree(basins, tree, p, distance=d, min_radius=r)
+            assert np.array_equal(got, want), (seed, p, r)
+
+
+def test_cut_tree_min_radius_needs_distance():
+    void = dumbbell()
+    d = V.distance_to_structure(void, margin=16)
+    basins, _ = V.ascent_basins(d, void)
+    with pytest.raises(ValueError):
+        V.cut_tree(basins, V.merge_tree(basins, d), 1.0, min_radius=2.0)

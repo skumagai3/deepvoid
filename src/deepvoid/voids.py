@@ -38,7 +38,7 @@ from scipy.spatial import cKDTree
 
 __all__ = [
     "label_periodic", "distance_to_structure", "soft_distance", "local_peaks",
-    "ascent_basins", "grow_labels", "merge_basins", "basin_persistence", "threshold_voids", "distance_voids",
+    "ascent_basins", "grow_labels", "merge_basins", "basin_persistence", "merge_tree", "cut_tree", "threshold_voids", "distance_voids",
     "sphere_voids", "void_catalog", "size_function", "match_voids", "percolation",
 ]
 
@@ -233,7 +233,7 @@ def _pair_saddles(labels: np.ndarray, field: np.ndarray):
 
 
 def merge_basins(labels: np.ndarray, field: np.ndarray,
-                 rule: Callable[[float, float, float], bool]):
+                 rule: Callable[[float, float, float], bool], return_pairs: bool = False):
     """Merge touching basins, highest pass first.
 
     For each touching pair, in order of decreasing pass value s (see
@@ -243,16 +243,20 @@ def merge_basins(labels: np.ndarray, field: np.ndarray,
 
     Returns the merged labels, their number, and the merge history: one
     row (lower peak, pass) per merge, i.e. the birth and death of the basin
-    that disappeared, for a persistence diagram.
+    that disappeared, for a persistence diagram. With ``return_pairs``,
+    also, per merge, the labels (child, parent, child_edge, parent_edge):
+    the peak basins of the lower and the higher group (elder rule), and the
+    two touching basins whose pass joined them.
     """
     n = int(labels.max())
     if n == 0:
-        return labels, 0, np.zeros((0, 2))
+        out = (labels, 0, np.zeros((0, 2)))
+        return out + (np.zeros((0, 4), np.int64),) if return_pairs else out
     peak = np.asarray(ndimage.maximum(field, labels, index=np.arange(n + 1)), dtype=np.float64)
     peak[0] = -np.inf
     a, b, s = _pair_saddles(labels, field)
     parent = np.arange(n + 1)
-    history = []
+    history, pairs = [], []
 
     def find(i):
         root = i
@@ -270,10 +274,13 @@ def merge_basins(labels: np.ndarray, field: np.ndarray,
             if peak[rb] > peak[ra]:
                 ra, rb = rb, ra
             history.append((peak[rb], float(s[i])))
+            ea, eb = (a[i], b[i]) if find(a[i]) == ra else (b[i], a[i])
+            pairs.append((rb, ra, eb, ea))
             parent[rb] = ra
     roots = np.array([find(i) for i in range(n + 1)])
     merged, count = _relabel(roots[labels])
-    return merged, count, np.array(history, dtype=np.float64).reshape(-1, 2)
+    out = (merged, count, np.array(history, dtype=np.float64).reshape(-1, 2))
+    return out + (np.array(pairs, dtype=np.int64).reshape(-1, 4),) if return_pairs else out
 
 
 def _drop_small(labels: np.ndarray, distance: np.ndarray, min_radius: float):
@@ -372,6 +379,67 @@ def basin_persistence(void: np.ndarray, distance: np.ndarray) -> np.ndarray:
     basins, _ = ascent_basins(distance, void)
     _, _, history = merge_basins(basins, distance, lambda s, pa, pb: True)
     return history
+
+
+def merge_tree(basins: np.ndarray, distance: np.ndarray) -> dict:
+    """The full merge tree of the basins of the distance field.
+
+    ``basins`` are the unmerged basins (:func:`ascent_basins`). Every
+    touching pair is merged, highest pass first, as in
+    :func:`basin_persistence`; each merge is one row: the ``child`` basin
+    (peak basin of the lower group) joins the ``parent`` basin (peak basin of
+    the higher group) at height ``pass_``. ``persistence = child_peak -
+    pass_`` is the Δ above which the child is merged away. Per basin
+    (index = label; index 0 unused): ``peak`` (its largest distance, the
+    radius of its largest empty sphere), ``volume`` (in voxels) and
+    ``peak_index`` (flat index of its peak voxel). :func:`cut_tree` turns
+    the tree into the voids at any Δ: it needs ``child_edge`` and
+    ``parent_edge``, the two touching basins whose pass is the merge (with
+    a cut, the child joins whatever group the touching basin is in then,
+    which need not contain ``parent``).
+    """
+    n = int(basins.max())
+    _, _, hist, pairs = merge_basins(basins, distance, lambda s, pa, pb: True, return_pairs=True)
+    idx = np.arange(n + 1)
+    peak = np.asarray(ndimage.maximum(distance, basins, idx), dtype=np.float64)
+    pos = ndimage.maximum_position(distance, basins, idx[1:])
+    peak_index = np.zeros(n + 1, np.int64)
+    if n:
+        peak_index[1:] = np.ravel_multi_index(np.asarray(pos).T, basins.shape)
+    peak[0] = 0.0
+    return {"child": pairs[:, 0], "parent": pairs[:, 1], "child_edge": pairs[:, 2], "parent_edge": pairs[:, 3],
+            "pass_": hist[:, 1], "child_peak": hist[:, 0],
+            "persistence": hist[:, 0] - hist[:, 1], "peak": peak,
+            "volume": np.bincount(basins.ravel(), minlength=n + 1).astype(np.int64), "peak_index": peak_index}
+
+
+def cut_tree(basins: np.ndarray, tree: dict, persistence: float, distance: np.ndarray | None = None,
+             min_radius: float = 0.0) -> np.ndarray:
+    """Voids at Δ = ``persistence`` from a :func:`merge_tree`: every merge
+    with ``child_peak - pass_ <= persistence`` is applied. Gives the same
+    voids as :func:`distance_voids` with the same ``persistence`` (tested).
+    ``min_radius`` needs ``distance``."""
+    n = int(basins.max())
+    parent = np.arange(n + 1)
+    keep = np.asarray(tree["persistence"]) <= persistence
+
+    def find(i):
+        while parent[i] != i:
+            parent[i] = parent[parent[i]]
+            i = parent[i]
+        return i
+
+    for c, p in zip(np.asarray(tree["child_edge"])[keep], np.asarray(tree["parent_edge"])[keep]):
+        rc, rp = find(c), find(p)
+        if rc != rp:
+            parent[rc] = rp
+    roots = np.array([find(i) for i in range(n + 1)])
+    labels, _ = _relabel(roots[basins])
+    if min_radius > 0:
+        if distance is None:
+            raise ValueError("min_radius needs the distance field")
+        labels = _drop_small(labels, distance, min_radius)
+    return labels
 
 
 def _overlap(r1, r2, d):
