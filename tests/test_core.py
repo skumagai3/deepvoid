@@ -1135,3 +1135,21 @@ def test_read_smdpl_halos(tmp_path):
     h = read_halos(tmp_path / "h.parquet")
     np.testing.assert_allclose(h.pos[1], [1.0, 399.0, 5.0])
     assert h.box_size == 400.0 and h.meta["n_subhalos"] == 1 and h.mass[1] == 2e12
+
+
+def test_read_bolshoi_halos(tmp_path):
+    pd = pytest.importorskip("pandas")
+    pytest.importorskip("pyarrow")
+    from deepvoid.sources.bolshoi import read_halos
+    df = pd.DataFrame({"x": [1.0, 251.0, 7.0], "y": [2.0, -1.0, 8.0], "z": [3.0, 5.0, 9.0],
+                       "vx": [10.0, 0.0, 1.0], "vy": [0.0, 0.0, 1.0], "vz": [-5.0, 7.0, 1.0],
+                       "Mvir": [1e12, 2e12, 3e11], "hostFlag": [-1, 416000000001, -1]})
+    df.to_parquet(tmp_path / "h.parquet")
+    h = read_halos(tmp_path / "h.parquet")
+    np.testing.assert_allclose(h.pos[1], [1.0, 249.0, 5.0])
+    assert h.box_size == 250.0 and h.meta["n_subhalos"] == 1 and len(h.mass) == 3
+    d = read_halos(tmp_path / "h.parquet", distinct_only=True)
+    assert len(d.mass) == 2 and d.meta["n_subhalos"] == 0 and d.mass[1] == 3e11
+    with pytest.raises(ValueError, match="hostflag"):
+        df.drop(columns="hostFlag").to_parquet(tmp_path / "g.parquet")
+        read_halos(tmp_path / "g.parquet", distinct_only=True)

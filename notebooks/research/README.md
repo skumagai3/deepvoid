@@ -27,10 +27,12 @@ in `configs/research/`.
 | `15_smdpl.ipynb` | SMDPL density grid from CosmoSim's TAP service in 27 chunks (needs a `COSMOSIM_TOKEN` Colab secret), checked and assembled to 512³ |
 | `16_smdpl_scoring.ipynb` | The real- and redshift-space models on SMDPL (whole box; redshift space along x, y and z), scored on SMDPL's 0.78 h⁻¹ Mpc grid, with the TNG test slab scored on a 0.80 h⁻¹ Mpc grid as the reference; measures where SMDPL's grid points sit |
 | `17_void_catalogs.ipynb` | Void catalogs from void voxels on the whole TNG or Bolshoi box: thresholded cores, distance basins with a persistence cut, the same on a score-averaged distance, and maximal empty spheres, each run on the truth and on the predictions with the same settings; persistence diagrams, size functions, matching |
+| `18_void_definitions.ipynb` | T-web basins, DeepVoid, VIDE (pyVIDE) and VAST VoidFinder on the same box (TNG, SMDPL or Bolshoi) at λ = 3, 5, 10: size functions, slices, true T-web composition of each catalog's voids, stability across spacing, radial profiles around void centers, merge trees |
+| `19_bolshoi_halos.ipynb` | Bolshoi BDM halo positions (z = 0) from CosmoSim's TAP service; where Bolshoi's grid points sit and which halo selection matches the dissertation's halo grids; feeds notebook 18 |
 
 Planned:
 
 | Notebook | Purpose |
 |---|---|
-| `18_survey.ipynb` | Survey masks and radial selection |
-| `19_calibration.ipynb` | Reliability of the class scores and temperature scaling |
+| `20_survey.ipynb` | Survey masks and radial selection |
+| `21_calibration.ipynb` | Reliability of the class scores and temperature scaling |
