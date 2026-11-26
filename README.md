@@ -25,7 +25,8 @@ explains the whole problem from the physics up.
   ([doi:10.5281/zenodo.24261832](https://doi.org/10.5281/zenodo.24261832);
   `notebooks/03_use_trained_model.ipynb`).
 - **Tested on:** IllustrisTNG TNG300-3-Dark at redshift 0, in real space,
-  with subhalos as tracers; and, without retraining, Bolshoi halos.
+  with subhalos as tracers; and, without retraining, Bolshoi halos and SMDPL
+  halos (`notebooks/research/16_smdpl_scoring.ipynb`).
 - **Not tested on:** other simulations or cosmologies, survey masks and
   selection, or real galaxy surveys. In redshift space the trained model's
   scores drop sharply; training on redshift-space inputs is in progress. A
@@ -314,6 +315,26 @@ The Bolshoi simulation is distributed through CosmoSim
 
 - Klypin, Trujillo-Gomez & Primack 2011, ApJ 740, 102
 - CosmoSim Bolshoi dataset, doi:10.17876/cosmosim/bolshoi
+- Klypin, Gottlöber, Kravtsov & Khokhlov 1999, ApJ 516, 530 (BDM, the halo
+  finder for the Bolshoi halos used here)
+
+The SMDPL (Small MultiDark-Planck) simulation is part of the MultiDark project
+and is distributed through CosmoSim (https://www.cosmosim.org). Please cite:
+
+- Klypin et al. 2016, MNRAS 457, 4340 (the MultiDark-Planck simulations)
+- Riebe et al. 2013, Astronomische Nachrichten 334, 691 (the MultiDark database)
+- Behroozi, Wechsler & Wu 2013, ApJ 762, 109 (Rockstar, the halo finder for
+  the SMDPL halos used here)
+
+The CosmoSim database is a service by the Leibniz Institute for Astrophysics
+Potsdam (AIP). The MultiDark database was developed in cooperation with the
+Spanish MultiDark Consolider Project CSD2009-00064. The SMDPL simulation was
+performed at LRZ Munich within the project pr87yi. The authors gratefully
+acknowledge the Gauss Centre for Supercomputing e.V. (www.gauss-centre.eu) and
+the Partnership for Advanced Supercomputing in Europe (PRACE,
+www.prace-ri.eu) for funding the MultiDark simulation project by providing
+computing time on the GCS Supercomputer SuperMUC at Leibniz Supercomputing
+Centre (LRZ, www.lrz.de).
 
 ## License
 
