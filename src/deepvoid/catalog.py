@@ -60,15 +60,30 @@ class Catalog:
         return sim
 
     def load(self, name: str) -> Volume:
-        """Load a dataset as a :class:`Volume`."""
+        """Load a dataset as a :class:`Volume`.
+
+        An entry with ``crop: n`` keeps the first ``n`` cells along each axis
+        and gives the result the simulation's box size: for a grid of ``n``^3
+        cells that was padded to a larger size by copying cells from the other
+        side (the dissertation-era Bolshoi files are 624^3 grids padded to
+        640^3).
+        """
         path = self.path(name)
         info = self.info(name)
+        crop = info.pop("crop", None)
         if path.suffix == ".npz":
             vol = load_volume(path)
             info.pop("box_size", None)            # the file's own box size is on the Volume
             vol.meta = {**info, **vol.meta}
+            if crop:
+                vol = Volume(data=_crop(vol.data, crop), box_size=self.info(name)["box_size"],
+                             meta={**vol.meta, "cropped_from": vol.data.shape[0]})
             return vol
         data = read_fvol(path)
+        if crop:
+            n_file = data.shape[0]
+            data = _crop(data, crop)
+            info["cropped_from"] = n_file
         if info.get("field") == "mask":
             data = data.astype(np.uint8)
         box_size = info.pop("box_size")
@@ -87,3 +102,9 @@ class Catalog:
             return self.entries[name]
         except KeyError:
             raise KeyError(f"unknown dataset {name!r}; see Catalog.names()") from None
+
+
+def _crop(data: np.ndarray, n: int) -> np.ndarray:
+    if any(d < n for d in data.shape[:3]):
+        raise ValueError(f"cannot crop a {data.shape[:3]} grid to {n}^3")
+    return np.ascontiguousarray(data[:n, :n, :n])

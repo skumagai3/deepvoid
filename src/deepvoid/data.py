@@ -115,6 +115,13 @@ def _write_catalog(folder: Path) -> None:
         if (folder / file).exists():
             entry = dict(packaged["datasets"][name])
             entry["file"] = file
+            if name.startswith("bolshoi/"):
+                # the record's Bolshoi grids are 624^3 grids padded to 640^3 (see catalog.yaml)
+                entry["crop"] = 624
+                if name == "bolshoi/mask":
+                    entry["note"] = ("labels computed on the padded 640^3 grid, cropped; the packaged "
+                                     "catalog's 624^3 labels differ on 1.7% of voxels")
+                    entry.pop("sigma_eff", None)
             datasets[name] = entry
     text = ("# Grids downloaded from the DeepVoid data release, "
             f"https://doi.org/{DOI}. Paths are relative to this folder.\n"

@@ -1154,3 +1154,36 @@ def test_read_bolshoi_halos(tmp_path):
     with pytest.raises(ValueError, match="hostflag"):
         df.drop(columns="hostFlag").to_parquet(tmp_path / "g.parquet")
         read_halos(tmp_path / "g.parquet", distinct_only=True)
+
+
+def test_catalog_crop(tmp_path):
+    from deepvoid.io import save_volume, write_fvol
+    rng = np.random.default_rng(0)
+    real = rng.random((12, 12, 12)).astype(np.float32)
+    padded = np.pad(real, ((0, 4),) * 3, mode="wrap")
+    write_fvol(padded, tmp_path / "d.fvol")
+    save_volume(Volume(data=padded, box_size=50.0, meta={}), tmp_path / "d.npz", dtype="float32")
+    (tmp_path / "cat.yaml").write_text(
+        "simulations:\n  s:\n    box_size: 50.0\n"
+        "datasets:\n"
+        "  a: {file: d.fvol, sim: s, field: density, crop: 12}\n"
+        "  b: {file: d.npz, sim: s, field: density, crop: 12}\n"
+        "  c: {file: d.fvol, sim: s, field: density}\n"
+        "  e: {file: d.fvol, sim: s, field: density, crop: 20}\n")
+    cat = Catalog(tmp_path / "cat.yaml")
+    for name in ("a", "b"):
+        v = cat.load(name)
+        assert v.data.shape == (12, 12, 12) and v.box_size == 50.0
+        np.testing.assert_array_equal(v.data, real)
+        assert v.meta["cropped_from"] == 16
+    assert cat.load("c").data.shape == (16, 16, 16)
+    with pytest.raises(ValueError, match="crop"):
+        cat.load("e")
+
+
+def test_packaged_bolshoi_is_624():
+    cat = Catalog()
+    for name in ("bolshoi/dm", "bolshoi/halos/L3", "bolshoi/halos/L10", "bolshoi/mask-legacy"):
+        assert cat.info(name)["crop"] == 624
+    assert "crop" not in cat.info("bolshoi/n640-padded/dm")
+    assert cat.info("bolshoi/mask")["box_size"] == 250.0

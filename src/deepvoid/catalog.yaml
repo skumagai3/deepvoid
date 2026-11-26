@@ -204,47 +204,106 @@ datasets:
     rsd: true
     los_axis: 1
 
-  # ---- Bolshoi, 640^3 (0.39 h^-1 Mpc cells) ----
+  # ---- Bolshoi, 624^3 (0.401 h^-1 Mpc cells) ----
+  # The dissertation-era Bolshoi files are 624^3 grids padded to 640^3 by
+  # copying the first 16 cells onto the high end of each axis (found
+  # 2026-11-25, notebook research/19: the last 16 slices equal the first 16
+  # exactly; read as 640^3, CosmoSim's halos do not line up with them, read
+  # as 624^3 they do). `crop: 624` keeps the real grid. Grid point i sits at
+  # i x cell. The padded 640^3 reading is kept below as bolshoi/n640-padded/.
   bolshoi/dm:
     file: Bolshoi/Bolshoi_halo_CIC_640_L=0.122.fvol
+    crop: 624
     sim: bolshoi
     field: density
     tracer: dm
     spacing: 0.122
   bolshoi/mask:
-    file: Bolshoi/bolshoi_mask_tweb_th0.65_seff1.npz
+    file: Bolshoi/bolshoi_mask_tweb_th0.65_seff1_n624.npz
     sim: bolshoi
     field: mask
     threshold: 0.65
-    sigma_eff: 1.0           # recomputed from bolshoi/dm with deepvoid.labels (Nov 2026)
+    sigma_eff: 1.0           # from bolshoi/dm (624^3) with deepvoid.labels, notebook research/19
   bolshoi/mask-legacy:
-    # Mask used in the dissertation. Agrees with a recomputation from
-    # bolshoi/dm on only 88% of voxels (MCC 0.77), so it was likely built
-    # from a different density estimate (the name mentions a 416^3 grid).
+    # Mask used in the dissertation, on the padded grid. Agrees with
+    # bolshoi/n640-padded/mask on only 88% of voxels (MCC 0.77); built from
+    # a density not in the repo (the name mentions 416).
     file: Bolshoi/Bolshoi_bolshoi.delta416_mask_Nm=640_sig=0.916_thresh=0.65.fvol
+    crop: 624
     sim: bolshoi
     field: mask
     threshold: 0.65
     sigma_mpc: 0.916
   bolshoi/halos/L3:
+    # mass-weighted CIC of the most massive BDM halos (hosts and subhalos);
+    # matches CosmoSim's bolshoi.bdmv at z = 0 (correlation 0.9999+)
     file: Bolshoi/Bolshoi_halo_CIC_640_L=3.0.fvol
+    crop: 624
     sim: bolshoi
     field: density
     tracer: halos
     spacing: 3.0
   bolshoi/halos/L5:
+    # mass-weighted CIC of the most massive BDM halos (hosts and subhalos);
+    # matches CosmoSim's bolshoi.bdmv at z = 0 (correlation 0.9999+)
     file: Bolshoi/Bolshoi_halo_CIC_640_L=5.0.fvol
+    crop: 624
     sim: bolshoi
     field: density
     tracer: halos
     spacing: 5.0
   bolshoi/halos/L7:
+    # mass-weighted CIC of the most massive BDM halos (hosts and subhalos);
+    # matches CosmoSim's bolshoi.bdmv at z = 0 (correlation 0.9999+)
     file: Bolshoi/Bolshoi_halo_CIC_640_L=7.0.fvol
+    crop: 624
     sim: bolshoi
     field: density
     tracer: halos
     spacing: 7.0
   bolshoi/halos/L10:
+    # mass-weighted CIC of the most massive BDM halos (hosts and subhalos);
+    # matches CosmoSim's bolshoi.bdmv at z = 0 (correlation 0.9999+)
+    file: Bolshoi/Bolshoi_halo_CIC_640_L=10.0.fvol
+    crop: 624
+    sim: bolshoi
+    field: density
+    tracer: halos
+    spacing: 10.0
+
+  # ---- Bolshoi as stored: 640^3, padded (read as 0.391 h^-1 Mpc cells; for
+  # reproducing results made before 2026-11-25 only) ----
+  bolshoi/n640-padded/dm:
+    file: Bolshoi/Bolshoi_halo_CIC_640_L=0.122.fvol
+    sim: bolshoi
+    field: density
+    tracer: dm
+    spacing: 0.122
+  bolshoi/n640-padded/mask:
+    file: Bolshoi/bolshoi_mask_tweb_th0.65_seff1.npz
+    sim: bolshoi
+    field: mask
+    threshold: 0.65
+    sigma_eff: 1.0           # recomputed from the padded grid as if its cells were 0.391 (Nov 2026)
+  bolshoi/n640-padded/halos/L3:
+    file: Bolshoi/Bolshoi_halo_CIC_640_L=3.0.fvol
+    sim: bolshoi
+    field: density
+    tracer: halos
+    spacing: 3.0
+  bolshoi/n640-padded/halos/L5:
+    file: Bolshoi/Bolshoi_halo_CIC_640_L=5.0.fvol
+    sim: bolshoi
+    field: density
+    tracer: halos
+    spacing: 5.0
+  bolshoi/n640-padded/halos/L7:
+    file: Bolshoi/Bolshoi_halo_CIC_640_L=7.0.fvol
+    sim: bolshoi
+    field: density
+    tracer: halos
+    spacing: 7.0
+  bolshoi/n640-padded/halos/L10:
     file: Bolshoi/Bolshoi_halo_CIC_640_L=10.0.fvol
     sim: bolshoi
     field: density
