@@ -1,8 +1,8 @@
 # DeepVoid
 
-[![software DOI](https://img.shields.io/badge/software%20DOI-10.5281%2Fzenodo.24236525-blue)](https://doi.org/10.5281/zenodo.24236525)
-[![data DOI](https://img.shields.io/badge/data%20DOI-10.5281%2Fzenodo.24233069-blue)](https://doi.org/10.5281/zenodo.24233069)
-[![model DOI](https://img.shields.io/badge/model%20DOI-10.5281%2Fzenodo.24261832-blue)](https://doi.org/10.5281/zenodo.24261832)
+[![Software DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.24236525.svg)](https://doi.org/10.5281/zenodo.24236525)
+[![Data DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.24233069.svg)](https://doi.org/10.5281/zenodo.24233069)
+[![Model DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.24261832.svg)](https://doi.org/10.5281/zenodo.24261832)
 [![Tests](https://github.com/skumagai3/deepvoid/actions/workflows/tests.yml/badge.svg)](https://github.com/skumagai3/deepvoid/actions/workflows/tests.yml)
 
 DeepVoid labels every cell of a simulated universe as void, wall, filament or
