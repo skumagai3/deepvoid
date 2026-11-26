@@ -258,9 +258,10 @@ def test_subhalo_configs_are_valid_and_inputs_have_spacings():
     from deepvoid.config import load_config
     catalog = Catalog()
     paths = sorted((Path(__file__).parents[1] / "configs" / "research" / "subhalo").glob("*.yaml"))
-    assert len(paths) == 14
+    assert len(paths) == 15
     for path in paths:
         cfg = load_config(path)
+        assert catalog.info(cfg["data"]["labels"])["field"] == "mask"
         names = cfg["data"]["inputs"] + (cfg["evaluate"]["inputs"] or [])
         for name in names:
             assert catalog.info(name)["spacing"] > 0

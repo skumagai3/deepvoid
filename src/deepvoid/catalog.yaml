@@ -31,6 +31,17 @@ datasets:
     field: mask
     threshold: 0.65
     sigma_cells: 2.4         # Gaussian sigma in cells; sigma_eff ~ 1.04 h^-1 Mpc
+  tng300-3/mask-vweb:
+    # V-web (velocity shear, Hoffman et al. 2012) from the TNG300-3-Dark particles,
+    # research notebook 20; threshold 0.35, same smoothing as tng300-3/mask, with
+    # Hoffman et al.'s multiscale correction (coarse V-web at sigma_eff = 2 h^-1 Mpc).
+    file: TNG/vweb_mask_n512_s2.4_th0.35_ms.npz
+    sim: tng300-3
+    field: mask
+    labels: vweb
+    threshold: 0.35
+    sigma_cells: 2.4
+    multiscale: hoffman2012
   tng300-3/subhalos/L3:
     file: TNG/subs1_mass_Nm512_L3_d_None_smooth.fvol
     sim: tng300-3
