@@ -28,6 +28,14 @@ order $(x, y, z)$ and lengths in $h^{-1}\,\mathrm{Mpc}$.
 | `bolshoi_halos_L{3,5,7,10}_n640.npz` | Bolshoi halos at mean separations of 3, 5, 7 or $10\,h^{-1}\,\mathrm{Mpc}$, found by the Bound Density Maxima (BDM) halo finder |
 | `MANIFEST.txt` | Size and SHA-256 checksum of every file |
 
+**Correction (2026-11-25).** The three Bolshoi files are $624^3$ grids
+($0.401\,h^{-1}\,\mathrm{Mpc}$ cells, grid point $i$ at $i \times$ cell) padded
+to $640^3$ by copying the first 16 cells onto the high end of each axis. Use
+`data[:624, :624, :624]`; read as $640^3$ cells, positions are stretched by
+2.6%. `bolshoi_tweb_n640.npz` was computed on the padded grid; T-web labels
+recomputed on the $624^3$ grid differ on 1.7% of voxels.
+`deepvoid.data.fetch()` crops the files automatically.
+
 **Format.** Each `.npz` opens with NumPy alone:
 
 ```python
