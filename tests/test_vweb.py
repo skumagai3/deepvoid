@@ -142,3 +142,23 @@ def test_read_snapshot_dm_converts_units(tmp_path):
     np.testing.assert_array_equal(t.meta["ids"], np.concatenate(ids))
     assert t.meta["redshift"] == pytest.approx(3.0)
     assert t.meta["particle_mass"] == pytest.approx(0.5e10)
+
+
+def test_virial_overdensity_bryan_norman():
+    from deepvoid.labels import virial_overdensity
+    assert virial_overdensity(1.0) == pytest.approx(18 * np.pi ** 2)
+    assert virial_overdensity(0.3089) == pytest.approx(331.35, abs=0.01)
+
+
+def test_multiscale_correction_changes_only_hoffmans_cells():
+    from deepvoid.labels import multiscale_correction
+    fine = np.array([0, 0, 1, 2, 3, 1, 2, 0], np.uint8).reshape(2, 2, 2)
+    coarse = np.full((2, 2, 2), 3, np.uint8)
+    rho = np.array([0.5, 1.0, 400., 400., 400., 10., 10., 1000.]).reshape(2, 2, 2)
+    out = multiscale_correction(Volume(fine, 2.0, {"sigma_eff": 1.0}),
+                                Volume(coarse, 2.0, {"sigma_eff": 2.0}), rho, virial=331.0)
+    # void below the mean kept; void at/above the mean -> coarse; wall/filament above virial -> coarse;
+    # halo kept; wall/filament below virial kept
+    np.testing.assert_array_equal(out.data.ravel(), [0, 3, 3, 3, 3, 1, 2, 3])
+    assert out.meta["corrected_dense_void"] == 2 and out.meta["corrected_virial"] == 2
+    assert out.meta["multiscale"] == "hoffman2012" and out.meta["coarse_sigma_eff"] == 2.0

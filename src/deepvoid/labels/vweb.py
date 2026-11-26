@@ -15,6 +15,12 @@ resolution and say the value has to be set for each problem, so
 
 In linear theory v = -f H0 grad(phi) with del^2 phi = delta, which gives
 Sigma = f T: the V-web and the T-web then agree, with thresholds in the ratio f.
+
+Inside halos the velocity field is dominated by virial (random) motions, not
+collapse, so on a fine grid some halo cores come out as void, wall or
+filament. Hoffman et al. (2012, Sec. 5) correct this with a coarser V-web;
+:func:`multiscale_correction` implements their rule. It is an optional step
+on top of the V-web, and it changes labels only in overdense cells.
 """
 
 from __future__ import annotations
@@ -25,6 +31,7 @@ import numpy as np
 import scipy.fft as sfft
 
 from ..volume import Volume
+from . import FILAMENT, VOID, WALL
 from .tensor import symmetric_eigenvalues
 
 H0 = 100.0  # km/s per h^-1 Mpc
@@ -82,3 +89,45 @@ def vweb_labels(velocity: Sequence[Volume], threshold: float) -> Volume:
             if k not in ("field", "name", "component", "units", "empty_cells")}
     meta.update(field="mask", labels="vweb", threshold=float(threshold))
     return Volume(data=labels, box_size=box_size, meta=meta)
+
+
+def virial_overdensity(omega_m: float) -> float:
+    """Virial density in units of the mean density, flat LCDM at z = 0.
+
+    Bryan & Norman (1998): Delta_c = 18 pi^2 + 82 x - 39 x^2 relative to the
+    critical density, x = Omega_m - 1; divided by Omega_m to refer it to the
+    mean. About 331 for TNG (Omega_m = 0.3089). Hoffman et al. (2012) quote
+    ~340 for their Omega_m = 0.28 without saying how it was computed; this
+    formula gives 351 there.
+    """
+    x = omega_m - 1.0
+    return float((18 * np.pi ** 2 + 82 * x - 39 * x ** 2) / omega_m)
+
+
+def multiscale_correction(fine: Volume, coarse: Volume, density: np.ndarray,
+                          virial: float) -> Volume:
+    """Hoffman et al. (2012) multiscale correction of a V-web.
+
+    Two kinds of fine-grid cells take the class of the coarse V-web:
+
+    - voids with density at or above the mean (rho/rho_bar >= 1);
+    - walls and filaments with density above the virial density
+      (rho/rho_bar > ``virial``, e.g. :func:`virial_overdensity`).
+
+    ``density`` is rho/rho_bar on the same grid, smoothed as the fine V-web.
+    ``coarse`` is a V-web from a velocity field smoothed on a larger scale,
+    same threshold. Every other cell keeps its fine class. The number of
+    changed cells of each kind is recorded in the metadata.
+    """
+    rho = np.asarray(density)
+    dense_void = (fine.data == VOID) & (rho >= 1.0)
+    virial_sheet = ((fine.data == WALL) | (fine.data == FILAMENT)) & (rho > virial)
+    take = dense_void | virial_sheet
+    data = np.where(take, coarse.data, fine.data).astype(np.uint8)
+    meta = dict(fine.meta)
+    meta.update(multiscale="hoffman2012", coarse_sigma_eff=coarse.meta.get("sigma_eff"),
+                virial=float(virial),
+                corrected_dense_void=int(dense_void.sum()),
+                corrected_virial=int(virial_sheet.sum()),
+                changed=int((data != fine.data).sum()))
+    return Volume(data=data, box_size=fine.box_size, meta=meta)
