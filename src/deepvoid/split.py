@@ -47,15 +47,22 @@ class Region:
 
 
 def slab_split(n: int, fractions: tuple[float, float, float] = (0.7, 0.15, 0.15),
-               buffer: int = 16, axis: int = 0) -> dict[str, Region]:
+               buffer: int = 16, axis: int = 0, train_fraction: float = 1.0) -> dict[str, Region]:
     """Split an n-cell axis into train, val and test slabs with buffers.
 
     ``buffer`` (in cells) should be at least the receptive-field half-width
     you care about; with crops drawn entirely inside each slab, any buffer
     above zero already prevents shared voxels.
+
+    ``train_fraction`` < 1 trains on only the first part of the training slab
+    (rounded to whole cells) and leaves the rest unused; the validation and
+    test slabs stay exactly where they are, so runs with less training data
+    score on the same regions (data-limit tests).
     """
     if not np.isclose(sum(fractions), 1.0):
         raise ValueError("fractions must sum to 1")
+    if not 0.0 < train_fraction <= 1.0:
+        raise ValueError(f"train_fraction must be in (0, 1], got {train_fraction}")
     usable = n - 3 * buffer
     sizes = [int(round(f * usable)) for f in fractions]
     sizes[0] = usable - sizes[1] - sizes[2]
@@ -63,4 +70,7 @@ def slab_split(n: int, fractions: tuple[float, float, float] = (0.7, 0.15, 0.15)
     for name, size in zip(("train", "val", "test"), sizes):
         regions[name] = Region(name, axis, start, start + size)
         start += size + buffer
+    if train_fraction < 1.0:
+        t = regions["train"]
+        regions["train"] = Region("train", axis, t.start, t.start + int(round(train_fraction * t.size)))
     return regions

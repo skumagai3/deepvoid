@@ -1,0 +1,29 @@
+# Data-limit test: C_mixed_smooth2ch_depth5 trained on half of the training
+# slab (the first half along x; the other half is left unused). Validation and
+# test slabs, normalization method, early stopping and everything else match
+# C_mixed_smooth2ch_depth5 (seed 12), so the two compare directly on the same
+# test slab. Normalization statistics and class weights are fitted on the
+# half slab, as they would be for any training set. If this scores about the
+# same as the full slab (seed spread 0.0014 four-class MCC), more training
+# volume is unlikely to help; a clear drop says it might (doc 13, tests 2 and 8).
+
+name: subhalo_C_mixed_smooth2ch_depth5_half
+output: /content/drive/MyDrive/deepvoid_runs
+seed: 12
+
+data:
+  inputs: [tng300-3/subhalos/L3, tng300-3/subhalos/L5, tng300-3/subhalos/L7,
+           tng300-3/subhalos/L10]
+  labels: tng300-3/mask
+  smoothing: {sigma_spacing: 0.5, keep_raw: true}
+  split: {train_fraction: 0.5}
+
+model:
+  depth: 5
+
+training:
+  epochs: 60
+  val_batches: 16                        # per spacing
+  optimizer: {name: adamw, learning_rate: 1.0e-3, weight_decay: 1.0e-3, clipnorm: 1.0}
+  loss: {name: scce, class_weights: auto}
+  early_stopping: {monitor: val_mcc, patience: 15, min_delta: 0.002}   # as C_mixed_smooth2ch_depth5

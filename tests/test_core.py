@@ -152,6 +152,26 @@ def test_slab_split_is_disjoint_with_buffers():
     assert not np.any(masks[0] & masks[1]) and not np.any(masks[1] & masks[2])
 
 
+def test_slab_split_train_fraction_keeps_val_and_test():
+    full, half = slab_split(512, buffer=16), slab_split(512, buffer=16, train_fraction=0.5)
+    assert half["val"] == full["val"] and half["test"] == full["test"]
+    assert half["train"].start == 0 and half["train"].stop == round(full["train"].size / 2)
+    with pytest.raises(ValueError):
+        slab_split(512, train_fraction=0.0)
+
+
+def test_datalimit_config_matches_its_baseline():
+    from pathlib import Path
+    from deepvoid.config import load_config
+    root = Path(__file__).parents[1] / "configs" / "research"
+    half = load_config(root / "datalimit" / "C_mixed_smooth2ch_depth5_half.yaml")
+    base = load_config(root / "subhalo" / "C_mixed_smooth2ch_depth5.yaml")
+    assert half["data"]["split"]["train_fraction"] == 0.5
+    half["data"]["split"]["train_fraction"] = 1.0
+    half["name"] = base["name"]
+    assert half == base
+
+
 def test_crop_origins_stay_inside_region():
     r = slab_split(128, buffer=8)["val"]
     along = r.crop_origins(16, 128)[r.axis]

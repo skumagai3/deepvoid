@@ -35,6 +35,7 @@ data:
     fractions: [0.7, 0.15, 0.15]   # train, validation, test shares of the usable cells
     buffer: 16                     # cells between slabs
     axis: 0                        # slabs are cut along x
+    train_fraction: 1.0            # < 1: train on the first part of the training slab only
 
   # ----------------------------------------------------------- input channels
   # Sparse tracers leave most cells empty (99.95% at spacing 10 on a 512^3

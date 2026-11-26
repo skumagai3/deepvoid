@@ -11,6 +11,7 @@ commented config to start from, use `configs/template.yaml`.
 | `subhalo/B_*` | The dark-matter baseline fine-tuned at spacing 10 |
 | `subhalo/C_mixed*` | One model on spacings 3, 5, 7 and 10 at once; suffixes add the smoothed channel (`smooth2ch`), a fifth U-Net level (`depth5`), a void-vs-rest loss term (`voidloss`) or deep supervision (`deepsup`); `vweb` trains on V-web labels (research notebook 20) instead of the T-web |
 | `subhalo/C_film*` | As `C_mixed`, with the model told the spacing (FiLM), with or without a dense-to-sparse curriculum |
+| `datalimit/*_half` | As the named config, trained on only the first half of the training slab (`data.split.train_fraction: 0.5`); same validation and test slabs |
 | `papersplit/*` | The first paper's subcube split, for the test in `docs/overview.md`, section 7 |
 
 `subhalo/C_mixed_smooth2ch_depth5.yaml` is the model reported in the README.

@@ -23,7 +23,8 @@ DEFAULTS: dict[str, Any] = {
     "data": {
         "inputs": [],
         "labels": None,
-        "split": {"fractions": [0.7, 0.15, 0.15], "buffer": 16, "axis": 0},
+        "split": {"fractions": [0.7, 0.15, 0.15], "buffer": 16, "axis": 0,
+                  "train_fraction": 1.0},   # < 1: train on the first part of the training slab only
         "smoothing": None,
         "normalization": "log_standard",
         "subcubes": None,
