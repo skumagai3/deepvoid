@@ -310,31 +310,30 @@ The IllustrisTNG simulations are provided by the IllustrisTNG collaboration
 - Marinacci et al. 2018, MNRAS 480, 5113
 - Nelson et al. 2019, Computational Astrophysics and Cosmology 6, 2 (data release), doi:10.1186/s40668-019-0028-x
 
-The Bolshoi simulation is distributed through CosmoSim
-(https://www.cosmosim.org). Please cite:
+The Bolshoi and SMDPL (Small MultiDark-Planck) simulations are distributed
+through CosmoSim (https://www.cosmosim.org). Please cite:
 
-- Klypin, Trujillo-Gomez & Primack 2011, ApJ 740, 102
-- CosmoSim Bolshoi dataset, doi:10.17876/cosmosim/bolshoi
-- Klypin, Gottlöber, Kravtsov & Khokhlov 1999, ApJ 516, 530 (BDM, the halo
-  finder for the Bolshoi halos used here)
+- Bolshoi: Klypin, Trujillo-Gomez & Primack 2011, ApJ 740, 102; CosmoSim
+  Bolshoi dataset, doi:10.17876/cosmosim/bolshoi
+- SMDPL: Klypin et al. 2016, MNRAS 457, 4340 (the MultiDark-Planck simulations)
+- The MultiDark database: Riebe et al. 2013, Astronomische Nachrichten 334, 691
+- The halo finders for the halos used here: BDM for Bolshoi (Klypin,
+  Gottlöber, Kravtsov & Khokhlov 1999, ApJ 516, 530) and Rockstar for SMDPL
+  (Behroozi, Wechsler & Wu 2013, ApJ 762, 109)
 
-The SMDPL (Small MultiDark-Planck) simulation is part of the MultiDark project
-and is distributed through CosmoSim (https://www.cosmosim.org). Please cite:
+and include CosmoSim's requested acknowledgment:
 
-- Klypin et al. 2016, MNRAS 457, 4340 (the MultiDark-Planck simulations)
-- Riebe et al. 2013, Astronomische Nachrichten 334, 691 (the MultiDark database)
-- Behroozi, Wechsler & Wu 2013, ApJ 762, 109 (Rockstar, the halo finder for
-  the SMDPL halos used here)
-
-The CosmoSim database is a service by the Leibniz Institute for Astrophysics
-Potsdam (AIP). The MultiDark database was developed in cooperation with the
-Spanish MultiDark Consolider Project CSD2009-00064. The SMDPL simulation was
-performed at LRZ Munich within the project pr87yi. The authors gratefully
-acknowledge the Gauss Centre for Supercomputing e.V. (www.gauss-centre.eu) and
-the Partnership for Advanced Supercomputing in Europe (PRACE,
-www.prace-ri.eu) for funding the MultiDark simulation project by providing
-computing time on the GCS Supercomputer SuperMUC at Leibniz Supercomputing
-Centre (LRZ, www.lrz.de).
+> The CosmoSim database used in this paper is a service by the
+> Leibniz-Institute for Astrophysics Potsdam (AIP). The MultiDark database was
+> developed in cooperation with the Spanish MultiDark Consolider Project
+> CSD2009-00064. The authors gratefully acknowledge the Gauss Centre for
+> Supercomputing e.V. (www.gauss-centre.eu) and the Partnership for Advanced
+> Supercomputing in Europe (PRACE, www.prace-ri.eu) for funding the MultiDark
+> simulation project by providing computing time on the GCS Supercomputer
+> SuperMUC at Leibniz Supercomputing Centre (LRZ, www.lrz.de). The Bolshoi
+> simulations have been performed within the Bolshoi project of the University
+> of California High-Performance AstroComputing Center (UC-HiPACC) and were
+> run at the NASA Ames Research Center.
 
 ## License
 
