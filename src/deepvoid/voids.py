@@ -442,6 +442,65 @@ def cut_tree(basins: np.ndarray, tree: dict, persistence: float, distance: np.nd
     return labels
 
 
+def join_heights(n_basins: int, edge_a, edge_b, weight, a, b) -> np.ndarray:
+    """The smallest cut at which basins ``a`` and ``b`` (arrays of labels)
+    are in the same void, when every edge (``edge_a``, ``edge_b``) with
+    ``weight`` <= the cut is merged, as :func:`cut_tree` does with
+    ``tree["child_edge"]``, ``tree["parent_edge"]`` and
+    ``tree["persistence"]``. Another weight per merge (for example the
+    ratio ``child_peak / pass_``) gives the join height for a cut on that
+    measure. ``inf`` where the two never join; 0 where ``a == b``.
+
+    The minimax path weight between the two basins, from a Kruskal
+    reconstruction tree with binary-lifted ancestors.
+    """
+    edge_a, edge_b = np.asarray(edge_a, np.int64), np.asarray(edge_b, np.int64)
+    weight = np.asarray(weight, np.float64)
+    order = np.argsort(weight, kind="stable")
+    m = n_basins + 1                                     # leaves 0..n_basins (0 unused)
+    up = np.arange(m + len(order), dtype=np.int64)       # parent in the reconstruction tree
+    height = np.zeros(m + len(order))
+    root = np.arange(m + len(order), dtype=np.int64)     # union-find over tree nodes
+
+    def find(i):
+        while root[i] != i:
+            root[i] = root[root[i]]
+            i = root[i]
+        return i
+
+    node = m
+    for e in order:
+        ra, rb = find(edge_a[e]), find(edge_b[e])
+        if ra == rb:
+            continue
+        up[ra] = up[rb] = node
+        root[ra] = root[rb] = node
+        height[node] = weight[e]
+        node += 1
+    up, height = up[:node], height[:node]
+    depth = np.zeros(node, np.int64)
+    for i in range(node - 1, -1, -1):                    # parents have larger indices
+        if up[i] != i:
+            depth[i] = depth[up[i]] + 1
+    levels = [up]
+    while (1 << len(levels)) <= depth.max(initial=0):
+        levels.append(levels[-1][levels[-1]])
+    a, b = np.asarray(a, np.int64).copy(), np.asarray(b, np.int64).copy()
+    swap = depth[a] < depth[b]
+    a[swap], b[swap] = b[swap], a[swap]
+    diff = depth[a] - depth[b]
+    for k, lv in enumerate(levels):
+        sel = (diff >> k) & 1 == 1
+        a[sel] = lv[a[sel]]
+    for lv in reversed(levels):
+        sel = lv[a] != lv[b]
+        a[sel], b[sel] = lv[a[sel]], lv[b[sel]]
+    same = a == b                                        # one was the other's ancestor
+    lca = np.where(same, a, up[a])
+    joined = same | (up[a] == up[b])                     # (roots are their own parent)
+    return np.where(joined, height[lca], np.inf)
+
+
 def _overlap(r1, r2, d):
     """Volume shared by spheres of radii r1, r2 whose centers are d apart."""
     r1, r2, d = np.broadcast_arrays(np.asarray(r1, float), np.asarray(r2, float),

@@ -230,3 +230,23 @@ def test_cut_tree_min_radius_needs_distance():
     basins, _ = V.ascent_basins(d, void)
     with pytest.raises(ValueError):
         V.cut_tree(basins, V.merge_tree(basins, d), 1.0, min_radius=2.0)
+
+
+def test_join_heights_match_cut_tree():
+    void = random_void(32, 1)
+    void[:, :, 14:17] = void[:, :, 30:] = False      # two separate void regions (periodic), so some pairs never join
+    d = V.distance_to_structure(void)
+    seeds, n = V.ascent_basins(d, void)
+    t = V.merge_tree(seeds, d)
+    r = np.random.default_rng(0)
+    a, b = r.integers(1, n + 1, 60), r.integers(1, n + 1, 60)
+    a[0] = b[0]
+    h = V.join_heights(n, t["child_edge"], t["parent_edge"], t["persistence"], a, b)
+    assert h[0] == 0 and np.isinf(h).any() and np.isfinite(h).any()
+    rep = {i: np.flatnonzero(seeds.ravel() == i)[0] for i in range(1, n + 1)}
+    for ai, bi, hi in zip(a[1:], b[1:], h[1:]):
+        top = V.cut_tree(seeds, t, np.inf if np.isinf(hi) else hi).ravel()
+        assert (top[rep[ai]] == top[rep[bi]]) != np.isinf(hi)
+        if np.isfinite(hi):
+            below = V.cut_tree(seeds, t, np.nextafter(hi, -np.inf)).ravel()
+            assert below[rep[ai]] != below[rep[bi]]

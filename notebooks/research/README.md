@@ -30,10 +30,11 @@ in `configs/research/`.
 | `18_void_definitions.ipynb` | T-web basins, DeepVoid, VIDE (pyVIDE) and VAST VoidFinder on the same box (TNG, SMDPL or Bolshoi) at λ = 3, 5, 10: size functions, slices, true T-web composition of each catalog's voids, stability across spacing, radial profiles around void centers, merge trees |
 | `19_bolshoi_halos.ipynb` | Bolshoi BDM halo positions (z = 0) from CosmoSim's TAP service; where Bolshoi's grid points sit and which halo selection matches the dissertation's halo grids; feeds notebook 18 |
 | `20_vweb.ipynb` | V-web (velocity-shear) labels on TNG300-3-Dark: dark-matter particles from the TNG API, smoothed velocity field, V-web against f × T-web eigenvalues, slices at several thresholds, class fractions and void percolation against the threshold, confusion matrix against the T-web labels |
+| `21_grid_noise.ipynb` | Grid noise in the T-web basin merge tree: labels, basins and merge trees with the grid points moved by half a cell (TNG 512³ and 256³, SMDPL 512³); change in each merge's join height (Δ and peak/pass ratio) and in the void counts |
 
 Planned:
 
 | Notebook | Purpose |
 |---|---|
-| `21_survey.ipynb` | Survey masks and radial selection |
-| `22_calibration.ipynb` | Reliability of the class scores and temperature scaling |
+| `22_survey.ipynb` | Survey masks and radial selection |
+| `23_calibration.ipynb` | Reliability of the class scores and temperature scaling |

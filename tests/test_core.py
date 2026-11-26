@@ -126,6 +126,22 @@ def test_tweb_labels_are_classes_with_metadata():
     assert lab.meta["sigma_eff"] == pytest.approx(1.0) and lab.meta["sim"] == "toy"
 
 
+def test_tweb_shift():
+    from scipy import ndimage
+    den = rng.lognormal(size=(24, 24, 24)).astype(np.float32)
+    ref = tweb_eigenvalues(den, 1.5)
+    # an integer shift is a roll; a half-cell shift and back is the identity
+    np.testing.assert_allclose(tweb_eigenvalues(den, 1.5, shift=(1, 0, 2)),
+                               np.roll(ref, (-1, 0, -2), axis=(0, 1, 2)), atol=1e-5)
+    half = tweb_eigenvalues(den, 1.5, shift=(0.5, 0.5, 0.5))
+    assert np.abs(half - ref).max() > 1e-3
+    smooth = ndimage.gaussian_filter(den / den.mean(), 1.5, mode="wrap")
+    k = np.fft.fftfreq(24) * 24
+    ph = np.exp(2j * np.pi * (k[:, None, None] + k[None, :, None] + k[None, None, :]) * 0.5 / 24)
+    moved = np.fft.ifftn(np.fft.fftn(smooth) * ph).real.astype(np.float32)
+    np.testing.assert_allclose(half, tweb_eigenvalues(moved, 0.0), atol=2e-3)
+
+
 # ---------------------------------------------------------------- split / normalization
 
 def test_slab_split_is_disjoint_with_buffers():

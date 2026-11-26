@@ -38,8 +38,15 @@ def smoothing_sigma(box_size: float, n: int, sigma_eff: float = 1.0) -> float:
     return float(np.sqrt(sigma_eff ** 2 - cell ** 2) / cell)
 
 
-def tweb_eigenvalues(density: np.ndarray, sigma_cells: float, slab: int = 32) -> np.ndarray:
+def tweb_eigenvalues(density: np.ndarray, sigma_cells: float, slab: int = 32,
+                     shift=(0.0, 0.0, 0.0)) -> np.ndarray:
     """Eigenvalues of the tidal tensor, ascending, shape (n, n, n, 3), float32.
+
+    ``shift`` (cells, per axis) evaluates the tensor on grid points moved by
+    that much: output voxel i is the point i + shift. Done as a Fourier
+    phase, so a sub-cell shift interpolates the smoothed field exactly (up
+    to the Nyquist plane, which the smoothing has already suppressed). An
+    integer shift equals ``np.roll`` by minus that shift.
 
     Memory peaks at about 12 times the size of the float32 grid
     (roughly 6 GB for 512^3, 13 GB for 640^3).
@@ -56,6 +63,9 @@ def tweb_eigenvalues(density: np.ndarray, sigma_cells: float, slab: int = 32) ->
     kz = (sfft.rfftfreq(n) * n).astype(np.float32)[None, None, :]
     k2 = kx ** 2 + ky ** 2 + kz ** 2
     k2[0, 0, 0] = 1.0  # the mean drops out: delta_k(0) * 0 / 1
+    if any(shift):
+        sx, sy, sz = (float(v) for v in shift)
+        d_k *= np.exp(2j * np.pi * (kx * sx + ky * sy + kz * sz) / n).astype(np.complex64)
 
     # Six independent components of the symmetric tensor, each (n, n, n).
     pairs = {(0, 0): (kx, kx), (1, 0): (kx, ky), (1, 1): (ky, ky),
@@ -67,18 +77,20 @@ def tweb_eigenvalues(density: np.ndarray, sigma_cells: float, slab: int = 32) ->
 
 
 def tweb_labels(density: Volume, sigma_eff: float = 1.0, threshold: float = 0.65,
-                sigma_cells: float | None = None) -> Volume:
+                sigma_cells: float | None = None, shift=(0.0, 0.0, 0.0)) -> Volume:
     """T-web class labels (uint8) for a density volume.
 
     ``sigma_cells`` overrides the smoothing computed from ``sigma_eff``, for
-    reproducing legacy masks made with a fixed sigma in cells.
+    reproducing legacy masks made with a fixed sigma in cells. ``shift``
+    moves the grid points by that many cells (see :func:`tweb_eigenvalues`),
+    to test how much the labels depend on where the grid points fall.
     """
     if sigma_cells is None:
         sigma_cells = smoothing_sigma(density.box_size, density.n, sigma_eff)
-    eig = tweb_eigenvalues(density.data, sigma_cells)
+    eig = tweb_eigenvalues(density.data, sigma_cells, shift=shift)
     labels = (eig > threshold).sum(axis=-1).astype(np.uint8)
     meta = {k: v for k, v in density.meta.items() if k not in ("field", "name")}
     meta.update(field="mask", labels="tweb", threshold=threshold,
-                sigma_cells=sigma_cells,
+                sigma_cells=sigma_cells, grid_shift_cells=[float(v) for v in shift],
                 sigma_eff=float(np.hypot(sigma_cells * density.cell_size, density.cell_size)))
     return Volume(data=labels, box_size=density.box_size, meta=meta)
