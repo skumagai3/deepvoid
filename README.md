@@ -277,14 +277,11 @@ and the simulation your data come from.
 
 ## Acknowledgments
 
-I developed DeepVoid during my PhD at Drexel University, with the DeepVoid
-collaboration: Michael Vogeley, Miguel Aragon-Calvo, Kelly Douglass, Segev
-BenZvi and Mark Neyrinck. Michael Vogeley, my PhD advisor, is an expert on
-cosmic voids and brought his knowledge of galaxy surveys and extragalactic
-physics to the project. Miguel Aragon-Calvo, my PhD co-advisor, brought his
-background in deep learning, helped substantially with the code, and his
-earlier work on deep networks for the cosmic web (Aragon-Calvo 2019) is where
-DeepVoid started.
+I developed DeepVoid during my PhD at Drexel University, advised by Michael
+Vogeley and co-advised by Miguel Aragon-Calvo, along with the DeepVoid
+collaboration: Kelly Douglass, Segev BenZvi and Mark Neyrinck. I want to thank
+them for their guidance and contributions throughout the project. DeepVoid
+builds on earlier work on deep networks for the cosmic web (Aragon-Calvo 2019).
 
 This work was supported by the John Templeton Foundation through grant 62177.
 The opinions expressed here are mine and do not necessarily reflect the views
