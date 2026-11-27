@@ -413,15 +413,36 @@ def merge_tree(basins: np.ndarray, distance: np.ndarray) -> dict:
             "volume": np.bincount(basins.ravel(), minlength=n + 1).astype(np.int64), "peak_index": peak_index}
 
 
-def cut_tree(basins: np.ndarray, tree: dict, persistence: float, distance: np.ndarray | None = None,
-             min_radius: float = 0.0) -> np.ndarray:
-    """Voids at Δ = ``persistence`` from a :func:`merge_tree`: every merge
-    with ``child_peak - pass_ <= persistence`` is applied. Gives the same
-    voids as :func:`distance_voids` with the same ``persistence`` (tested).
-    ``min_radius`` needs ``distance``."""
+def merge_mask(tree: dict, persistence: float | None = None, constriction: float | None = None) -> np.ndarray:
+    """Which merges of a :func:`merge_tree` a cut applies (boolean per merge).
+
+    Exactly one criterion:
+
+    - ``persistence`` (Δ, length): merge where ``child_peak - pass_ <= Δ``.
+    - ``constriction`` (r, dimensionless): merge where
+      ``pass_ >= r * child_peak``, i.e. keep two voids apart only where the
+      neck between them is narrower than r times the shallower void's
+      center (its largest empty-sphere radius). Scale-free, like ZOBOV's
+      density-ratio criterion, but on the distance to structure.
+    """
+    if (persistence is None) == (constriction is None):
+        raise ValueError("give exactly one of persistence and constriction")
+    if persistence is not None:
+        return np.asarray(tree["persistence"]) <= persistence
+    return np.asarray(tree["pass_"]) >= constriction * np.asarray(tree["child_peak"])
+
+
+def cut_tree(basins: np.ndarray, tree: dict, persistence: float | None = None,
+             distance: np.ndarray | None = None, min_radius: float = 0.0,
+             constriction: float | None = None) -> np.ndarray:
+    """Voids from a :func:`merge_tree`, cut at Δ = ``persistence`` (every
+    merge with ``child_peak - pass_ <= persistence`` is applied; the same
+    voids as :func:`distance_voids` with that ``persistence``, tested) or at
+    a ``constriction`` ratio (see :func:`merge_mask`). ``min_radius`` needs
+    ``distance``."""
     n = int(basins.max())
     parent = np.arange(n + 1)
-    keep = np.asarray(tree["persistence"]) <= persistence
+    keep = merge_mask(tree, persistence, constriction)
 
     def find(i):
         while parent[i] != i:
@@ -440,6 +461,21 @@ def cut_tree(basins: np.ndarray, tree: dict, persistence: float, distance: np.nd
             raise ValueError("min_radius needs the distance field")
         labels = _drop_small(labels, distance, min_radius)
     return labels
+
+
+def surviving_boundaries(tree: dict, merged: np.ndarray) -> np.ndarray:
+    """Merges not applied by a cut that still separate two different voids
+    (boolean per merge), given the cut's :func:`merge_mask`. A merge left
+    out can still join basins that other applied merges already connect;
+    those are not boundaries between voids."""
+    from scipy.sparse import coo_matrix
+    from scipy.sparse.csgraph import connected_components
+    a = np.asarray(tree["child_edge"], np.int64)
+    b = np.asarray(tree["parent_edge"], np.int64)
+    n = int(max(a.max(initial=0), b.max(initial=0))) + 1
+    g = coo_matrix((np.ones(int(merged.sum())), (a[merged], b[merged])), shape=(n, n))
+    comp = connected_components(g, directed=False)[1]
+    return ~merged & (comp[a] != comp[b])
 
 
 def join_heights(n_basins: int, edge_a, edge_b, weight, a, b) -> np.ndarray:

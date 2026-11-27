@@ -263,3 +263,26 @@ def test_internal_boundaries():
     assert b["structure_faces"] == 2 * 8 * 8    # both sides of the structure plane
     assert b["internal"][[0, 3, 4, 7]][:, :, 1:].all() and not b["internal"][[1, 2, 5, 6]].any()
     assert b["structure"][:, :, [1, 7]].all()
+
+
+def test_cut_tree_by_constriction():
+    void = random_void(32, 2)
+    d = V.distance_to_structure(void)
+    seeds, n = V.ascent_basins(d, void)
+    t = V.merge_tree(seeds, d)
+    ratio = t["pass_"] / t["child_peak"]
+    lab = V.cut_tree(seeds, t, constriction=0.7)
+    m = V.merge_mask(t, constriction=0.7)
+    assert np.array_equal(m, ratio >= 0.7)
+    # each applied merge joins its two basins; each surviving boundary separates two voids
+    rep = {i: np.flatnonzero(seeds.ravel() == i)[0] for i in range(1, n + 1)}
+    flat = lab.ravel()
+    for c, p in zip(t["child_edge"][m], t["parent_edge"][m]):
+        assert flat[rep[c]] == flat[rep[p]]
+    surv = V.surviving_boundaries(t, m)
+    for c, p in zip(t["child_edge"][surv], t["parent_edge"][surv]):
+        assert flat[rep[c]] != flat[rep[p]]
+    assert surv.any() and (~m & ~surv).sum() >= 0
+    with pytest.raises(ValueError):
+        V.cut_tree(seeds, t, 1.0, constriction=0.7)
+    assert np.array_equal(V.cut_tree(seeds, t, 1.0), V.cut_tree(seeds, t, persistence=1.0))
