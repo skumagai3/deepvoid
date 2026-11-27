@@ -501,6 +501,40 @@ def join_heights(n_basins: int, edge_a, edge_b, weight, a, b) -> np.ndarray:
     return np.where(joined, height[lca], np.inf)
 
 
+def internal_boundaries(labels: np.ndarray, void: np.ndarray) -> dict:
+    """Where voids meet each other, as opposed to where they meet structure.
+
+    For void labels (0 = not in a void) and the void-voxel mask they were
+    made from, a labeled voxel is on an **internal** boundary when one of its
+    six (periodic) neighbors has a different nonzero label, and on a
+    **structure** boundary when a neighbor is not a void voxel. Returns the
+    two boolean masks and the face counts (each touching pair of voxels
+    counted once): ``internal_faces``, ``structure_faces``.
+
+    Internal boundaries that run through open void space (far from any
+    non-void voxel) are geometric cuts, not walls; with the distance to
+    structure, ``distance[internal]`` measures how far from structure each
+    internal-boundary voxel sits.
+    """
+    lab = np.asarray(labels)
+    void = np.asarray(void, dtype=bool)
+    internal = np.zeros(lab.shape, bool)
+    structure = np.zeros(lab.shape, bool)
+    n_int = n_str = 0
+    for ax in range(3):
+        for sh in (1, -1):
+            nb = np.roll(lab, sh, axis=ax)
+            meet = (lab > 0) & (nb > 0) & (nb != lab)
+            internal |= meet
+            if sh == 1:
+                n_int += int(meet.sum())
+            wall = (lab > 0) & ~np.roll(void, sh, axis=ax)
+            structure |= wall
+            n_str += int(wall.sum())
+    return {"internal": internal, "structure": structure,
+            "internal_faces": n_int, "structure_faces": n_str}
+
+
 def _overlap(r1, r2, d):
     """Volume shared by spheres of radii r1, r2 whose centers are d apart."""
     r1, r2, d = np.broadcast_arrays(np.asarray(r1, float), np.asarray(r2, float),

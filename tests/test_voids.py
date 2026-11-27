@@ -250,3 +250,16 @@ def test_join_heights_match_cut_tree():
         if np.isfinite(hi):
             below = V.cut_tree(seeds, t, np.nextafter(hi, -np.inf)).ravel()
             assert below[rep[ai]] != below[rep[bi]]
+
+
+def test_internal_boundaries():
+    void = np.ones((8, 8, 8), bool)
+    void[:, :, 0] = False                       # one structure plane (periodic: a slab of void between)
+    lab = np.zeros((8, 8, 8), int)
+    lab[:4, :, 1:] = 1
+    lab[4:, :, 1:] = 2                          # two voids cut along x at 4 and (periodic) at 0
+    b = V.internal_boundaries(lab, void)
+    assert b["internal_faces"] == 2 * 8 * 7     # two cut planes of 8 x 7 faces
+    assert b["structure_faces"] == 2 * 8 * 8    # both sides of the structure plane
+    assert b["internal"][[0, 3, 4, 7]][:, :, 1:].all() and not b["internal"][[1, 2, 5, 6]].any()
+    assert b["structure"][:, :, [1, 7]].all()
