@@ -9,7 +9,8 @@ free of choices.
    the void mask, labeled and grown back over the void voxels.
 2. :func:`distance_voids`: basins of the distance to the nearest non-void
    voxel (a watershed), merged when a basin is a shallow dent in a bigger
-   one (persistence) or when the neck between two is wide for their size.
+   one (depth cut, persistence) or when the throat between two is wide
+   compared with the smaller one's center radius (constriction cut).
 3. :func:`soft_distance` + :func:`distance_voids`: the same, on a distance
    averaged over several void-score thresholds, so that walls the model is
    unsure of separate voids less than confident ones.
@@ -149,8 +150,9 @@ def ascent_basins(field: np.ndarray, mask: np.ndarray) -> tuple[np.ndarray, int]
     Each voxel in ``mask`` points to its highest neighbor (26, periodic) if
     that neighbor is higher, and otherwise is a peak; following the
     pointers ends at a peak, and each peak's voxels form one basin. A flat
-    top split between several peaks gives several basins whose pass equals
-    their peak, so any merge rule in :func:`merge_basins` joins them again.
+    top split between several peaks gives several basins whose throat
+    equals their peak, so any merge rule in :func:`merge_basins` joins them
+    again.
     """
     mask = np.asarray(mask, dtype=bool)
     f = np.where(mask, field, -np.inf).astype(np.float32)
@@ -207,7 +209,8 @@ def grow_labels(labels: np.ndarray, mask: np.ndarray, max_steps: int = 10_000) -
 def _pair_saddles(labels: np.ndarray, field: np.ndarray):
     """For each pair of touching labels: the highest value of
     min(field_i, field_j) over face-neighbor voxel pairs i, j on their
-    shared boundary (the pass between them)."""
+    shared boundary: the throat between them, i.e. the saddle point of the
+    field between the two peaks."""
     n = int(labels.max())
     keys, vals = [], []
     for axis in range(3):
@@ -234,19 +237,19 @@ def _pair_saddles(labels: np.ndarray, field: np.ndarray):
 
 def merge_basins(labels: np.ndarray, field: np.ndarray,
                  rule: Callable[[float, float, float], bool], return_pairs: bool = False):
-    """Merge touching basins, highest pass first.
+    """Merge touching basins, widest throat first.
 
-    For each touching pair, in order of decreasing pass value s (see
+    For each touching pair, in order of decreasing throat value s (see
     :func:`_pair_saddles`), the two current groups are merged when
     ``rule(s, peak_a, peak_b)`` is true, where peak is the highest value of
     ``field`` in each group so far. This is the order ZOBOV merges zones in.
 
     Returns the merged labels, their number, and the merge history: one
-    row (lower peak, pass) per merge, i.e. the birth and death of the basin
+    row (lower peak, throat) per merge, i.e. the birth and death of the basin
     that disappeared, for a persistence diagram. With ``return_pairs``,
     also, per merge, the labels (child, parent, child_edge, parent_edge):
     the peak basins of the lower and the higher group (elder rule), and the
-    two touching basins whose pass joined them.
+    two touching basins whose throat joined them.
     """
     n = int(labels.max())
     if n == 0:
@@ -340,19 +343,28 @@ def distance_voids(void: np.ndarray, distance: np.ndarray | None = None,
     """Options 2 and 3: basins of the distance to structure, then merged.
 
     Basins grow from the local maxima of the distance (void centers; see
-    :func:`ascent_basins`). Touching basins are merged, highest pass first,
-    by one of two rules (give exactly one):
+    :func:`ascent_basins`). Each basin's peak is its **center radius**: the
+    radius of the largest empty sphere inside it. Where two basins touch,
+    the **throat radius** is the radius of the largest empty sphere that
+    fits through the opening between them (the saddle point of the
+    distance between the two peaks; "pore body" and "throat" in the
+    porous-media literature, which segments pore space the same way, e.g.
+    Gostick 2017, Phys. Rev. E 96, 023307). Touching basins are merged, widest throat first, by one
+    of two rules (give exactly one), with the center radius of the smaller
+    of the two:
 
-    - ``persistence``: merge while the smaller basin's peak is less than
-      ``persistence`` (h^-1 Mpc) above the pass, i.e. it is a shallow dent
-      in a bigger void. Small values keep every distinct dip; large values
-      approach connected components.
-    - ``merge_ratio``: merge while the pass is at least ``merge_ratio``
-      times the smaller basin's peak (a neck wide for its size).
+    - ``persistence`` (depth cut, Δ in h^-1 Mpc): merge if the center radius
+      exceeds the throat radius by at most Δ, i.e. the smaller basin is a
+      shallow dent in a bigger void. Small values keep every distinct dip;
+      large values approach connected components.
+    - ``merge_ratio`` (constriction cut, r): merge if the throat radius is
+      at least r times the center radius; two voids stay apart only where
+      the throat narrows below r times the smaller void's center radius.
 
     Voids whose largest empty-sphere radius is below ``min_radius`` are
     dropped. Pass ``distance=soft_distance(...)`` for option 3. With
-    ``return_history``, also returns the (birth, death) = (peak, pass) of
+    ``return_history``, also returns the (birth, death) = (center radius,
+    throat radius) of
     every merged basin, for a persistence diagram.
     """
     if (persistence is None) == (merge_ratio is None):
@@ -371,8 +383,9 @@ def distance_voids(void: np.ndarray, distance: np.ndarray | None = None,
 
 
 def basin_persistence(void: np.ndarray, distance: np.ndarray) -> np.ndarray:
-    """(birth, death) of every basin of the distance field: its peak and the
-    pass at which it joins a higher one, merging everything that touches.
+    """(birth, death) of every basin of the distance field: its center
+    radius (peak) and the throat radius at which it joins a higher one,
+    merging everything that touches.
     Basins that never merge (one per connected void region) are left out.
     Points far below the diagonal are distinct voids; points near it are
     dents in a larger one."""
@@ -385,16 +398,18 @@ def merge_tree(basins: np.ndarray, distance: np.ndarray) -> dict:
     """The full merge tree of the basins of the distance field.
 
     ``basins`` are the unmerged basins (:func:`ascent_basins`). Every
-    touching pair is merged, highest pass first, as in
+    touching pair is merged, widest throat first, as in
     :func:`basin_persistence`; each merge is one row: the ``child`` basin
     (peak basin of the lower group) joins the ``parent`` basin (peak basin of
-    the higher group) at height ``pass_``. ``persistence = child_peak -
-    pass_`` is the Δ above which the child is merged away. Per basin
+    the higher group) through a throat of radius ``pass_``; ``child_peak``
+    is the child's center radius (the smaller void's). ``persistence =
+    child_peak - pass_`` is the Δ above which the child is merged away
+    (see :func:`distance_voids` for center and throat radius). Per basin
     (index = label; index 0 unused): ``peak`` (its largest distance, the
     radius of its largest empty sphere), ``volume`` (in voxels) and
     ``peak_index`` (flat index of its peak voxel). :func:`cut_tree` turns
     the tree into the voids at any Δ: it needs ``child_edge`` and
-    ``parent_edge``, the two touching basins whose pass is the merge (with
+    ``parent_edge``, the two touching basins whose throat is the merge (with
     a cut, the child joins whatever group the touching basin is in then,
     which need not contain ``parent``).
     """
@@ -416,14 +431,19 @@ def merge_tree(basins: np.ndarray, distance: np.ndarray) -> dict:
 def merge_mask(tree: dict, persistence: float | None = None, constriction: float | None = None) -> np.ndarray:
     """Which merges of a :func:`merge_tree` a cut applies (boolean per merge).
 
-    Exactly one criterion:
+    Exactly one criterion, with the center radius of the smaller void
+    (``child_peak``) and the throat radius between the two (``pass_``; see
+    :func:`distance_voids`):
 
-    - ``persistence`` (Δ, length): merge where ``child_peak - pass_ <= Δ``.
-    - ``constriction`` (r, dimensionless): merge where
-      ``pass_ >= r * child_peak``, i.e. keep two voids apart only where the
-      neck between them is narrower than r times the shallower void's
-      center (its largest empty-sphere radius). Scale-free, like ZOBOV's
-      density-ratio criterion, but on the distance to structure.
+    - ``persistence`` (depth cut, Δ in h^-1 Mpc): merge where the center
+      radius exceeds the throat radius by at most Δ
+      (``child_peak - pass_ <= Δ``).
+    - ``constriction`` (constriction cut, r, dimensionless): merge where the
+      throat radius is at least r times the center radius
+      (``pass_ >= r * child_peak``); two voids stay apart only where the
+      throat narrows below r times the smaller void's center radius.
+      Scale-free, like ZOBOV's density-ratio criterion, but on the distance
+      to structure.
     """
     if (persistence is None) == (constriction is None):
         raise ValueError("give exactly one of persistence and constriction")
